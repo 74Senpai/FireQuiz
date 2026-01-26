@@ -6,11 +6,11 @@
 
 ## Lý do chọn đề tài
 
-Hiện nay dù tồn tại nhiều nền tảng cho phép người dùng tạo và chia sẻ các bộ quiz online nhưng phần lớn trong số chúng có quá nhiều chức năng phức tạp hoặc phải trả phí. Vì vậy, nhóm chúng em thực hiện đề tài xây dựng một ứng dụng web cho phép người dùng tạo và chia sẻ quiz miễn phí,  đơn giản và dễ dàng.
+Hiện nay dù tồn tại nhiều nền tảng cho phép người dùng tạo và chia sẻ các bộ quiz online nhưng phần lớn trong số chúng có quá nhiều chức năng phức tạp hoặc phải trả phí. Vì vậy, nhóm chúng em thực hiện đề tài xây dựng một ứng dụng web cho phép người dùng tạo và chia sẻ quiz miễn phí, đơn giản và dễ dàng.
 
 ## Đối tượng sử dụng
 
-Bất kì ai có nhu cầu tạo và chia sẻ các bộ quiz.
+Bất kì ai có nhu cầu tạo và chia sẻ các bộ quiz hoặc làm quiz.
 
 ## Mục tiêu của đề tài
 
@@ -19,7 +19,7 @@ Bất kì ai có nhu cầu tạo và chia sẻ các bộ quiz.
 - Áp dụng kiến thức đã học về phân tích thiết kế hệ thống thông tin vào xây dựng ứng dụng web thực tế.
 - Ứng dụng kiến thức đã học về phương pháp Agile, áp dụng framework Scrum trong quản lý dự án công nghệ thông tin.
 
-## Phạm vi đề tài 
+## Phạm vi đề tài
 
 - Đề tài tập trung vào các chức năng cơ bản của hệ thống quiz.
 - Không triển khai các tính năng nâng cao như thanh toán, phân tích dữ liệu lớn,...
@@ -36,6 +36,9 @@ Bất kì ai có nhu cầu tạo và chia sẻ các bộ quiz.
 
 ### Ngôn ngữ sử dụng
 - Javascript
+
+### Hệ quản trị cơ sở dữ liệu sử dụng
+- MySQL
 
 ## Thành viên & vai trò
 
