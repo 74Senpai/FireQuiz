@@ -101,4 +101,4 @@ Lý do:
   - Tự động hóa quy trình triển khai (CI/CD).
 * **Nhược điểm**:
   - Gói miễn phí có giới hạn về tài nguyên (RAM/CPU) và thời gian chạy (credit). Cần theo dõi để tránh ứng dụng bị dừng đột ngột khi hết hạn mức.
-  - Không thể dùng các thư viện network như `smpt` do Railway không cho phép mở cổng tùy ý.
+  - Không thể dùng các thư viện network như `smtp` do Railway không cho phép mở cổng tùy ý.
