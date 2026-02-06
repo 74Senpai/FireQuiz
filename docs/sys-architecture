@@ -1,0 +1,41 @@
+# SYSTEM ARCHITECTURE DOCUMENT
+## Tài liệu Kiến trúc Hệ thống - Dự án FireQuiz
+
+### 1. TỔNG QUAN HỆ THỐNG
+**1.1. Mô tả ngắn**
+FireQuiz là một ứng dụng web cho phép người dùng tạo, quản lý và thực hiện các bài kiểm tra trắc nghiệm trực tuyến. Hệ thống hỗ trợ các tính năng từ soạn thảo câu hỏi, tổ chức đề thi đến chấm điểm tự động và thống kê kết quả. Ứng dụng hướng đến trải nghiệm mượt mà, tốc độ phản hồi nhanh và tính chính xác cao trong dữ liệu.
+
+---
+
+### 2. KIẾN TRÚC ÁP DỤNG
+**Chọn kiến trúc:** 
+☐ Monolithic  **[x] Layered**  ☐ Microservices  ☐ Khác: **Decoupled Client-Server**
+
+**Lý do chọn:**
+*   **Tách biệt trách nhiệm (Separation of Concerns):** Phân chia rõ ràng giữa giao diện (Front-end) và logic xử lý (Back-end), giúp nhóm phát triển song song hiệu quả.
+*   **Cấu trúc Layered (Back-end):** Việc chia nhỏ Back-end thành các lớp Controller - Service - Repository giúp mã nguồn dễ bảo trì, dễ viết Unit Test và tránh lặp lại logic nghiệp vụ.
+*   **Khả năng mở rộng:** Kiến trúc này cho phép dễ dàng tích hợp thêm các loại Client khác (như Mobile App) trong tương lai mà không cần thay đổi Back-end.
+
+---
+
+### 3. CÔNG NGHỆ SỬ DỤNG (Technology Stack)
+*   **Front-end:** ReactJS (Single Page Application), Tailwind CSS (UI), Axios (Giao tiếp API).
+*   **Back-end:** Node.js & Express.js Framework.
+*   **Cơ sở dữ liệu:** MySQL (Hệ quản trị CSDL quan hệ).
+*   **Xác thực:** JSON Web Token (JWT).
+*   **Triển khai (Deployment):** Railway (PaaS), hỗ trợ CI/CD qua GitHub.
+
+---
+
+### 4. CÁC THÀNH PHẦN CHÍNH
+Hệ thống được chia thành các module nghiệp vụ chính sau:
+
+1.  **Module Người dùng (User Management):** Quản lý đăng ký, đăng nhập, thông tin cá nhân và phân quyền (Admin/User).
+2.  **Module Đề thi (Quiz Management):** Quản lý danh sách đề thi, tạo/sửa/xóa bộ câu hỏi và các lựa chọn đáp án.
+3.  **Module Làm bài (Attempt/Examination):** Xử lý logic khi người dùng thực hiện bài thi, quản lý thời gian làm bài và ghi nhận câu trả lời.
+4.  **Module Kết quả & Thống kê (Result & Analytics):** Tự động chấm điểm, lưu trữ lịch sử làm bài và cung cấp báo cáo điểm số.
+5.  **Module Trung gian (Middleware):** Kiểm soát quyền truy cập (Authentication), xử lý lỗi (Error Handling) và quản lý CORS.
+
+---
+
+### 5. THAM CHIẾU DIAGRAMS
