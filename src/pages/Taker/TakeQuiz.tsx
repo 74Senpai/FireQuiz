@@ -56,15 +56,17 @@ export function TakeQuiz() {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
       {/* Header / Timer */}
-      <div className="sticky top-0 z-10 bg-white border-b border-slate-200 pb-4 pt-2 flex items-center justify-between">
+      <div className="sticky top-0 z-10 bg-white/10 backdrop-blur-md border-b border-white/20 pb-4 pt-2 flex items-center justify-between shadow-lg">
         <div>
-          <h2 className="text-xl font-bold tracking-tight">Midterm Exam - Math 101</h2>
-          <p className="text-sm text-slate-500">Question {currentQuestion + 1} of {questions.length}</p>
+          <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">Midterm Exam - Math 101</h2>
+          <p className="text-sm text-slate-400 mt-1">Question {currentQuestion + 1} of {questions.length}</p>
         </div>
-        <div className={`flex items-center gap-3 px-4 py-2 rounded-full font-mono text-lg font-bold border ${
-          timeLeft < 300 ? 'bg-red-50 text-red-600 border-red-200' : 'bg-slate-50 text-slate-700 border-slate-200'
+        <div className={`flex items-center gap-3 px-6 py-3 rounded-lg font-mono text-lg font-bold border transition-all duration-300 shadow-lg ${
+          timeLeft < 300 
+            ? 'bg-red-500/30 text-red-200 border-red-400/50 animate-pulse' 
+            : 'bg-emerald-500/30 text-emerald-200 border-emerald-400/50'
         }`}>
           <Clock className="w-5 h-5" />
           {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
@@ -72,17 +74,17 @@ export function TakeQuiz() {
       </div>
 
       {/* Question Content */}
-      <Card className="border-indigo-100 shadow-md">
+      <Card className="border-indigo-400/30 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl shadow-2xl hover:shadow-indigo-500/30 animate-slide-up">
         <CardContent className="p-8 space-y-8">
-          <h3 className="text-xl font-medium text-slate-900 leading-relaxed">
+          <h3 className="text-2xl font-semibold text-slate-100 leading-relaxed">
             {questions[currentQuestion].text}
           </h3>
           
           <div className="space-y-3">
             {questions[currentQuestion].options.map((opt, i) => (
-              <label key={i} className="flex items-center gap-4 p-4 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50">
-                <input type="radio" name={`q${currentQuestion}`} className="w-5 h-5 text-indigo-600 border-slate-300 focus:ring-indigo-600" />
-                <span className="text-slate-700 font-medium">{opt}</span>
+              <label key={i} className="flex items-center gap-4 p-4 rounded-lg border border-white/20 hover:border-indigo-400/60 bg-white/5 hover:bg-indigo-400/20 cursor-pointer transition-all duration-300 has-[:checked]:border-indigo-400 has-[:checked]:bg-indigo-500/30 group">
+                <input type="radio" name={`q${currentQuestion}`} className="w-5 h-5 text-indigo-400 border-white/30 focus:ring-indigo-400" />
+                <span className="text-slate-100 font-medium group-hover:text-slate-50 transition-colors duration-300">{opt}</span>
               </label>
             ))}
           </div>
@@ -90,21 +92,22 @@ export function TakeQuiz() {
       </Card>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between pt-4">
+      <div className="flex items-center justify-between pt-4 animate-slide-up animate-delay-100">
         <Button 
           variant="outline" 
           disabled={currentQuestion === 0}
           onClick={() => setCurrentQuestion(p => p - 1)}
+          className="border-slate-400/50 text-slate-100 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Previous
         </Button>
         
         {currentQuestion === questions.length - 1 ? (
-          <Button onClick={handleSubmit} className="bg-emerald-600 hover:bg-emerald-700 gap-2">
+          <Button onClick={handleSubmit} className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 gap-2 shadow-lg">
             <AlertTriangle className="w-4 h-4" /> Submit Quiz
           </Button>
         ) : (
-          <Button onClick={() => setCurrentQuestion(p => p + 1)}>
+          <Button onClick={() => setCurrentQuestion(p => p + 1)} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg">
             Next Question
           </Button>
         )}

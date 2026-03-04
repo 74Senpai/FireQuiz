@@ -8,54 +8,60 @@ export function QuizEditor() {
   const [activeTab, setActiveTab] = useState("settings");
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-8 max-w-5xl mx-auto animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Create New Quiz</h2>
-          <p className="text-slate-500">Configure settings, add questions, and publish.</p>
+          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">Create New Quiz</h2>
+          <p className="text-slate-400 mt-1">Configure settings, add questions, and publish.</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">Save Draft</Button>
-          <Button>Publish Quiz</Button>
+        <div className="flex gap-3">
+          <Button variant="outline" className="border-slate-400/50 text-slate-100 hover:bg-white/10">Save Draft</Button>
+          <Button className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-lg">Publish Quiz</Button>
         </div>
       </div>
 
-      <div className="flex gap-6">
+      <div className="grid grid-cols-12 gap-6">
         {/* Sidebar Navigation */}
-        <div className="w-64 shrink-0 space-y-1">
+        <div className="col-span-3 space-y-1">
           <button
             onClick={() => setActiveTab("settings")}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeTab === "settings" ? "bg-indigo-50 text-indigo-600" : "text-slate-600 hover:bg-slate-50"
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ease-out ${
+              activeTab === "settings" 
+                ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30" 
+                : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
           >
-            <Settings className="w-4 h-4" /> General Settings
+            <Settings className="w-5 h-5" /> Settings
           </button>
           <button
             onClick={() => setActiveTab("questions")}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeTab === "questions" ? "bg-indigo-50 text-indigo-600" : "text-slate-600 hover:bg-slate-50"
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ease-out ${
+              activeTab === "questions" 
+                ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30" 
+                : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
           >
-            <ShieldAlert className="w-4 h-4" /> Questions & Anti-Cheat
+            <ShieldAlert className="w-5 h-5" /> Questions
           </button>
           <button
             onClick={() => setActiveTab("schedule")}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeTab === "schedule" ? "bg-indigo-50 text-indigo-600" : "text-slate-600 hover:bg-slate-50"
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ease-out ${
+              activeTab === "schedule" 
+                ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30" 
+                : "text-slate-300 hover:bg-white/10 hover:text-white"
             }`}
           >
-            <Calendar className="w-4 h-4" /> Schedule & Access
+            <Calendar className="w-5 h-5" /> Schedule
           </button>
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 space-y-6">
+        <div className="col-span-9 space-y-6 animate-slide-up animate-delay-100">
           {activeTab === "settings" && (
-            <Card>
+            <Card className="bg-white/5 backdrop-blur-md border-white/10 shadow-2xl">
               <CardHeader>
-                <CardTitle>General Settings</CardTitle>
-                <CardDescription>Basic information and grading rules.</CardDescription>
+                <CardTitle className="text-slate-100">General Settings</CardTitle>
+                <CardDescription className="text-slate-400">Basic information and grading rules.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
@@ -91,10 +97,10 @@ export function QuizEditor() {
           )}
 
           {activeTab === "questions" && (
-            <Card>
+            <Card className="bg-white/5 backdrop-blur-md border-white/10 shadow-2xl">
               <CardHeader>
-                <CardTitle>Questions & Anti-Cheat</CardTitle>
-                <CardDescription>Manage questions and randomize to prevent cheating.</CardDescription>
+                <CardTitle className="text-slate-100">Questions & Anti-Cheat</CardTitle>
+                <CardDescription className="text-slate-400">Manage questions and randomize to prevent cheating.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="p-4 border border-indigo-100 bg-indigo-50/50 rounded-lg space-y-4">
