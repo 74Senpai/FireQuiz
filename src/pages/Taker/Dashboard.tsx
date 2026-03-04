@@ -16,36 +16,36 @@ export function TakerDashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between animate-fade-in">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Student Dashboard</h2>
-          <p className="text-slate-500">Join new quizzes and view your past results.</p>
+          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">Student Dashboard</h2>
+          <p className="text-slate-400 mt-1">Join new quizzes and view your past results.</p>
         </div>
-        <div className="flex gap-2 items-center bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
-          <Input placeholder="Enter Quiz Code" className="w-48 border-0 focus-visible:ring-0 bg-slate-50" />
-          <Button>Join Quiz</Button>
+        <div className="flex gap-3 items-center bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20 shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <Input placeholder="Enter Quiz Code" className="w-48 border-0 focus-visible:ring-0 bg-white/20 text-white placeholder:text-slate-300" />
+          <Button className="bg-gradient-to-r from-indigo-600 to-purple-600">Join</Button>
         </div>
       </div>
 
-      <div>
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Clock className="w-5 h-5 text-indigo-500" /> Available Quizzes
+      <div className="animate-fade-in animate-delay-100">
+        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-slate-100">
+          <Clock className="w-6 h-6 text-indigo-400 animate-float" /> Available Quizzes
         </h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {availableQuizzes.map((quiz) => (
-            <Card key={quiz.id} className="border-indigo-100 shadow-sm hover:shadow-md transition-shadow">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {availableQuizzes.map((quiz, index) => (
+            <Card key={quiz.id} className="border-indigo-400/30 hover:border-indigo-400/60 shadow-xl hover:shadow-2xl hover:shadow-indigo-500/30 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl group" style={{ animationDelay: `${index * 100}ms` }}>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-semibold line-clamp-1">{quiz.title}</CardTitle>
-                <CardDescription className="text-amber-600 font-medium">Due: {quiz.dueDate}</CardDescription>
+                <CardTitle className="text-lg font-bold line-clamp-1 text-slate-100 group-hover:text-indigo-300 transition-colors duration-300">{quiz.title}</CardTitle>
+                <CardDescription className="text-amber-400 font-semibold mt-1">Due: {quiz.dueDate}</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex justify-between text-sm text-slate-500 mb-4">
-                  <span>{quiz.timeLimit} mins</span>
-                  <span>{quiz.questions} questions</span>
+                <div className="flex justify-between text-sm text-slate-400 mb-4 font-medium">
+                  <span>⏱️ {quiz.timeLimit} mins</span>
+                  <span>❓ {quiz.questions} Qs</span>
                 </div>
-                <Link to={`/dashboard/quiz/${quiz.id}/take`}>
-                  <Button className="w-full gap-2 bg-indigo-600 hover:bg-indigo-700">
-                    <Play className="w-4 h-4" /> Start Quiz
+                <Link to={`/dashboard/quiz/${quiz.id}/take`} className="block">
+                  <Button className="w-full gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg group-hover:shadow-indigo-500/50">
+                    <Play className="w-4 h-4 group-hover:animate-pulse" /> Start Quiz
                   </Button>
                 </Link>
               </CardContent>
@@ -54,25 +54,25 @@ export function TakerDashboard() {
         </div>
       </div>
 
-      <div>
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <CheckCircle className="w-5 h-5 text-emerald-500" /> Recently Completed
+      <div className="animate-fade-in animate-delay-200">
+        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-slate-100">
+          <CheckCircle className="w-6 h-6 text-emerald-400 animate-float" /> Recently Completed
         </h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {completedQuizzes.map((quiz) => (
-            <Card key={quiz.id} className="bg-slate-50 border-slate-200">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {completedQuizzes.map((quiz, index) => (
+            <Card key={quiz.id} className="bg-gradient-to-br from-emerald-900/30 to-slate-900/50 backdrop-blur-xl border-emerald-400/30 hover:border-emerald-400/60 shadow-xl hover:shadow-2xl hover:shadow-emerald-500/30 group" style={{ animationDelay: `${index * 100}ms` }}>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-semibold line-clamp-1 text-slate-700">{quiz.title}</CardTitle>
-                <CardDescription>Completed on {quiz.date}</CardDescription>
+                <CardTitle className="text-lg font-bold line-clamp-1 text-slate-100 group-hover:text-emerald-300 transition-colors duration-300">{quiz.title}</CardTitle>
+                <CardDescription className="text-slate-400">Completed on {quiz.date}</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm text-slate-500">Score</span>
-                  <span className="font-bold text-lg text-emerald-600">{quiz.score}</span>
+                <div className="flex items-center justify-between mb-4 p-3 bg-white/5 rounded-lg">
+                  <span className="text-sm text-slate-400 font-semibold">Score</span>
+                  <span className="font-bold text-xl text-emerald-400">{quiz.score}</span>
                 </div>
-                <Link to={`/dashboard/quiz/${quiz.id}/review`}>
-                  <Button variant="outline" className="w-full gap-2">
-                    Review Answers <ArrowRight className="w-4 h-4" />
+                <Link to={`/dashboard/quiz/${quiz.id}/review`} className="block">
+                  <Button variant="outline" className="w-full gap-2 border-emerald-400/50 hover:bg-emerald-500/20 text-slate-100 hover:text-emerald-300">
+                    Review Answers <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
                   </Button>
                 </Link>
               </CardContent>
