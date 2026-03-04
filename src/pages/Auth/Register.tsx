@@ -2,43 +2,89 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import React from "react";
 
 export function Register() {
+  const [isLoading, setIsLoading] = React.useState(false);
+  const navigate = useNavigate();
+
+  const handleRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+      navigate("/dashboard");
+    }, 1000);
+  };
+
   return (
-    <Card>
-      <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-2xl">Create an account</CardTitle>
-        <CardDescription>Enter your email below to create your account</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium leading-none" htmlFor="name">
-            Full Name
-          </label>
-          <Input id="name" placeholder="John Doe" type="text" />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium leading-none" htmlFor="email">
-            Email
-          </label>
-          <Input id="email" placeholder="m@example.com" type="email" />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium leading-none" htmlFor="password">
-            Password
-          </label>
-          <Input id="password" type="password" />
-        </div>
-      </CardContent>
-      <CardFooter className="flex flex-col gap-2">
-        <Button className="w-full">Create account</Button>
-        <div className="mt-4 text-center text-sm text-slate-500">
-          Already have an account?{" "}
-          <Link to="/login" className="text-indigo-600 hover:underline">
-            Sign in
-          </Link>
-        </div>
-      </CardFooter>
-    </Card>
+    <div className="group">
+      <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+      <Card className="relative bg-white/95 backdrop-blur-xl border border-white/20 shadow-2xl">
+        <CardHeader className="space-y-2 text-center">
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">Create an account</CardTitle>
+          <CardDescription className="text-slate-600">Join us to start taking amazing quizzes</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="space-y-2 animate-slide-up animate-delay-100">
+            <label className="text-sm font-semibold text-slate-700" htmlFor="name">
+              Full Name
+            </label>
+            <Input 
+              id="name" 
+              placeholder="John Doe" 
+              type="text"
+              className="bg-slate-50/80 border border-slate-200 focus-visible:ring-pink-500"
+            />
+          </div>
+          <div className="space-y-2 animate-slide-up animate-delay-200">
+            <label className="text-sm font-semibold text-slate-700" htmlFor="email">
+              Email Address
+            </label>
+            <Input 
+              id="email" 
+              placeholder="name@example.com" 
+              type="email"
+              className="bg-slate-50/80 border border-slate-200 focus-visible:ring-pink-500"
+            />
+          </div>
+          <div className="space-y-2 animate-slide-up animate-delay-300">
+            <label className="text-sm font-semibold text-slate-700" htmlFor="password">
+              Password
+            </label>
+            <Input 
+              id="password" 
+              type="password"
+              placeholder="••••••••"
+              className="bg-slate-50/80 border border-slate-200 focus-visible:ring-pink-500"
+            />
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-3">
+          <Button 
+            onClick={handleRegister}
+            className="w-full text-base font-semibold py-6 mb-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 animate-slide-up animate-delay-400"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+                Creating account...
+              </>
+            ) : (
+              "Get Started"
+            )}
+          </Button>
+          <div className="text-center text-sm text-slate-600 animate-slide-up animate-delay-500">
+            Already have an account?{" "}
+            <Link to="/login" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline transition-colors duration-200">
+              Sign in here
+            </Link>
+          </div>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }
+
+import { useNavigate } from "react-router-dom";
