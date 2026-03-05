@@ -48,3 +48,23 @@ Bất kì ai có nhu cầu tạo và chia sẻ các bộ quiz hoặc làm quiz.
 | Scrum Master     | Trần Đức Thông  |
 | Development Team | Trần Đức Thông<br> Vũ Mạnh Huy<br> Nguyễn Huy Hoàng<br> Nguyễn Lương Tiên |
 
+## Cài đặt
+1. Clone repository về máy:
+   ```bash
+   git clone https://github.com/74Senpai/FireQuiz.git
+    ```
+2. Cài đặt dependencies:
+- Frontend:
+   ```bash
+   npm install
+   ```
+
+4. Chạy ứng dụng:
+- Development mode:
+   ```bash
+   npm run dev
+   ```
+- Production mode:
+   ```bash
+    npm start
+    ```
