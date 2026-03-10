@@ -23,24 +23,23 @@ export function QuizEditor() {
    * validate settings tab fields
    * comments: title is required, time limit must be positive integer
    */
-  const validateSettings = () => {
-    const errs: { [key: string]: string } = {};
+  const validateSettings = (currentErrs: { [key: string]: string } = {}) => {
+    const errs = { ...currentErrs };
     if (!title.trim()) {
       errs.title = "Tiêu đề Quiz là bắt buộc";
     }
     if (timeLimit && Number(timeLimit) < 1) {
       errs.timeLimit = "Time limit phải lớn hơn hoặc bằng 1";
     }
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
+    return errs;
   };
 
   /**
    * validate schedule tab fields
    * openTime must come before closeTime if both set
    */
-  const validateSchedule = () => {
-    const errs: { [key: string]: string } = {};
+  const validateSchedule = (currentErrs: { [key: string]: string } = {}) => {
+    const errs = { ...currentErrs };
     if (openTime && closeTime) {
       if (new Date(openTime) >= new Date(closeTime)) {
         errs.schedule = "Thời gian mở phải trước thời gian đóng";
@@ -49,22 +48,24 @@ export function QuizEditor() {
     if (maxParticipants && Number(maxParticipants) < 1) {
       errs.maxParticipants = "Số lượng phải lớn hơn 0";
     }
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
+    return errs;
   };
 
   const handleSaveDraft = () => {
     // draft save does not require full validation, but we still check settings
-    if (validateSettings()) {
+    const errs = validateSettings();
+    setErrors(errs);
+    if (Object.keys(errs).length === 0) {
       console.log("Đã lưu nháp");
     }
   };
 
   const handlePublish = () => {
     // run both validations before publishing
-    const okSettings = validateSettings();
-    const okSchedule = validateSchedule();
-    if (okSettings && okSchedule) {
+    let errs = validateSettings();
+    errs = validateSchedule(errs);
+    setErrors(errs);
+    if (Object.keys(errs).length === 0) {
       console.log("Đang xuất bản quiz...");
     }
   };
@@ -73,7 +74,7 @@ export function QuizEditor() {
     <div className="space-y-8 max-w-5xl mx-auto animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">Tạo Quiz Mới</h2>
+          <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-[length:200%_auto] animate-gradient-shift drop-shadow-lg inline-block transform transition-all duration-300 hover:scale-[1.02] hover:drop-shadow-[0_0_15px_rgba(167,139,250,0.6)]">Tạo Quiz Mới</h2>
           <p className="text-slate-400 mt-1">Cấu hình, thêm câu hỏi và xuất bản.</p>
         </div>
         <div className="flex gap-3">
