@@ -8,7 +8,7 @@ export function QuestionBank() {
     <div className="space-y-8 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">Ngân hàng câu hỏi</h2>
+          <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-[length:200%_auto] animate-gradient-shift drop-shadow-lg inline-block transform transition-all duration-300 hover:scale-[1.02] hover:drop-shadow-[0_0_15px_rgba(167,139,250,0.6)]">Ngân hàng câu hỏi</h2>
           <p className="text-slate-400 mt-1">Quản lý tất cả câu hỏi theo môn học.</p>
         </div>
         <div className="flex gap-3">

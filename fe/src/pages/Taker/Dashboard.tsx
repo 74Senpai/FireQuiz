@@ -18,8 +18,8 @@ export function TakerDashboard() {
     <div className="space-y-8">
       <div className="flex items-center justify-between animate-fade-in">
         <div>
-          <h2 className="text-3xl font-extrabold tracking-tight text-white animate-pulse">Bảng điều khiển học sinh</h2>
-          <p className="text-slate-300 mt-1">Tham gia quiz mới và xem kết quả đã làm.</p>
+          <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-[length:200%_auto] animate-gradient-shift drop-shadow-lg inline-block transform transition-all duration-300 hover:scale-[1.02] hover:drop-shadow-[0_0_15px_rgba(167,139,250,0.6)]">Bảng điều khiển học sinh</h2>
+          <p className="text-slate-400 mt-1">Tham gia quiz mới và xem kết quả đã làm.</p>
         </div>
         <div className="flex gap-3 items-center bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20 shadow-lg hover:shadow-xl transition-shadow duration-300">
           <Input placeholder="Nhập mã quiz" className="w-48 border-0 focus-visible:ring-0 bg-white/20 text-white placeholder:text-slate-300" />
