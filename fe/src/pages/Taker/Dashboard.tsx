@@ -18,34 +18,34 @@ export function TakerDashboard() {
     <div className="space-y-8">
       <div className="flex items-center justify-between animate-fade-in">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">Student Dashboard</h2>
-          <p className="text-slate-400 mt-1">Join new quizzes and view your past results.</p>
+          <h2 className="text-3xl font-extrabold tracking-tight text-white animate-pulse">Bảng điều khiển học sinh</h2>
+          <p className="text-slate-300 mt-1">Tham gia quiz mới và xem kết quả đã làm.</p>
         </div>
         <div className="flex gap-3 items-center bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20 shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <Input placeholder="Enter Quiz Code" className="w-48 border-0 focus-visible:ring-0 bg-white/20 text-white placeholder:text-slate-300" />
-          <Button className="bg-gradient-to-r from-indigo-600 to-purple-600">Join</Button>
+          <Input placeholder="Nhập mã quiz" className="w-48 border-0 focus-visible:ring-0 bg-white/20 text-white placeholder:text-slate-300" />
+          <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 animate-bounce">Tham gia</Button>
         </div>
       </div>
 
       <div className="animate-fade-in animate-delay-100">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-slate-100">
-          <Clock className="w-6 h-6 text-indigo-400 animate-float" /> Available Quizzes
+        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-white animate-fade-in">
+          <Clock className="w-6 h-6 text-indigo-400 animate-float" /> Quiz đang có
         </h3>
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {availableQuizzes.map((quiz, index) => (
             <Card key={quiz.id} className="border-indigo-400/30 hover:border-indigo-400/60 shadow-xl hover:shadow-2xl hover:shadow-indigo-500/30 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl group" style={{ animationDelay: `${index * 100}ms` }}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-bold line-clamp-1 text-slate-100 group-hover:text-indigo-300 transition-colors duration-300">{quiz.title}</CardTitle>
-                <CardDescription className="text-amber-400 font-semibold mt-1">Due: {quiz.dueDate}</CardDescription>
+                <CardDescription className="text-amber-400 font-semibold mt-1">Hạn: {quiz.dueDate}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between text-sm text-slate-400 mb-4 font-medium">
-                  <span>⏱️ {quiz.timeLimit} mins</span>
-                  <span>❓ {quiz.questions} Qs</span>
+                  <span>⏱️ {quiz.timeLimit} phút</span>
+                  <span>❓ {quiz.questions} câu</span>
                 </div>
                 <Link to={`/dashboard/quiz/${quiz.id}/take`} className="block">
                   <Button className="w-full gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg group-hover:shadow-indigo-500/50">
-                    <Play className="w-4 h-4 group-hover:animate-pulse" /> Start Quiz
+                    <Play className="w-4 h-4 group-hover:animate-pulse" /> Bắt đầu Quiz
                   </Button>
                 </Link>
               </CardContent>
@@ -55,24 +55,24 @@ export function TakerDashboard() {
       </div>
 
       <div className="animate-fade-in animate-delay-200">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-slate-100">
-          <CheckCircle className="w-6 h-6 text-emerald-400 animate-float" /> Recently Completed
+        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-white animate-fade-in">
+          <CheckCircle className="w-6 h-6 text-emerald-400 animate-float" /> Đã hoàn thành gần đây
         </h3>
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {completedQuizzes.map((quiz, index) => (
             <Card key={quiz.id} className="bg-gradient-to-br from-emerald-900/30 to-slate-900/50 backdrop-blur-xl border-emerald-400/30 hover:border-emerald-400/60 shadow-xl hover:shadow-2xl hover:shadow-emerald-500/30 group" style={{ animationDelay: `${index * 100}ms` }}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-bold line-clamp-1 text-slate-100 group-hover:text-emerald-300 transition-colors duration-300">{quiz.title}</CardTitle>
-                <CardDescription className="text-slate-400">Completed on {quiz.date}</CardDescription>
+                <CardDescription className="text-slate-400">Hoàn thành vào {quiz.date}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between mb-4 p-3 bg-white/5 rounded-lg">
-                  <span className="text-sm text-slate-400 font-semibold">Score</span>
+                  <span className="text-sm text-slate-400 font-semibold">Điểm</span>
                   <span className="font-bold text-xl text-emerald-400">{quiz.score}</span>
                 </div>
                 <Link to={`/dashboard/quiz/${quiz.id}/review`} className="block">
-                  <Button variant="outline" className="w-full gap-2 border-emerald-400/50 hover:bg-emerald-500/20 text-slate-100 hover:text-emerald-300">
-                    Review Answers <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+                  <Button variant="outline" className="w-full gap-2 border-emerald-400/50 hover:bg-emerald-500/20 text-slate-100 hover:text-emerald-300 animate-pulse">
+                    Xem lại câu trả lời <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
                   </Button>
                 </Link>
               </CardContent>

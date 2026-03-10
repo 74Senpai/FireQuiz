@@ -6,11 +6,11 @@ export function DashboardLayout() {
   const location = useLocation();
 
   const links = [
-    { name: "Dashboard", href: "/dashboard", icon: BookOpen },
-    { name: "Manage Quizzes", href: "/dashboard/manage", icon: LayoutDashboard },
-    { name: "Question Bank", href: "/dashboard/question-bank", icon: FileQuestion },
-    { name: "Results", href: "/dashboard/results", icon: Users },
-    { name: "History", href: "/dashboard/history", icon: Clock },
+    { name: "Trang chính", href: "/dashboard", icon: BookOpen },
+    { name: "Quản lý Quiz", href: "/dashboard/manage", icon: LayoutDashboard },
+    { name: "Ngân hàng câu hỏi", href: "/dashboard/question-bank", icon: FileQuestion },
+    { name: "Kết quả", href: "/dashboard/results", icon: Users },
+    { name: "Lịch sử", href: "/dashboard/history", icon: Clock },
   ];
 
   return (
@@ -55,7 +55,7 @@ export function DashboardLayout() {
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold text-slate-700 hover:bg-red-500/20 hover:text-red-300 transition-all duration-300 ease-out group"
           >
             <LogOut className="w-5 h-5 group-hover:rotate-180 transition-transform duration-300" />
-            Logout
+            Đăng xuất
           </Link>
         </div>
       </aside>
@@ -63,12 +63,22 @@ export function DashboardLayout() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
         <header className="h-16 bg-white/5 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-8 shadow-lg">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent capitalize animate-fade-in">
-            {location.pathname.split("/").pop()?.replace("-", " ") || "Dashboard"}
+          <h1 className="text-2xl font-bold text-white capitalize animate-fade-in">
+            {(() => {
+              const key = location.pathname.split("/").pop()?.replace("-", " ") || "Trang chính";
+              const map: Record<string,string> = {
+                "dashboard":"Trang chính",
+                "manage":"Quản lý Quiz",
+                "question bank":"Ngân hàng câu hỏi",
+                "results":"Kết quả",
+                "history":"Lịch sử"
+              };
+              return map[key] || key;
+            })()}
           </h1>
           <div className="flex items-center gap-4">
             <span className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-300">
-              Logged in as User
+              Đã đăng nhập với tư cách Người dùng
             </span>
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110 transition-all duration-300 cursor-pointer">
               U
