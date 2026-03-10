@@ -1,14 +1,23 @@
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, MoreVertical, Clock, Users, Calendar } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, Clock, Users, Calendar, Pencil, Trash2 } from "lucide-react";
 
 export function CreatorDashboard() {
-  const quizzes = [
+  const [quizzes, setQuizzes] = useState([
     { id: 1, title: "Kiểm tra giữa kỳ - Toán 101", status: "Đã xuất bản", participants: 45, date: "2026-03-15", timeLimit: 60 },
     { id: 2, title: "Quiz ngắn - Lịch sử", status: "Nháp", participants: 0, date: "-", timeLimit: 15 },
     { id: 3, title: "Kỳ thi cuối kỳ - Vật lý", status: "Đã đóng", participants: 120, date: "2026-02-28", timeLimit: 120 },
-  ];
+  ]);
+
+  const handleDelete = (e: React.MouseEvent, id: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.confirm("Bạn có chắc chắn muốn xóa quiz này?")) {
+      setQuizzes(quizzes.filter((q) => q.id !== id));
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -42,10 +51,24 @@ export function CreatorDashboard() {
             }`} />
             <CardHeader className="pb-2 relative z-10">
               <div className="flex items-start justify-between">
-                <CardTitle className="text-lg font-bold line-clamp-1 text-slate-950 group-hover:text-slate-800 transition-colors duration-300">{quiz.title}</CardTitle>
-                <button className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors duration-300 opacity-0 group-hover:opacity-100">
-                  <MoreVertical className="w-4 h-4 text-slate-500" />
-                </button>
+                <CardTitle className="text-lg font-bold line-clamp-1 text-slate-950 group-hover:text-slate-800 transition-colors duration-300 pr-2">{quiz.title}</CardTitle>
+                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <Link 
+                    to={`/dashboard/quiz/${quiz.id}/edit`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 transition-colors duration-300"
+                    title="Chỉnh sửa"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Link>
+                  <button 
+                    onClick={(e) => handleDelete(e, quiz.id)}
+                    className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors duration-300"
+                    title="Xóa"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               <div className="flex items-center gap-2 mt-2">
                 <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold transition-all duration-300 ${
