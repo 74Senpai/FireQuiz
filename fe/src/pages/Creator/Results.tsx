@@ -8,11 +8,11 @@ export function Results() {
     <div className="space-y-8 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">Quiz Results</h2>
-          <p className="text-slate-400 mt-1">View and export student performance data.</p>
+          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">Kết quả Quiz</h2>
+          <p className="text-slate-400 mt-1">Xem và xuất dữ liệu kết quả học sinh.</p>
         </div>
         <Button className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg">
-          <FileSpreadsheet className="w-4 h-4" /> Export All to Excel
+          <FileSpreadsheet className="w-4 h-4" /> Xuất tất cả ra Excel
         </Button>
       </div>
 
@@ -20,12 +20,12 @@ export function Results() {
         <CardHeader className="pb-4">
           <div className="flex gap-4">
             <select className="flex h-10 w-64 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-              <option>Midterm Exam - Math 101</option>
-              <option>Final Exam - Physics</option>
+              <option>Thi giữa kỳ - Toán 101</option>
+              <option>Thi cuối kỳ - Vật lý</option>
             </select>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input className="pl-9 bg-white/10 text-slate-100 placeholder:text-slate-400" placeholder="Search student name or ID..." />
+              <Input className="pl-9 bg-white/10 text-slate-100 placeholder:text-slate-400" placeholder="Tìm kiếm tên hoặc mã học sinh..." />
             </div>
           </div>
         </CardHeader>
@@ -34,11 +34,11 @@ export function Results() {
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-slate-400 uppercase bg-white/5 border-b border-white/10">
                 <tr>
-                  <th className="px-6 py-3 font-medium">Student Name</th>
-                  <th className="px-6 py-3 font-medium">Student ID</th>
-                  <th className="px-6 py-3 font-medium">Score</th>
-                  <th className="px-6 py-3 font-medium">Time Taken</th>
-                  <th className="px-6 py-3 font-medium">Correct/Incorrect</th>
+                  <th className="px-6 py-3 font-medium">Tên học sinh</th>
+                  <th className="px-6 py-3 font-medium">Mã học sinh</th>
+                  <th className="px-6 py-3 font-medium">Điểm</th>
+                  <th className="px-6 py-3 font-medium">Thời gian</th>
+                  <th className="px-6 py-3 font-medium">Đúng/Sai</th>
                   <th className="px-6 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
