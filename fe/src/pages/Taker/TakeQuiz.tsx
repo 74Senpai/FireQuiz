@@ -35,17 +35,17 @@ export function TakeQuiz() {
   const questions = [
     {
       id: 1,
-      text: "What is the primary function of a React component?",
+      text: "Chức năng chính của một component React là gì?",
       options: [
-        "To style the application",
-        "To manage database connections",
-        "To return UI elements based on state and props",
-        "To handle HTTP requests"
+        "Để tạo giao diện người dùng",
+        "Để quản lý kết nối cơ sở dữ liệu",
+        "Để trả về các phần tử giao diện dựa trên state và props",
+        "Để xử lý yêu cầu HTTP"
       ]
     },
     {
       id: 2,
-      text: "Which hook is used to manage side effects in React?",
+      text: "Hook nào dùng để quản lý side effects trong React?",
       options: [
         "useState",
         "useEffect",
@@ -60,8 +60,8 @@ export function TakeQuiz() {
       {/* Header / Timer */}
       <div className="sticky top-0 z-10 bg-white/10 backdrop-blur-md border-b border-white/20 pb-4 pt-2 flex items-center justify-between shadow-lg">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">Midterm Exam - Math 101</h2>
-          <p className="text-sm text-slate-400 mt-1">Question {currentQuestion + 1} of {questions.length}</p>
+          <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">Kiểm tra giữa kỳ - Toán 101</h2>
+          <p className="text-sm text-slate-400 mt-1">Câu hỏi {currentQuestion + 1} trong {questions.length}</p>
         </div>
         <div className={`flex items-center gap-3 px-6 py-3 rounded-lg font-mono text-lg font-bold border transition-all duration-300 shadow-lg ${
           timeLeft < 300 
@@ -99,16 +99,16 @@ export function TakeQuiz() {
           onClick={() => setCurrentQuestion(p => p - 1)}
           className="border-slate-400/50 text-slate-100 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Previous
+          Trước
         </Button>
         
         {currentQuestion === questions.length - 1 ? (
           <Button onClick={handleSubmit} className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 gap-2 shadow-lg">
-            <AlertTriangle className="w-4 h-4" /> Submit Quiz
+            <AlertTriangle className="w-4 h-4" /> Nộp bài
           </Button>
         ) : (
           <Button onClick={() => setCurrentQuestion(p => p + 1)} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg">
-            Next Question
+            Câu tiếp theo
           </Button>
         )}
       </div>
