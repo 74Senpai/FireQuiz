@@ -1,27 +1,59 @@
-import { describe, it, expect, beforeEach, vi } from '@jest/globals';
-import * as authService from '../../src/services/authService.js';
-import * as userRepository from '../../src/repositories/userRepository.js';
-import * as sessionRepository from '../../src/repositories/sessionRepository.js';
-import * as quizRepository from '../../src/repositories/quizRepository.js';
-import * as userService from '../../src/services/userService.js';
-import * as quizService from '../../src/services/quizService.js';
-import AppError from '../../src/errors/AppError.js';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import AppError from '../src/errors/AppError.js';
 import crypto from 'crypto';
 
-// Mock all dependencies
-vi.mock('../../src/repositories/userRepository.js');
-vi.mock('../../src/repositories/sessionRepository.js');
-vi.mock('../../src/repositories/quizRepository.js');
-vi.mock('bcrypt');
-vi.mock('jsonwebtoken');
-vi.mock('crypto');
+// Use ESM-compatible mocks
+jest.unstable_mockModule('../src/repositories/userRepository.js', () => ({
+    findByUsername: jest.fn(),
+    findByEmail: jest.fn(),
+    create: jest.fn(),
+    findById: jest.fn(),
+}));
+
+jest.unstable_mockModule('../src/repositories/sessionRepository.js', () => ({
+    create: jest.fn(),
+    findSessionByToken: jest.fn(),
+    deleteSessionByToken: jest.fn(),
+}));
+
+jest.unstable_mockModule('../src/repositories/quizRepository.js', () => ({
+    getQuizById: jest.fn(),
+    setStatus: jest.fn(),
+}));
+
+jest.unstable_mockModule('bcrypt', () => ({
+    hash: jest.fn(),
+    compare: jest.fn(),
+}));
+
+jest.unstable_mockModule('jsonwebtoken', () => ({
+    sign: jest.fn(),
+}));
+
+let authService;
+let userRepository;
+let sessionRepository;
+let quizRepository;
+let userService;
+let quizService;
+let bcrypt;
+let jwt;
+
+beforeEach(async () => {
+    jest.clearAllMocks();
+
+    userRepository = await import('../src/repositories/userRepository.js');
+    sessionRepository = await import('../src/repositories/sessionRepository.js');
+    quizRepository = await import('../src/repositories/quizRepository.js');
+    bcrypt = await import('bcrypt');
+    jwt = await import('jsonwebtoken');
+
+    authService = await import('../src/services/authService.js');
+    userService = await import('../src/services/userService.js');
+    quizService = await import('../src/services/quizService.js');
+});
 
 describe('Service Layer Unit Tests', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-    });
 
     // Test 1: authService.signUp
     describe('authService.signUp', () => {
@@ -66,7 +98,7 @@ describe('Service Layer Unit Tests', () => {
             userRepository.findByUsername.mockResolvedValue(user);
             bcrypt.compare.mockResolvedValue(true);
             jwt.sign.mockReturnValue('token');
-            crypto.randomBytes.mockReturnValue({ toString: vi.fn().mockReturnValue('rtok') });
+            jest.spyOn(crypto, 'randomBytes').mockReturnValue({ toString: jest.fn().mockReturnValue('rtok') });
             sessionRepository.create.mockResolvedValue();
 
             const result = await authService.logIn(data);
