@@ -1,0 +1,102 @@
+import * as userRepository from '../repositories/userRepository.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import AppError from '../errors/AppError.js';
+import * as sessionRepository from '../repositories/sessionRepository.js';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const ACCESS_TOKEN_TTL = '15m';
+// 14d
+const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
+
+export const signUp = async (data) => {
+  const {username, password, fullName, email} = data;
+
+  const usernameDuplicate = await userRepository.findByUsername(data.username);
+
+  if (usernameDuplicate) {
+    throw new AppError("Username đã tồn tại", 409);
+  }
+
+  const emailDuplicate = await userRepository.findByEmail(data.email);
+  
+  if (emailDuplicate) {
+    throw new AppError("Email đã tồn tại", 409);
+  }
+  
+  // salt = 10
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  await userRepository.create(
+    {
+      username,
+      hashedPassword,
+      fullName,
+      email
+    }
+  );
+}
+
+export const logIn = async (data) => {
+  const { username, password } = data;
+
+  const user = await userRepository.findByUsername(username);
+  
+  if (!user) {
+    throw new AppError("Username hoặc password không chính xác", 401);
+  }
+
+  const passwordCorrect = await bcrypt.compare(password, user.password_hash);
+
+  if (!passwordCorrect) {
+    throw new AppError("Username hoặc password không chính xác", 401);
+  }
+
+  const accessToken = jwt.sign({userId:user.id, role:user.role}, process.env.JWT_SECRET_KEY, {expiresIn: ACCESS_TOKEN_TTL});
+
+  const refreshToken = crypto.randomBytes(64).toString('hex');
+  
+  await sessionRepository.create({
+    userId: user.id, 
+    token: refreshToken, 
+  });
+
+  return { accessToken, REFRESH_TOKEN_TTL, refreshToken};
+}
+
+export const logOut = async (token) => {
+  await sessionRepository.deleteSessionByToken(token);
+}
+
+export const refreshToken = async (token) => {
+  const rfToken = await sessionRepository.findSessionByToken(token);
+
+  if (!rfToken) {
+    throw new AppError("Token không hợp lệ hoặc đã hết hạn", 403);
+  }
+
+  if (new Date(rfToken.expires_at) < new Date()) {
+    throw new AppError("Token đã hết hạn", 403);
+  }
+
+  const user = await userRepository.findById(rfToken.user_id);
+
+  if (!user) {
+    throw new AppError("Token không hợp lệ", 403);
+  }
+
+  const accessToken = jwt.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET_KEY, { expiresIn: ACCESS_TOKEN_TTL });
+
+  const newRefreshToken = crypto.randomBytes(64).toString("hex");
+
+  await sessionRepository.create({
+    userId: user.id,
+    token: newRefreshToken
+  });
+
+  await sessionRepository.deleteSessionByToken(token);
+
+  return { accessToken, refreshToken: newRefreshToken, REFRESH_TOKEN_TTL };
+};
