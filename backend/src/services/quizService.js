@@ -1,41 +1,5 @@
 import * as quizRepository from '../repositories/quizRepository.js';
-import * as questionRepository from '../repositories/questionRepository.js';
-import * as answerRepository from '../repositories/answerRepository.js';
-import * as attemptAggregationService from '../services/attemptAggregationService.js';
-import { findById } from '../repositories/userRepository.js';
 import AppError from '../errors/AppError.js';
-
-const buildAnswersByQuestionIdMap = (answers) =>
-  answers.reduce((acc, answer) => {
-    if (!acc.has(answer.question_id)) {
-      acc.set(answer.question_id, []);
-    }
-
-    acc.get(answer.question_id).push(answer);
-    return acc;
-  }, new Map());
-
-export const createQuiz = async (user, data) => {
-  const {
-    title,
-    description,
-    gradingScale,
-    timeLimitSeconds,
-    availableFrom,
-    availableUntil,
-    maxAttempts
-  } = data;
-
-  const { id } = user;
-
-  if (!title) {
-    throw new AppError("Không thể thiếu tên bộ câu hỏi hoặc người tạo", 400);
-  }
-
-  const quizId = await quizRepository.createQuiz({title, description, gradingScale, timeLimitSeconds, availableFrom, availableUntil, maxAttempts, creatorId:id });
-  console.log(`info: in quizService.js:22 quizId = ${quizId}`);
-  return quizId;
-}
 
 export const getQuiz = async (id, user) => {
   const quiz = await quizRepository.getQuizById(id);
