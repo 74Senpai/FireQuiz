@@ -1,6 +1,6 @@
 import * as userRepository from '../repositories/userRepository.js';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import * as bcrypt from 'bcrypt';
+import * as jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import AppError from '../errors/AppError.js';
 import * as sessionRepository from '../repositories/sessionRepository.js';
@@ -12,7 +12,7 @@ const ACCESS_TOKEN_TTL = '15m';
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
 
 export const signUp = async (data) => {
-  const {username, password, fullName, email} = data;
+  const { username, password, fullName, email } = data;
 
   const usernameDuplicate = await userRepository.findByUsername(data.username);
 
@@ -21,11 +21,11 @@ export const signUp = async (data) => {
   }
 
   const emailDuplicate = await userRepository.findByEmail(data.email);
-  
+
   if (emailDuplicate) {
     throw new AppError("Email đã tồn tại", 409);
   }
-  
+
   // salt = 10
   const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -43,7 +43,7 @@ export const logIn = async (data) => {
   const { username, password } = data;
 
   const user = await userRepository.findByUsername(username);
-  
+
   if (!user) {
     throw new AppError("Username hoặc password không chính xác", 401);
   }
@@ -54,16 +54,16 @@ export const logIn = async (data) => {
     throw new AppError("Username hoặc password không chính xác", 401);
   }
 
-  const accessToken = jwt.sign({userId:user.id, role:user.role}, process.env.JWT_SECRET_KEY, {expiresIn: ACCESS_TOKEN_TTL});
+  const accessToken = jwt.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET_KEY, { expiresIn: ACCESS_TOKEN_TTL });
 
   const refreshToken = crypto.randomBytes(64).toString('hex');
-  
+
   await sessionRepository.create({
-    userId: user.id, 
-    token: refreshToken, 
+    userId: user.id,
+    token: refreshToken,
   });
 
-  return { accessToken, REFRESH_TOKEN_TTL, refreshToken};
+  return { accessToken, REFRESH_TOKEN_TTL, refreshToken };
 }
 
 export const logOut = async (token) => {
