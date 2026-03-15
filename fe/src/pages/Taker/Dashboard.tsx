@@ -6,12 +6,12 @@ import { Play, Clock, CheckCircle, ArrowRight } from "lucide-react";
 
 export function TakerDashboard() {
   const availableQuizzes = [
-    { id: 1, title: "Midterm Exam - Math 101", timeLimit: 60, questions: 40, dueDate: "Today, 11:59 PM" },
-    { id: 2, title: "Pop Quiz - History", timeLimit: 15, questions: 10, dueDate: "Tomorrow, 5:00 PM" },
+    { id: 1, title: "Thi giữa kỳ - Toán 101", timeLimit: 60, questions: 40, dueDate: "Hôm nay, 11:59 PM" },
+    { id: 2, title: "Kiểm tra nhanh - Lịch sử", timeLimit: 15, questions: 10, dueDate: "Ngày mai, 5:00 PM" },
   ];
 
   const completedQuizzes = [
-    { id: 3, title: "Final Exam - Physics", score: "8.5/10", date: "2026-02-28" },
+    { id: 3, title: "Thi cuối kỳ - Vật lý", score: "8.5/10", date: "2026-02-28" },
   ];
 
   return (

@@ -20,8 +20,8 @@ export function QuizEditor() {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   /**
-   * validate settings tab fields
-   * comments: title is required, time limit must be positive integer
+   * Xác thực các trường trong tab cài đặt
+   * Chú thích: tiêu đề là bắt buộc, thời gian làm bài phải là số nguyên dương
    */
   const validateSettings = (currentErrs: { [key: string]: string } = {}) => {
     const errs = { ...currentErrs };
@@ -29,14 +29,14 @@ export function QuizEditor() {
       errs.title = "Tiêu đề Quiz là bắt buộc";
     }
     if (timeLimit && Number(timeLimit) < 1) {
-      errs.timeLimit = "Time limit phải lớn hơn hoặc bằng 1";
+      errs.timeLimit = "Thời gian làm bài phải lớn hơn hoặc bằng 1";
     }
     return errs;
   };
 
   /**
-   * validate schedule tab fields
-   * openTime must come before closeTime if both set
+   * Xác thực các trường trong tab lịch trình
+   * Thời gian mở phải trước thời gian đóng nếu cả hai đều được thiết lập
    */
   const validateSchedule = (currentErrs: { [key: string]: string } = {}) => {
     const errs = { ...currentErrs };
@@ -52,7 +52,7 @@ export function QuizEditor() {
   };
 
   const handleSaveDraft = () => {
-    // draft save does not require full validation, but we still check settings
+    // Lưu nháp không yêu cầu xác thực toàn bộ, nhưng vẫn kiểm tra các trường cài đặt
     const errs = validateSettings();
     setErrors(errs);
     if (Object.keys(errs).length === 0) {
@@ -61,7 +61,7 @@ export function QuizEditor() {
   };
 
   const handlePublish = () => {
-    // run both validations before publishing
+    // chạy cả hai hàm xác thực trước khi xuất bản
     let errs = validateSettings();
     errs = validateSchedule(errs);
     setErrors(errs);
