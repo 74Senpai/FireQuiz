@@ -11,7 +11,6 @@ USE firequiz;
 -- =========================
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(255) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
@@ -56,6 +55,8 @@ CREATE TABLE quiz_attempts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     quiz_id INT NOT NULL,
+    quiz_title VARCHAR(255) NOT NULL,
+    score DECIMAL(5, 2),
     started_at DATETIME NOT NULL,
     finished_at DATETIME,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -72,6 +73,7 @@ CREATE TABLE quiz_attempts (
 
 CREATE INDEX idx_attempts_user_id ON quiz_attempts(user_id);
 CREATE INDEX idx_attempts_quiz_id ON quiz_attempts(quiz_id);
+CREATE INDEX idx_attempts_user_started ON quiz_attempts(user_id, started_at);
 
 -- =========================
 -- TABLE: questions
@@ -79,7 +81,7 @@ CREATE INDEX idx_attempts_quiz_id ON quiz_attempts(quiz_id);
 CREATE TABLE questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     content VARCHAR(255) NOT NULL,
-    type CHAR(10) NOT NULL,
+    type CHAR(15) NOT NULL,
     quiz_id INT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -87,6 +89,7 @@ CREATE TABLE questions (
     CONSTRAINT fk_question_quiz
         FOREIGN KEY (quiz_id)
         REFERENCES quizzes(id)
+        ON DELETE CASCADE;
 );
 
 CREATE INDEX idx_questions_quiz_id ON questions(quiz_id);
@@ -109,50 +112,50 @@ CREATE TABLE answers (
 
 CREATE INDEX idx_answers_question_id ON answers(question_id);
 
--- =========================
--- TABLE: question_responses
--- =========================
-CREATE TABLE question_responses (
+CREATE TABLE attempt_questions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  quiz_attempt_id INT NOT NULL,
+  content VARCHAR(255) NOT NULL,
+  type VARCHAR(10) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_attempt_questions_quiz_attempts
+      FOREIGN KEY (quiz_attempt_id)
+      REFERENCES quiz_attempts(id)
+);
+
+CREATE INDEX idx_attempt_questions_attempt
+ON attempt_questions(quiz_attempt_id);
+
+CREATE TABLE attempt_options (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  attempt_question_id INT NOT NULL,
+  content VARCHAR(255) NOT NULL,
+  is_correct BOOLEAN NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_attempt_options_attempt_questions
+      FOREIGN KEY (attempt_question_id)
+      REFERENCES attempt_questions(id)
+);
+
+CREATE INDEX idx_attempt_options_question
+ON attempt_options(attempt_question_id);
+
+CREATE TABLE attempt_answers (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    quiz_attempt_id INT NOT NULL,
-    question_id INT NOT NULL,
+    attempt_option_id INT NOT NULL,
     text_answer TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_response_attempt
-        FOREIGN KEY (quiz_attempt_id)
-        REFERENCES quiz_attempts(id),
-
-    CONSTRAINT fk_response_question
-        FOREIGN KEY (question_id)
-        REFERENCES questions(id)
+    CONSTRAINT fk_attempt_answers_attempt_option_id
+        FOREIGN KEY (attempt_option_id)
+        REFERENCES attempt_options(id)
 );
 
-CREATE INDEX idx_responses_attempt_id ON question_responses(quiz_attempt_id);
-CREATE INDEX idx_responses_question_id ON question_responses(question_id);
-
--- =========================
--- TABLE: response_answers
--- =========================
-CREATE TABLE response_answers (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    question_response_id INT NOT NULL,
-    answer_id INT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_response_answer_response
-        FOREIGN KEY (question_response_id)
-        REFERENCES question_responses(id),
-
-    CONSTRAINT fk_response_answer_answer
-        FOREIGN KEY (answer_id)
-        REFERENCES answers(id)
-);
-
-CREATE INDEX idx_response_answers_response_id ON response_answers(question_response_id);
-CREATE INDEX idx_response_answers_answer_id ON response_answers(answer_id);
+CREATE INDEX idx_attempt_answers_option
+ON attempt_answers(attempt_option_id);
 
 CREATE TABLE sessions (
   id INT AUTO_INCREMENT PRIMARY KEY,
