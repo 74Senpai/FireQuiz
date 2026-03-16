@@ -7,7 +7,7 @@ import * as sessionRepository from '../repositories/sessionRepository.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const ACCESS_TOKEN_TTL = '15m';
+const ACCESS_TOKEN_TTL = '7d';
 // 14d
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
 
