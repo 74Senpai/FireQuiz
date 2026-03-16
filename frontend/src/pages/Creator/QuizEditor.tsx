@@ -1,13 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom"; // Thêm useParams
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, Settings, Users, Calendar, Share2, ShieldAlert } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Clock,
+  Settings,
+  Users,
+  Calendar,
+  ShieldAlert,
+  ChevronLeft,
+  Loader2,
+} from "lucide-react";
+import axios from "axios";
 
 export function QuizEditor() {
-  const [activeTab, setActiveTab] = useState("settings");
+  const { id } = useParams(); // Lấy id từ URL: /dashboard/quiz/:id/edit
+  const isEditMode = !!id; // Kiểm tra xem có phải đang ở chế độ chỉnh sửa không
 
-  // controlled form data for settings/schedule
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("settings");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false); // Trạng thái load dữ liệu cũ
+
+  // Form data
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [timeLimit, setTimeLimit] = useState("");
@@ -16,80 +38,179 @@ export function QuizEditor() {
   const [closeTime, setCloseTime] = useState("");
   const [maxParticipants, setMaxParticipants] = useState("");
 
-  // store validation errors per field
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  /**
-   * validate settings tab fields
-   * comments: title is required, time limit must be positive integer
-   */
-  const validateSettings = (currentErrs: { [key: string]: string } = {}) => {
-    const errs = { ...currentErrs };
-    if (!title.trim()) {
-      errs.title = "Tiêu đề Quiz là bắt buộc";
+  const API_URL = process.env.API_URL || "http://localhost:8080/api";
+
+  // 1. useEffect: Lấy dữ liệu Quiz cũ nếu là chế độ Edit
+  useEffect(() => {
+    if (isEditMode && id) {
+      const fetchQuizDetail = async () => {
+        setIsLoadingData(true);
+        try {
+          const token = localStorage.getItem("accessToken");
+          const response = await axios.get(`${API_URL}/quiz/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const quiz = response.data; // Object trực tiếp theo JSON bạn gửi
+
+          if (quiz) {
+            setTitle(quiz.title || "");
+            setDescription(quiz.description || "");
+
+            // Lưu ý: Map từ snake_case của DB sang State
+            setGradeScale(quiz.grading_scale?.toString() || "10");
+            setTimeLimit(
+              quiz.time_limit_seconds
+                ? (quiz.time_limit_seconds / 60).toString()
+                : "",
+            );
+
+            const toInputDate = (d: any) =>
+              d ? new Date(d).toISOString().slice(0, 16) : "";
+            setOpenTime(toInputDate(quiz.available_from));
+            setCloseTime(toInputDate(quiz.available_until));
+
+            setMaxParticipants(quiz.max_attempts?.toString() || "");
+          }
+        } catch (error) {
+          console.error("Lỗi lấy chi tiết:", error);
+        } finally {
+          setIsLoadingData(false);
+        }
+      };
+      fetchQuizDetail();
     }
-    if (timeLimit && Number(timeLimit) < 1) {
-      errs.timeLimit = "Time limit phải lớn hơn hoặc bằng 1";
+  }, [id, isEditMode, API_URL]);
+
+  const validate = () => {
+    let errs: { [key: string]: string } = {};
+    if (!title.trim()) errs.title = "Tiêu đề Quiz là bắt buộc";
+    if (timeLimit && Number(timeLimit) < 1)
+      errs.timeLimit = "Thời gian phải ít nhất 1 phút";
+    if (openTime && closeTime && new Date(openTime) >= new Date(closeTime)) {
+      errs.schedule = "Thời gian mở phải trước thời gian đóng";
     }
-    return errs;
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
-  /**
-   * validate schedule tab fields
-   * openTime must come before closeTime if both set
-   */
-  const validateSchedule = (currentErrs: { [key: string]: string } = {}) => {
-    const errs = { ...currentErrs };
-    if (openTime && closeTime) {
-      if (new Date(openTime) >= new Date(closeTime)) {
-        errs.schedule = "Thời gian mở phải trước thời gian đóng";
+  // 2. Hàm lưu (Create hoặc Update)
+  const saveQuiz = async (newStatus: "DRAFT" | "PUBLIC") => {
+    if (!validate()) {
+      if (errors.title) setActiveTab("settings");
+      else if (errors.schedule) setActiveTab("schedule");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      // Chuyển đổi dữ liệu sang định dạng CamelCase mà Service yêu cầu
+      const infoPayload = {
+        title: title,
+        description: description,
+      };
+
+      const settingsPayload = {
+        gradingScale: parseInt(gradeScale),
+        timeLimitSeconds: timeLimit ? parseInt(timeLimit) * 60 : null,
+        availableFrom: openTime || null,
+        availableUntil: closeTime || null,
+        maxAttempts: maxParticipants ? parseInt(maxParticipants) : null,
+      };
+
+      if (isEditMode) {
+        // CHẾ ĐỘ CẬP NHẬT (PATCH)
+        // Gọi đồng thời 3 API như Router quy định
+        await Promise.all([
+          axios.patch(`${API_URL}/quiz/${id}/info`, infoPayload, config),
+          axios.patch(
+            `${API_URL}/quiz/${id}/settings`,
+            settingsPayload,
+            config,
+          ),
+          axios.patch(
+            `${API_URL}/quiz/${id}/status`,
+            { status: newStatus },
+            config,
+          ),
+        ]);
+        alert("Cập nhật bài thi thành công!");
+      } else {
+        // CHẾ ĐỘ TẠO MỚI (POST)
+        // Gộp tất cả vào 1 payload (Backend createQuiz nhận gộp)
+        const createPayload = {
+          ...infoPayload,
+          ...settingsPayload,
+          status: newStatus,
+        };
+
+        await axios.post(`${API_URL}/quiz`, createPayload, config);
+        alert("Tạo bài thi mới thành công!");
       }
-    }
-    if (maxParticipants && Number(maxParticipants) < 1) {
-      errs.maxParticipants = "Số lượng phải lớn hơn 0";
-    }
-    return errs;
-  };
 
-  const handleSaveDraft = () => {
-    // draft save does not require full validation, but we still check settings
-    const errs = validateSettings();
-    setErrors(errs);
-    if (Object.keys(errs).length === 0) {
-      console.log("Đã lưu nháp");
+      navigate("/dashboard/manage");
+    } catch (error: any) {
+      console.error("Lỗi lưu Quiz:", error);
+      alert(error.response?.data?.message || "Có lỗi xảy ra.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handlePublish = () => {
-    // run both validations before publishing
-    let errs = validateSettings();
-    errs = validateSchedule(errs);
-    setErrors(errs);
-    if (Object.keys(errs).length === 0) {
-      console.log("Đang xuất bản quiz...");
-    }
-  };
+  if (isLoadingData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-white">
+        <Loader2 className="w-10 h-10 animate-spin mb-4" />
+        <p>Đang tải thông tin Quiz...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto animate-fade-in">
+    <div className="space-y-8 max-w-5xl mx-auto animate-fade-in text-white">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-[length:200%_auto] animate-gradient-shift drop-shadow-lg inline-block transform transition-all duration-300 hover:scale-[1.02] hover:drop-shadow-[0_0_15px_rgba(167,139,250,0.6)]">Tạo Quiz Mới</h2>
-          <p className="text-slate-400 mt-1">Cấu hình, thêm câu hỏi và xuất bản.</p>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            className="text-slate-400 hover:text-white hover:bg-white/10"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </Button>
+          <div>
+            <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">
+              {isEditMode ? "Chỉnh sửa Quiz" : "Tạo Quiz Mới"}
+            </h2>
+            <p className="text-slate-400 mt-1">
+              {isEditMode
+                ? "Cập nhật lại cấu hình bài thi của bạn."
+                : "Cấu hình, thêm câu hỏi và xuất bản."}
+            </p>
+          </div>
         </div>
         <div className="flex gap-3">
           <Button
-            onClick={handleSaveDraft}
+            onClick={() => saveQuiz("DRAFT")}
             variant="outline"
+            disabled={isSubmitting}
             className="border-slate-400/50 text-slate-100 hover:bg-white/10"
           >
-            Lưu nháp
+            {isEditMode ? "Lưu bản nháp" : "Lưu nháp"}
           </Button>
           <Button
-            onClick={handlePublish}
+            onClick={() => saveQuiz("PUBLIC")}
+            disabled={isSubmitting}
             className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-lg"
           >
-            Xuất bản Quiz
+            {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {isEditMode ? "Cập nhật Quiz" : "Xuất bản Quiz"}
           </Button>
         </div>
       </div>
@@ -97,85 +218,81 @@ export function QuizEditor() {
       <div className="grid grid-cols-12 gap-6">
         {/* Sidebar Navigation */}
         <div className="col-span-3 space-y-1">
-          <button
-            onClick={() => setActiveTab("settings")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ease-out ${
-              activeTab === "settings" 
-                ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30" 
-                : "text-slate-300 hover:bg-white/10 hover:text-white"
-            }`}
-          >
-            <Settings className="w-5 h-5" /> Cài đặt
-          </button>
-          <button
-            onClick={() => setActiveTab("questions")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ease-out ${
-              activeTab === "questions" 
-                ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30" 
-                : "text-slate-300 hover:bg-white/10 hover:text-white"
-            }`}
-          >
-            <ShieldAlert className="w-5 h-5" /> Câu hỏi
-          </button>
-          <button
-            onClick={() => setActiveTab("schedule")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ease-out ${
-              activeTab === "schedule" 
-                ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30" 
-                : "text-slate-300 hover:bg-white/10 hover:text-white"
-            }`}
-          >
-            <Calendar className="w-5 h-5" /> Lập lịch
-          </button>
+          {[
+            { id: "settings", label: "Cài đặt", icon: Settings },
+            { id: "questions", label: "Câu hỏi", icon: ShieldAlert },
+            { id: "schedule", label: "Lập lịch", icon: Calendar },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                activeTab === tab.id
+                  ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30"
+                  : "text-slate-300 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <tab.icon className="w-5 h-5" /> {tab.label}
+            </button>
+          ))}
         </div>
 
         {/* Main Content Area */}
-        <div className="col-span-9 space-y-6 animate-slide-up animate-delay-100">
+        <div className="col-span-9 space-y-6 animate-slide-up">
           {activeTab === "settings" && (
             <Card className="bg-white/5 backdrop-blur-md border-white/10 shadow-2xl">
               <CardHeader>
                 <CardTitle className="text-slate-100">Cài đặt chung</CardTitle>
-                <CardDescription className="text-slate-400">Thông tin cơ bản và quy tắc chấm điểm.</CardDescription>
+                <CardDescription className="text-slate-400">
+                  Thông tin cơ bản và quy tắc chấm điểm.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Tiêu đề Quiz</label>
                   <Input
                     value={title}
-                    onChange={e => setTitle(e.currentTarget.value)}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="bg-slate-900/50 border-white/10 text-white"
                     placeholder="Ví dụ: Thi giữa kỳ - Toán 101"
                   />
-                  {errors.title && <p className="text-sm text-red-500 mt-1">{errors.title}</p>}
+                  {errors.title && (
+                    <p className="text-sm text-red-400">{errors.title}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Mô tả</label>
-                  <textarea 
-                    className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="flex min-h-[100px] w-full rounded-md border border-white/10 bg-slate-900/50 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     placeholder="Hướng dẫn cho sinh viên..."
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-sm font-medium flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-slate-500" /> Thời gian làm (phút)
+                      <Clock className="w-4 h-4 text-slate-400" /> Thời gian làm
+                      (phút)
                     </label>
                     <Input
                       type="number"
-                      min="1"
-                      placeholder="60"
                       value={timeLimit}
-                      onChange={e => setTimeLimit(e.currentTarget.value)}
+                      onChange={(e) => setTimeLimit(e.target.value)}
+                      className="bg-slate-900/50 border-white/10"
+                      placeholder="60"
                     />
-                    {errors.timeLimit && <p className="text-sm text-red-500 mt-1">{errors.timeLimit}</p>}
-                    <p className="text-xs text-slate-500">Hệ thống sẽ tự động nộp khi hết giờ.</p>
+                    {errors.timeLimit && (
+                      <p className="text-sm text-red-400">{errors.timeLimit}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Thang điểm</label>
                     <select
                       value={gradeScale}
-                      onChange={e => setGradeScale(e.currentTarget.value)}
-                      className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                      onChange={(e) => setGradeScale(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-white/10 bg-slate-900 p-2 text-sm text-white focus:ring-2 focus:ring-indigo-500"
                     >
                       <option value="10">Thang 10 điểm</option>
                       <option value="100">Thang 100 điểm</option>
@@ -187,123 +304,69 @@ export function QuizEditor() {
           )}
 
           {activeTab === "questions" && (
-            <Card className="bg-white/5 backdrop-blur-md border-white/10 shadow-2xl">
+            <Card className="bg-white/5 backdrop-blur-md border-white/10">
               <CardHeader>
-                <CardTitle className="text-slate-100">Câu hỏi & Phòng chống gian lận</CardTitle>
-                <CardDescription className="text-slate-400">Quản lý câu hỏi và ngẫu nhiên hóa để tránh gian lận.</CardDescription>
+                <CardTitle>Câu hỏi</CardTitle>
+                <CardDescription>
+                  {isEditMode
+                    ? "Quản lý danh sách câu hỏi của bài thi này."
+                    : "Bạn cần lưu thông tin Quiz trước khi thêm câu hỏi."}
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="p-4 border border-indigo-100 bg-indigo-50/50 rounded-lg space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-indigo-900">Chế độ ngân hàng câu hỏi</h4>
-                      <p className="text-sm text-indigo-700">Lấy ngẫu nhiên câu hỏi cho mỗi học sinh.</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                    </label>
-                  </div>
-                  
-                  <div className="grid grid-cols-3 gap-4 pt-4 border-t border-indigo-100">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Câu hỏi dễ</label>
-                      <Input type="number" defaultValue="5" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Câu hỏi trung bình</label>
-                      <Input type="number" defaultValue="3" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Câu hỏi khó</label>
-                      <Input type="number" defaultValue="2" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Câu hỏi đã chọn (10)</h4>
-                    <Button variant="outline" size="sm">Thêm từ ngân hàng</Button>
-                  </div>
-                  {/* Mock question list */}
-                  <div className="border border-slate-200 rounded-md divide-y divide-slate-200">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="p-3 text-sm flex justify-between items-center">
-                        <span className="truncate">What is the capital of France?</span>
-                        <span className="text-xs px-2 py-1 bg-slate-100 rounded-md text-slate-600">Easy</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              <CardContent className="py-10 text-center">
+                {/* Chỗ này sau này bạn sẽ render danh sách câu hỏi */}
+                <p className="text-slate-400">
+                  Tính năng quản lý câu hỏi đang được kết nối...
+                </p>
               </CardContent>
             </Card>
           )}
 
           {activeTab === "schedule" && (
-            <Card>
+            <Card className="bg-white/5 backdrop-blur-md border-white/10">
               <CardHeader>
-                <CardTitle>Lịch & Quyền truy cập</CardTitle>
-                <CardDescription>Điều khiển thời gian và người có thể tham gia.</CardDescription>
+                <CardTitle className="text-slate-100">
+                  Lịch & Quyền truy cập
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-slate-500" /> Thời gian mở
-                    </label>
+                    <label className="text-sm font-medium">Thời gian mở</label>
                     <Input
                       type="datetime-local"
                       value={openTime}
-                      onChange={e => setOpenTime(e.currentTarget.value)}
+                      onChange={(e) => setOpenTime(e.target.value)}
+                      className="bg-slate-900/50 border-white/10"
                     />
-                    <p className="text-xs text-slate-500">Quiz sẽ tự động xuất bản vào thời điểm này.</p>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-slate-500" /> Thời gian đóng
+                    <label className="text-sm font-medium">
+                      Thời gian đóng
                     </label>
                     <Input
                       type="datetime-local"
                       value={closeTime}
-                      onChange={e => setCloseTime(e.currentTarget.value)}
+                      onChange={(e) => setCloseTime(e.target.value)}
+                      className="bg-slate-900/50 border-white/10"
                     />
-                    {errors.schedule && <p className="text-sm text-red-500 mt-1">{errors.schedule}</p>}
-                    <p className="text-xs text-slate-500">Quiz sẽ tự động đóng vào thời điểm này.</p>
+                    {errors.schedule && (
+                      <p className="text-sm text-red-400">{errors.schedule}</p>
+                    )}
                   </div>
                 </div>
 
-                <div className="space-y-2 pt-4 border-t border-slate-200">
-                  <label className="text-sm font-medium flex items-center gap-2">
-                    <Users className="w-4 h-4 text-slate-500" /> Số người tối đa
+                <div className="space-y-2 pt-4 border-t border-white/10">
+                  <label className="text-sm font-medium">
+                    Số người tối đa (lượt thi)
                   </label>
                   <Input
                     type="number"
-                    placeholder="Leave empty for unlimited"
-                    className="max-w-xs"
                     value={maxParticipants}
-                    onChange={e => setMaxParticipants(e.currentTarget.value)}
+                    onChange={(e) => setMaxParticipants(e.target.value)}
+                    placeholder="Để trống nếu không giới hạn"
+                    className="max-w-xs bg-slate-900/50 border-white/10"
                   />
-                  {errors.maxParticipants && <p className="text-sm text-red-500 mt-1">{errors.maxParticipants}</p>}
-                </div>
-
-                <div className="space-y-4 pt-4 border-t border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium flex items-center gap-2">
-                        <Share2 className="w-4 h-4 text-slate-500" /> Chia sẻ bằng mã
-                      </h4>
-                      <p className="text-sm text-slate-500">Allow students to join using a unique code.</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                    </label>
-                  </div>
-                  <div className="flex gap-2 max-w-sm">
-                    <Input value="MATH101-2026" readOnly className="font-mono bg-slate-50" />
-                    <Button variant="secondary">Copy</Button>
-                  </div>
                 </div>
               </CardContent>
             </Card>

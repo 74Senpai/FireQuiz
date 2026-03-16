@@ -19,7 +19,7 @@ const originURL = process.env.FRONTEND_URL || 'http://localhost:3000';
 app.use(cors({
   origin: originURL,
   credentials: true,               // Cho phép gửi cookie/token qua lại
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // Các phương thức HTTP được phép
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
