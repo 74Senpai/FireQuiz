@@ -6,11 +6,12 @@ export function DashboardLayout() {
   const location = useLocation();
 
   const links = [
-    { name: "Trang chính", href: "/dashboard", icon: BookOpen },
+    { name: "Phân tích & Thống kê", href: "/dashboard", icon: BookOpen },
     { name: "Quản lý Quiz", href: "/dashboard/manage", icon: LayoutDashboard },
     { name: "Ngân hàng câu hỏi", href: "/dashboard/question-bank", icon: FileQuestion },
-    { name: "Kết quả", href: "/dashboard/results", icon: Users },
-    { name: "Lịch sử", href: "/dashboard/history", icon: Clock },
+    { name: "Thông tin tài khoản", href: "/dashboard/profile", icon: Settings },
+    { name: "Lịch sử tham gia", href: "/dashboard/history", icon: Clock },
+    { name: "Kết quả thi", href: "/dashboard/results", icon: Users },
   ];
 
   return (
@@ -71,18 +72,19 @@ export function DashboardLayout() {
                 "manage":"Quản lý Quiz",
                 "question bank":"Ngân hàng câu hỏi",
                 "results":"Kết quả",
-                "history":"Lịch sử"
+                "history":"Lịch sử",
+                "profile": "Thông tin tài khoản của bạn"
               };
               return map[key] || key;
             })()}
           </h1>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-300">
+            <span className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-300 hidden sm:inline-block">
               Đã đăng nhập với tư cách Người dùng
             </span>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110 transition-all duration-300 cursor-pointer">
+            <Link to="/dashboard/profile" className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110 transition-all duration-300 cursor-pointer border border-white/10">
               U
-            </div>
+            </Link>
           </div>
         </header>
         <div className="flex-1 overflow-auto p-8 relative">

@@ -12,6 +12,7 @@ import { TakerDashboard } from "./pages/Taker/Dashboard";
 import { TakeQuiz } from "./pages/Taker/TakeQuiz";
 import { ReviewQuiz } from "./pages/Taker/ReviewQuiz";
 import { History } from "./pages/Taker/History";
+import { Profile } from "./pages/Profile";
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="history" element={<History />} />
           <Route path="quiz/:id/take" element={<TakeQuiz />} />
           <Route path="quiz/:id/review" element={<ReviewQuiz />} />
+          <Route path="profile" element={<Profile />} />
         </Route>
       </Routes>
     </Router>
