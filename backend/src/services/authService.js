@@ -12,13 +12,7 @@ const ACCESS_TOKEN_TTL = '15m';
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
 
 export const signUp = async (data) => {
-  const {username, password, fullName, email} = data;
-
-  const usernameDuplicate = await userRepository.findByUsername(data.username);
-
-  if (usernameDuplicate) {
-    throw new AppError("Username đã tồn tại", 409);
-  }
+  const { password, fullName, email} = data;
 
   const emailDuplicate = await userRepository.findByEmail(data.email);
   
@@ -31,7 +25,6 @@ export const signUp = async (data) => {
 
   await userRepository.create(
     {
-      username,
       hashedPassword,
       fullName,
       email
@@ -40,18 +33,18 @@ export const signUp = async (data) => {
 }
 
 export const logIn = async (data) => {
-  const { username, password } = data;
+  const { email, password } = data;
 
-  const user = await userRepository.findByUsername(username);
+  const user = await userRepository.findByEmail(email);
   
   if (!user) {
-    throw new AppError("Username hoặc password không chính xác", 401);
+    throw new AppError("Email hoặc password không chính xác", 401);
   }
 
   const passwordCorrect = await bcrypt.compare(password, user.password_hash);
 
   if (!passwordCorrect) {
-    throw new AppError("Username hoặc password không chính xác", 401);
+    throw new AppError("Email hoặc password không chính xác", 401);
   }
 
   const accessToken = jwt.sign({userId:user.id, role:user.role}, process.env.JWT_SECRET_KEY, {expiresIn: ACCESS_TOKEN_TTL});
