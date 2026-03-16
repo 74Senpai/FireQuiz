@@ -9,24 +9,23 @@ dotenv.config();
 export const validateSignUp = asyncHandler(async (req, res, next) => {
   const { username, password, fullName, email } = req.body;
 
-  if (!username || !password || !fullName || !email) {
-    throw new AppError("Không được trống username, password, fullname, email", 404);
+  if (!password || !fullName || !email) {
+    throw new AppError("Không được trống password, fullname, email", 404);
   }
 
-  validator.isUsernameValid(username);
   validator.isPasswordValid(password);
   validator.isEmailValid(email);
   next();
 });
 
 export const validateLogIn = asyncHandler(async (req, res, next) => {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
 
-  if (!username || !password) {
-    throw new AppError("Không được để trống username hoặc password", 404);
+  if (!email || !password) {
+    throw new AppError("Không được để trống email hoặc password", 404);
   }
 
-  validator.isUsernameValid(username);
+  validator.isEmailValid(email);
   validator.isPasswordValid(password);
   next();
 });
@@ -47,13 +46,17 @@ export const protectedRoute = asyncHandler(async (req, res, next) => {
     throw new AppError("Access token hết hạn hoặc không đúng", 403);
   }
 
+  console.log("info: in authMiddleware:49 decodedUser.userId = " + decodedUser.userId);
   const user = await userService.getUserById(decodedUser.userId);
 
   if (!user) {
     throw new AppError("Người dùng không tồn tại", 404);
   }
 
+  console.log(`info: in authMiddleware:56 user.id = ${user.id}`);
+
   req.user = user;
+  console.log(`info: in authMiddleware:57 req.user = ${req.user.id}`);
 
   next();
 });

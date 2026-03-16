@@ -3,17 +3,17 @@ import { asyncHandler } from '../untils/asyncHandler.js';
 import AppError from '../errors/AppError.js';
 
 export const signUp = asyncHandler(async (req, res) => {
-  const { username, password, fullName, email } = req.body;
+  const { password, fullName, email } = req.body;
 
-  await authService.signUp({ username, password, fullName, email });
+  await authService.signUp({ password, fullName, email });
 
   return res.status(204).send();
 });
 
 export const logIn = asyncHandler(async(req, res) => {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
 
-  const response = await authService.logIn({ username, password });
+  const response = await authService.logIn({ email, password });
   
   res.cookie('refreshToken', response.refreshToken, {
     httpOnly: true,
@@ -22,7 +22,7 @@ export const logIn = asyncHandler(async(req, res) => {
     maxAge: response.REFRESH_TOKEN_TTL
   });
 
-  return res.status(200).json({message:`User ${username} đã đăng nhập`, accessToken:response.accessToken});
+  return res.status(200).json({message:`User ${email} đã đăng nhập`, accessToken:response.accessToken});
 });
 
 export const logOut = asyncHandler(async (req, res) => {
