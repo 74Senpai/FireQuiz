@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom"; // Thêm useParams
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { QuestionManager } from "@/components/ui/QuestionManager";
 import {
   Card,
   CardContent,
@@ -304,20 +305,29 @@ export function QuizEditor() {
           )}
 
           {activeTab === "questions" && (
-            <Card className="bg-white/5 backdrop-blur-md border-white/10">
+            <Card className="bg-white/5 backdrop-blur-md border-white/10 shadow-2xl">
               <CardHeader>
-                <CardTitle>Câu hỏi</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-slate-100">
+                  Quản lý câu hỏi
+                </CardTitle>
+                <CardDescription className="text-slate-400">
                   {isEditMode
-                    ? "Quản lý danh sách câu hỏi của bài thi này."
-                    : "Bạn cần lưu thông tin Quiz trước khi thêm câu hỏi."}
+                    ? "Tạo và chỉnh sửa các câu hỏi trắc nghiệm."
+                    : "Vui lòng lưu thông tin chung trước khi thêm câu hỏi."}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="py-10 text-center">
-                {/* Chỗ này sau này bạn sẽ render danh sách câu hỏi */}
-                <p className="text-slate-400">
-                  Tính năng quản lý câu hỏi đang được kết nối...
-                </p>
+              <CardContent>
+                {isEditMode ? (
+                  // Truyền id từ useParams vào đây
+                  <QuestionManager quizId={id!} />
+                ) : (
+                  <div className="py-10 text-center">
+                    <p className="text-slate-400 text-sm italic">
+                      Bạn cần tạo Quiz trước (nhấn Lưu nháp) để bắt đầu thêm câu
+                      hỏi.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

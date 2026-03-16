@@ -4,12 +4,12 @@ import { asyncHandler } from '../untils/asyncHandler.js';
 
 export const createQuestion = asyncHandler(async (req, res) => {
   const user = req.user;
-  const { content, type, quizId } = req.body;
-  if (!content || !type || !quizId ) {
-    throw new AppError("Không được thiếu content, type, quizId", 400);
+  const { content, type, quizId, answers } = req.body;
+  if (!content || !type || !quizId || !answers) {
+    throw new AppError("Không được thiếu content, type, quizId, answers", 400);
   }
 
-  const id = await questionService.createQuestion(user, { content, type, quizId });
+  const id = await questionService.createQuestion(user, { content, type, quizId, answers});
   return res.status(201).json({questionId: id});
 });
 
