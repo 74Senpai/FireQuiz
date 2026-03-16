@@ -78,7 +78,6 @@ export function TakeQuiz() {
           <h3 className="text-2xl font-semibold text-slate-100 leading-relaxed">
             {questions[currentQuestion].text}
           </h3>
-
           <div className="space-y-3">
             {questions[currentQuestion].options.map((opt, i) => (
               <label key={i} className="flex items-center gap-4 p-4 rounded-lg border border-white/20 hover:border-indigo-400/60 bg-white/5 hover:bg-indigo-400/20 cursor-pointer transition-all duration-300 has-[:checked]:border-indigo-400 has-[:checked]:bg-indigo-500/30 group">
@@ -100,7 +99,6 @@ export function TakeQuiz() {
         >
           Trước
         </Button>
-
         {currentQuestion === questions.length - 1 ? (
           <Button onClick={handleSubmit} className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 gap-2 shadow-lg">
             <AlertTriangle className="w-4 h-4" /> Nộp bài
