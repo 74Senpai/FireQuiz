@@ -1,6 +1,7 @@
 import dotenv from 'dotenv'
 dotenv.config();
 import express from 'express';
+import cors from 'cors'; // 1. Import cors
 import pool from './db/db.js';
 import authRoute from './routes/authRoute.js';
 import userRoute from './routes/userRoute.js';
@@ -12,6 +13,19 @@ import { protectedRoute } from './middlewares/authMiddleware.js';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+const originURL = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+// 2. Cấu hình CORS
+app.use(cors({
+  origin: originURL,
+  credentials: true,               // Cho phép gửi cookie/token qua lại
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.use(express.json());
+app.use(cookieParser());
+
 
 app.use(express.json());
 app.use(cookieParser());

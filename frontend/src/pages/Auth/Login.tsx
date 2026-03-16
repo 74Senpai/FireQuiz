@@ -3,23 +3,25 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import axios from "axios";
 
 export function Login() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = React.useState(false);
 
-  // form field state and error messages
+  // Form state
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
-  const [errors, setErrors] = React.useState<{ email?: string; password?: string }>({});
+  
+  // Quản lý lỗi (bao gồm lỗi validation và lỗi từ API)
+  const [errors, setErrors] = React.useState<{ email?: string; password?: string; api?: string }>({});
 
-  // validate inputs before submitting
   const validate = () => {
     const errs: { email?: string; password?: string } = {};
     if (!email) {
-      errs.email = "Email là bắt buộc"; // bắt buộc phải nhập email
+      errs.email = "Email là bắt buộc";
     } else if (!/^\S+@\S+\.\S+$/.test(email)) {
-      errs.email = "Email không hợp lệ"; // kiểm tra định dạng email đơn giản
+      errs.email = "Email không hợp lệ";
     }
     if (!password) {
       errs.password = "Mật khẩu là bắt buộc";
@@ -28,14 +30,39 @@ export function Login() {
     return Object.keys(errs).length === 0;
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return; // nếu validation thất bại thì không tiếp tục
+    if (!validate()) return;
+
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    setErrors({}); // Reset lỗi cũ
+
+    try {
+      // Lấy URL từ env (Đảm bảo đã có VITE_API_URL trong file .env)
+      const API_URL = process.env.API_URL || "http://localhost:8080/api";
+
+      const response = await axios.post(
+        `${API_URL}/auth/login`, 
+        { email, password },
+        { withCredentials: true } // QUAN TRỌNG: Để nhận Refresh Token Cookie
+      );
+
+      // Nếu thành công:
+      const { accessToken } = response.data;
+      
+      // Lưu Access Token vào localStorage để dùng cho các request sau
+      localStorage.setItem("accessToken", accessToken);
+
+      // Chuyển hướng người dùng
       navigate("/dashboard");
-    }, 1000);
+      
+    } catch (error: any) {
+      // Xử lý lỗi từ Backend (ví dụ: Sai mật khẩu, User không tồn tại)
+      const message = error.response?.data?.message || "Đăng nhập thất bại. Vui lòng thử lại.";
+      setErrors({ api: message });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -47,6 +74,14 @@ export function Login() {
           <CardDescription className="text-slate-600">Nhập email của bạn để đăng nhập</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
+          
+          {/* Hiển thị lỗi từ API (ví dụ: Sai tài khoản/mật khẩu) */}
+          {errors.api && (
+            <div className="p-3 text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg animate-shake">
+              {errors.api}
+            </div>
+          )}
+
           <div className="space-y-2 animate-slide-up animate-delay-100">
             <label className="text-sm font-semibold text-slate-700" htmlFor="email">
               Địa chỉ email
@@ -66,7 +101,7 @@ export function Login() {
               <label className="text-sm font-semibold text-slate-700" htmlFor="password">
                 Mật khẩu
               </label>
-              <Link to="/forgot-password" className="text-xs text-indigo-600 hover:text-indigo-700 hover:underline transition-colors duration-200">
+              <Link to="/forgot-password" disable className="text-xs text-indigo-600 hover:text-indigo-700 hover:underline transition-colors duration-200">
                 Quên mật khẩu?
               </Link>
             </div>
@@ -84,7 +119,7 @@ export function Login() {
         <CardFooter className="flex flex-col gap-3">
           <Button 
             onClick={handleLogin} 
-            className="w-full text-base font-semibold py-6 mb-2 animate-slide-up animate-delay-300"
+            className="w-full text-base font-semibold py-6 mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 animate-slide-up animate-delay-300"
             disabled={isLoading}
           >
             {isLoading ? (
