@@ -53,3 +53,41 @@ export const refreshToken = asyncHandler(async (req, res) => {
 
   return res.status(200).json({message:`Cấp lại access token thành công`, accessToken:response.accessToken});
 }); 
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new AppError("Email là bắt buộc", 400);
+  }
+
+  const response = await authService.forgotPassword(email);
+
+  return res.status(200).json(response);
+});
+
+
+export const verifyForgotPasswordOTP = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    throw new AppError("Email và OTP là bắt buộc", 400);
+  }
+
+  const response = await authService.verifyForgotPasswordOTP(email, otp);
+
+  return res.status(200).json(response);
+});
+
+
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { resetToken, newPassword } = req.body;
+
+  if (!resetToken || !newPassword) {
+    throw new AppError("Thiếu resetToken hoặc mật khẩu mới", 400);
+  }
+
+  const response = await authService.resetPassword(resetToken, newPassword);
+
+  return res.status(200).json(response);
+});
