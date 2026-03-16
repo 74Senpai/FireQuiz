@@ -20,3 +20,27 @@ export const create = async (data) => {
 
   await pool.execute(sql, [hashedPassword, fullName, email]);
 }
+
+export const updatePasswordById = async (userId, hashedPassword) => {
+  const sql = `
+    UPDATE users
+    SET password_hash = ?
+    WHERE id = ? AND is_active = 1;
+  `;
+
+  const [result] = await pool.execute(sql, [hashedPassword, userId]);
+
+  return result.affectedRows > 0;
+};
+
+export const updatePasswordByEmail = async (email, hashedPassword) => {
+  const sql = `
+    UPDATE users
+    SET password_hash = ?
+    WHERE email = ? AND is_active = 1;
+  `;
+
+  const [result] = await pool.execute(sql, [hashedPassword, email]);
+
+  return result.affectedRows > 0;
+};
