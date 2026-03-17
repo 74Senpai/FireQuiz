@@ -367,8 +367,6 @@ describe('Service Layer Unit Tests', () => {
 
     });
 
-
-
     /*
     5 TEST SET STATUS QUIZ
     */
