@@ -7,6 +7,8 @@ import authRoute from './routes/authRoute.js';
 import userRoute from './routes/userRoute.js';
 import quizRoute from './routes/quizRoute.js';
 import questionRoute from './routes/questionRoute.js';
+// Import route cho chức năng Dashboard kết quả Quiz (Creator)
+import resultRoute from './routes/resultRoute.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import cookieParser from 'cookie-parser';
 import { protectedRoute } from './middlewares/authMiddleware.js';
@@ -49,6 +51,9 @@ async function startServer() {
 app.use('/api/auth', authRoute);
 app.use('/api/quiz', quizRoute);
 app.use('/api/question', questionRoute);
+
+// Route kết quả quiz - yêu cầu xác thực (protectedRoute được xử lý trong resultRoute)
+app.use('/api/result', resultRoute);
 
 // private route
 app.use(protectedRoute);
