@@ -37,10 +37,6 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
-// -------------------------------------------------------
-// Định nghĩa kiểu dữ liệu (TypeScript Interfaces)
-// -------------------------------------------------------
-
 /** Thông tin một quiz trong danh sách dropdown */
 interface Quiz {
   id: number;
@@ -88,10 +84,6 @@ interface Filters {
   endDate: string;
   status: string; // '' | 'SUBMITTED' | 'IN_PROGRESS'
 }
-
-// -------------------------------------------------------
-// Hàm tiện ích (Utility Functions)
-// -------------------------------------------------------
 
 /**
  * Chuyển đổi số giây thành chuỗi "Xm Ys" dễ đọc.

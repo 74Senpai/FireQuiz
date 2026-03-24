@@ -20,4 +20,5 @@ services:
       - ./backend:/app
 
 volumes:
-  db_data
+  db_data:
+    driver: local
