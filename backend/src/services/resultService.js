@@ -22,10 +22,11 @@ import AppError from '../errors/AppError.js';
  *
  * @param {number} quizId  - ID của quiz
  * @param {object} user    - Thông tin người dùng đang đăng nhập (từ req.user)
- * @param {object} filters - Các tham số lọc từ query string
+* @param {object} filters - Các tham số lọc từ query string
+ * @param {object} pagination - Tham số phân trang (page, limit)
  * @returns {Promise<Array>} Danh sách kết quả thi đã được format
  */
-export const getResultsByQuizId = async (quizId, user, filters) => {
+export const getResultsByQuizId = async (quizId, user, filters, pagination) => {
     // Bước 1: Kiểm tra quiz có tồn tại không
     const quiz = await quizRepository.getQuizById(quizId);
     if (!quiz) {
