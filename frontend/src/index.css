@@ -1,0 +1,250 @@
+@import "tailwindcss";
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900;
+}
+
+/* Pulse animation enhancement */
+@keyframes glow {
+  0%, 100% {
+    /* purple glow */
+    box-shadow: 0 0 20px rgba(128, 0, 128, 0.3), 0 0 40px rgba(128, 0, 128, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(128, 0, 128, 0.5), 0 0 60px rgba(128, 0, 128, 0.25);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* gradient animation utility */
+.animate-gradient-shift {
+  animation: gradient-shift 8s ease infinite;
+}
+
+/* Utility classes */
+.animate-glow {
+  animation: glow 3s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.6s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.6s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Stagger delay utilities */
+.animate-delay-100 { animation-delay: 100ms; }
+.animate-delay-200 { animation-delay: 200ms; }
+.animate-delay-300 { animation-delay: 300ms; }
+.animate-delay-400 { animation-delay: 400ms; }
+.animate-delay-500 { animation-delay: 500ms; }
+
+/* Card enhancement */
+.card-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-glow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* purple-tinted glow */
+  background: linear-gradient(135deg, rgba(128, 0, 128, 0.2) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Smooth transitions */
+* {
+  @apply transition-all duration-300 ease-out;
+}
+
+/* Button ripple effect */
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.btn-ripple:active::after {
+  animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 1;
+  }
+  100% {
+    width: 300px;
+    height: 300px;
+    opacity: 0;
+  }
+}
+
+/* Firefly background animation */
+.firefly-bg {
+  position: relative;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.firefly-bg::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, #eee, rgba(0, 0, 0, 0.2)),
+    radial-gradient(2px 2px at 60px 70px, #fff, rgba(0, 0, 0, 0.3)),
+    radial-gradient(1px 1px at 50px 50px, #ff6b9d, rgba(0, 0, 0, 0.2)),
+    radial-gradient(1px 1px at 130px 80px, #c06c84, rgba(0, 0, 0, 0.2)),
+    radial-gradient(2px 2px at 90px 10px, #ff8b94, rgba(0, 0, 0, 0.2));
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  animation: float 20s ease-in-out infinite;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Neon glow text */
+.neon-text {
+  text-shadow: 
+    0 0 10px #ff006e,
+    0 0 20px #ff006e,
+    0 0 30px #ff006e,
+    0 0 40px #ff006e;
+  color: #ff006e;
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Blob animation */
+@keyframes blob {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
