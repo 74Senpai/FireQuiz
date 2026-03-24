@@ -21,12 +21,11 @@ export function QuestionManager({ quizId }: { quizId: string }) {
   ]);
 
   const API_URL = process.env.API_URL || "http://localhost:8080/api";
-  const token = localStorage.getItem("accessToken");
 
   const fetchQuestions = async () => {
     try {
       const res = await axios.get(`${API_URL}/question/${quizId}/list`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       setQuestions(res.data.data || res.data);
     } catch (e) {
@@ -70,7 +69,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
     if (!confirm("Bạn có chắc chắn muốn xóa câu hỏi này không?")) return;
     try {
       await axios.delete(`${API_URL}/question/${questionId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       setQuestions(questions.filter(q => q.id !== questionId));
     } catch (error) {
@@ -95,12 +94,12 @@ export function QuestionManager({ quizId }: { quizId: string }) {
       if (editingId) {
         // GỌI API UPDATE (Bạn cần đảm bảo backend có endpoint này)
         await axios.patch(`${API_URL}/question/${editingId}`, payload, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
       } else {
         // GỌI API CREATE
         await axios.post(`${API_URL}/question`, payload, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
       }
 
@@ -140,7 +139,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
               <X className="w-4 h-4" />
             </button>
           </div>
-          
+
           <Input
             placeholder="Nội dung câu hỏi..."
             value={content}
@@ -204,7 +203,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
             Chưa có câu hỏi nào. Hãy nhấn nút Thêm để bắt đầu.
           </div>
         )}
-        
+
         {questions.map((q, idx) => (
           <div
             key={q.id}
@@ -217,20 +216,20 @@ export function QuestionManager({ quizId }: { quizId: string }) {
                   {q.content}
                 </p>
               </div>
-              
+
               {/* Nút Action (Chỉ hiện khi hover card) */}
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute top-4 right-4">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => handleEdit(q)}
                   className="h-8 w-8 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10"
                 >
                   <Pencil className="w-4 h-4" />
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => handleDelete(q.id)}
                   className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10"
                 >

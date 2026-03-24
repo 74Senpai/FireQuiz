@@ -64,13 +64,19 @@ export const getResultsByQuizId = asyncHandler(async (req, res) => {
         search: req.query.search,
     };
 
-    // Gọi service để xử lý nghiệp vụ
-    const results = await resultService.getResultsByQuizId(quizId, user, filters);
+    // Phân trang (thông số từ query string, default 10 / 0)
+    const limit = Number(req.query.limit) > 0 ? Number(req.query.limit) : 10;
+    const offset = Number(req.query.offset) >= 0 ? Number(req.query.offset) : 0;
 
-    // Trả về danh sách kết quả kèm tổng số bản ghi
+    // Gọi service để xử lý nghiệp vụ
+    const results = await resultService.getResultsByQuizId(quizId, user, filters, { limit, offset });
+
+    // Trả về danh sách kết quả kèm tổng số bản ghi + phân trang
     return res.status(200).json({
-        data: results,
-        total: results.length,
+        data: results.data,
+        total: results.total,
+        limit,
+        offset,
     });
 });
 

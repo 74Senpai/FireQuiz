@@ -30,18 +30,9 @@ export function DashboardLayout() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const token = localStorage.getItem("accessToken");
-
-        // Nếu không có token, đẩy về trang login ngay
-        if (!token) {
-          navigate("/login");
-          return;
-        }
-
+        // Token được gửi tự động qua cookie httpOnly
         const response = await axios.get(`${API_URL}/user/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`, // Gửi token lên để qua cổng middleware
-          },
+          withCredentials: true, // Gửi cookie httpOnly
         });
 
         setUser({
@@ -53,7 +44,6 @@ export function DashboardLayout() {
         console.error("Lỗi lấy thông tin user:", error);
         // Nếu token hết hạn hoặc không hợp lệ (401, 403), đẩy về login
         if (error.response?.status === 401 || error.response?.status === 403) {
-          localStorage.removeItem("accessToken");
           navigate("/login");
         }
       }
@@ -69,33 +59,24 @@ export function DashboardLayout() {
     try {
       try {
         const API_URL = process.env.API_URL || "http://localhost:8080/api";
-        const token = localStorage.getItem("accessToken");
 
         // Gọi API Logout
         await axios.post(
           `${API_URL}/auth/logout`,
           {}, // Body trống
           {
-            headers: {
-              Authorization: `Bearer ${token}`, // Gửi access token nếu cần thiết cho middleware
-            },
-            withCredentials: true, // RẤT QUAN TRỌNG: Để gửi kèm Refresh Token nằm trong Cookie
+            withCredentials: true, // Gửi cookie httpOnly
           },
         );
       } catch (error) {
         console.error("Lỗi khi gọi API logout:", error);
-        // Ngay cả khi API lỗi, chúng ta vẫn nên tiếp tục xóa token ở máy khách
+        // Ngay cả khi API lỗi, chúng ta vẫn nên tiếp tục logout ở client
       } finally {
-        // 1. Xóa Access Token khỏi localStorage
-        localStorage.removeItem("accessToken");
-
-        // 2. Chuyển hướng về trang Login
+        // Chuyển hướng về trang Login
         navigate("/login");
       }
     } finally {
       setIsLoggingOut(false);
-      localStorage.removeItem("accessToken");
-      navigate("/login");
     }
   };
 

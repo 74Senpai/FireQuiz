@@ -165,19 +165,14 @@ export function Results() {
   });
 
   // -------------------------------------------------------
-  // Lấy danh sách quiz của chủ quiz khi component mount
+  // Lấy danh sách quiz của chủ quiz khi g
   // -------------------------------------------------------
   useEffect(() => {
     const fetchQuizzes = async () => {
       setIsLoadingQuizzes(true);
       try {
-        const token = localStorage.getItem("accessToken");
-        if (!token) {
-          navigate("/login");
-          return;
-        }
         const response = await axios.get(`${API_URL}/quiz/myquiz`, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
         const quizList: Quiz[] = response.data.data || [];
         setQuizzes(quizList);
@@ -207,12 +202,6 @@ export function Results() {
 
     setIsLoadingResults(true);
     try {
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-        navigate("/login");
-        return;
-      }
-
       // Xây dựng query params từ các filter đang được áp dụng
       const queryParams = new URLSearchParams();
       if (appliedFilters.search) queryParams.set("search", appliedFilters.search);
@@ -222,15 +211,13 @@ export function Results() {
       if (appliedFilters.endDate) queryParams.set("endDate", appliedFilters.endDate);
       if (appliedFilters.status) queryParams.set("status", appliedFilters.status);
 
-      const headers = { Authorization: `Bearer ${token}` };
-
       // Gọi song song 2 API: danh sách kết quả + thống kê tổng quan
       const [resultsRes, statsRes] = await Promise.all([
         axios.get(
           `${API_URL}/result/quiz/${selectedQuizId}?${queryParams.toString()}`,
-          { headers }
+          { withCredentials: true }
         ),
-        axios.get(`${API_URL}/result/quiz/${selectedQuizId}/stats`, { headers }),
+        axios.get(`${API_URL}/result/quiz/${selectedQuizId}/stats`, { withCredentials: true }),
       ]);
 
       setResults(resultsRes.data.data || []);

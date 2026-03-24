@@ -1,6 +1,4 @@
-import * as authService from '../services/authService.js';
-import { asyncHandler } from '../untils/asyncHandler.js';
-import AppError from '../errors/AppError.js';
+import * as authService, { ACCESS_TOKEN_TTL } from '../services/authService.js';
 
 export const signUp = asyncHandler(async (req, res) => {
   const { password, fullName, email } = req.body;
@@ -10,11 +8,11 @@ export const signUp = asyncHandler(async (req, res) => {
   return res.status(204).send();
 });
 
-export const logIn = asyncHandler(async(req, res) => {
+export const logIn = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   const response = await authService.logIn({ email, password });
-  
+
   res.cookie('refreshToken', response.refreshToken, {
     httpOnly: true,
     secure: true,
@@ -22,7 +20,14 @@ export const logIn = asyncHandler(async(req, res) => {
     maxAge: response.REFRESH_TOKEN_TTL
   });
 
-  return res.status(200).json({message:`User ${email} đã đăng nhập`, accessToken:response.accessToken});
+  res.cookie('accessToken', response.accessToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+  });
+
+  return res.status(200).json({ message: `User ${email} đã đăng nhập` });
 });
 
 export const logOut = asyncHandler(async (req, res) => {
@@ -31,6 +36,7 @@ export const logOut = asyncHandler(async (req, res) => {
     await authService.logOut(token);
 
     res.clearCookie("refreshToken");
+    res.clearCookie("accessToken");
   }
   return res.status(204).send();
 });
@@ -51,8 +57,15 @@ export const refreshToken = asyncHandler(async (req, res) => {
     maxAge: response.REFRESH_TOKEN_TTL
   });
 
-  return res.status(200).json({message:`Cấp lại access token thành công`, accessToken:response.accessToken});
-}); 
+  res.cookie('accessToken', response.accessToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+  });
+
+  return res.status(200).json({ message: `Cấp lại access token thành công` });
+});
 
 export const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;

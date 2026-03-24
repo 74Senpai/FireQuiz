@@ -38,7 +38,7 @@ export const getResultsByQuizId = async (quizId, user, filters) => {
     }
 
     // Bước 3: Lấy dữ liệu từ repository
-    const rawResults = await quizAttemptRepository.getResultsByQuizId(quizId, filters);
+    const { data: rawResults, total } = await quizAttemptRepository.getResultsByQuizId(quizId, filters, pagination);
 
     // Bước 4: Format dữ liệu trả về (chuyển đổi kiểu dữ liệu cho FE dễ dùng)
     const formattedResults = rawResults.map((row) => ({
@@ -63,7 +63,7 @@ export const getResultsByQuizId = async (quizId, user, filters) => {
         },
     }));
 
-    return formattedResults;
+    return { data: formattedResults, total };
 };
 
 /**

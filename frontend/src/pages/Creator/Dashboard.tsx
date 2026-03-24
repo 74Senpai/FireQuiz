@@ -24,9 +24,8 @@ export function CreatorDashboard() {
   const fetchQuizzes = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("accessToken");
       const response = await axios.get(`${API_URL}/quiz/myquiz`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       setQuizzes(response.data.data);
     } catch (error: any) {
@@ -47,9 +46,8 @@ export function CreatorDashboard() {
     e.stopPropagation();
     if (window.confirm("Bạn có chắc chắn muốn xóa quiz này?")) {
       try {
-        const token = localStorage.getItem("accessToken");
         await axios.delete(`${API_URL}/quiz/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
         // Cập nhật lại UI sau khi xóa thành công
         setQuizzes(quizzes.filter((q) => q.id !== id));
@@ -126,13 +124,12 @@ export function CreatorDashboard() {
               >
                 {/* Status bar dọc */}
                 <div
-                  className={`absolute top-0 left-0 w-1.5 h-full transition-all duration-300 group-hover:w-2 ${
-                    quiz.status === "PUBLISHED"
+                  className={`absolute top-0 left-0 w-1.5 h-full transition-all duration-300 group-hover:w-2 ${quiz.status === "PUBLISHED"
                       ? "bg-emerald-500"
                       : quiz.status === "DRAFT"
                         ? "bg-amber-500"
                         : "bg-slate-500"
-                  }`}
+                    }`}
                 />
 
                 <CardHeader className="pb-2 relative z-10">
@@ -158,13 +155,12 @@ export function CreatorDashboard() {
                   </div>
                   <div className="flex items-center gap-2 mt-2">
                     <span
-                      className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${
-                        quiz.status === "PUBLISHED"
+                      className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${quiz.status === "PUBLISHED"
                           ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                           : quiz.status === "DRAFT"
                             ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
                             : "bg-slate-500/20 text-slate-400 border border-slate-500/30"
-                      }`}
+                        }`}
                     >
                       {statusLabel}
                     </span>

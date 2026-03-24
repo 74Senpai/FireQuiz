@@ -151,3 +151,5 @@ export const resetPassword = async (resetToken, newPassword) => {
 
   return { message: "Đổi mật khẩu thành công" };
 };
+
+export { ACCESS_TOKEN_TTL };

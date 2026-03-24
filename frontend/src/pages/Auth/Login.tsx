@@ -12,7 +12,7 @@ export function Login() {
   // Form state
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
-  
+
   // Quản lý lỗi (bao gồm lỗi validation và lỗi từ API)
   const [errors, setErrors] = React.useState<{ email?: string; password?: string; api?: string }>({});
 
@@ -42,20 +42,17 @@ export function Login() {
       const API_URL = process.env.API_URL || "http://localhost:8080/api";
 
       const response = await axios.post(
-        `${API_URL}/auth/login`, 
+        `${API_URL}/auth/login`,
         { email, password },
         { withCredentials: true } // QUAN TRỌNG: Để nhận Refresh Token Cookie
       );
 
       // Nếu thành công:
-      const { accessToken } = response.data;
-      
-      // Lưu Access Token vào localStorage để dùng cho các request sau
-      localStorage.setItem("accessToken", accessToken);
+      // Access Token đã được lưu trong httpOnly cookie bởi backend
 
       // Chuyển hướng người dùng
       navigate("/dashboard");
-      
+
     } catch (error: any) {
       // Xử lý lỗi từ Backend (ví dụ: Sai mật khẩu, User không tồn tại)
       const message = error.response?.data?.message || "Đăng nhập thất bại. Vui lòng thử lại.";
@@ -74,7 +71,7 @@ export function Login() {
           <CardDescription className="text-slate-600">Nhập email của bạn để đăng nhập</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          
+
           {/* Hiển thị lỗi từ API (ví dụ: Sai tài khoản/mật khẩu) */}
           {errors.api && (
             <div className="p-3 text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg animate-shake">
@@ -86,11 +83,11 @@ export function Login() {
             <label className="text-sm font-semibold text-slate-700" htmlFor="email">
               Địa chỉ email
             </label>
-            <Input 
-              id="email" 
+            <Input
+              id="email"
               value={email}
               onChange={e => setEmail(e.currentTarget.value)}
-              placeholder="ten@vi.du" 
+              placeholder="ten@vi.du"
               type="email"
               className="bg-slate-50/80 border border-slate-200 focus-visible:ring-indigo-500"
             />
@@ -105,8 +102,8 @@ export function Login() {
                 Quên mật khẩu?
               </Link>
             </div>
-            <Input 
-              id="password" 
+            <Input
+              id="password"
               value={password}
               onChange={e => setPassword(e.currentTarget.value)}
               type="password"
@@ -117,8 +114,8 @@ export function Login() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-3">
-          <Button 
-            onClick={handleLogin} 
+          <Button
+            onClick={handleLogin}
             className="w-full text-base font-semibold py-6 mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 animate-slide-up animate-delay-300"
             disabled={isLoading}
           >

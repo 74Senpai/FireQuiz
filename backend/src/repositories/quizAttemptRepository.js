@@ -26,7 +26,7 @@ import pool from '../db/db.js';
  * @param {object} filters  - Các tham số lọc (tùy chọn)
  * @returns {Promise<Array>} Danh sách kết quả thi
  */
-export const getResultsByQuizId = async (quizId, filters = {}) => {
+export const getResultsByQuizId = async (quizId, filters = {}, pagination = { limit: 10, offset: 0 }) => {
     const {
         minScore,
         maxScore,
@@ -82,9 +82,15 @@ export const getResultsByQuizId = async (quizId, filters = {}) => {
     }
 
     // Ghép tất cả điều kiện lại thành chuỗi WHERE
-    const whereClause = conditions.join(' AND ');
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const sql = `
+    // Query để đếm tổng số bản ghi
+    const countSql = `SELECT COUNT(*) AS total FROM quiz_attempts qa INNER JOIN users u ON qa.user_id = u.id ${whereClause}`;
+    const [countRows] = await pool.execute(countSql, params);
+    const total = countRows[0]?.total || 0;
+
+    // Query để lấy dữ liệu đã phân trang
+    const dataSql = `
     SELECT
       qa.id              AS attempt_id,
       qa.quiz_id,
@@ -92,25 +98,23 @@ export const getResultsByQuizId = async (quizId, filters = {}) => {
       qa.score,
       qa.started_at,
       qa.finished_at,
-      -- Tính thời gian làm bài (giây), NULL nếu chưa nộp
       TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at) AS duration_seconds,
-      -- Trạng thái nộp bài
       CASE
         WHEN qa.finished_at IS NOT NULL THEN 'SUBMITTED'
         ELSE 'IN_PROGRESS'
       END AS submit_status,
-      -- Thông tin thí sinh từ bảng users
       u.id               AS user_id,
       u.full_name,
       u.email
     FROM quiz_attempts qa
     INNER JOIN users u ON qa.user_id = u.id
-    WHERE ${whereClause}
+    ${whereClause}
     ORDER BY qa.started_at DESC
+    LIMIT ? OFFSET ?
   `;
 
-    const [rows] = await pool.execute(sql, params);
-    return rows;
+    const [rows] = await pool.execute(dataSql, [...params, pagination.limit, pagination.offset]);
+    return { data: rows, total };
 };
 
 /**

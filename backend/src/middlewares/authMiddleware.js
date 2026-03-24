@@ -31,8 +31,7 @@ export const validateLogIn = asyncHandler(async (req, res, next) => {
 });
 
 export const protectedRoute = asyncHandler(async (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+  const token = req.cookies?.accessToken;
 
   if (!token) {
     throw new AppError("Không tìm thấy access token", 401);

@@ -49,9 +49,8 @@ export function QuizEditor() {
       const fetchQuizDetail = async () => {
         setIsLoadingData(true);
         try {
-          const token = localStorage.getItem("accessToken");
           const response = await axios.get(`${API_URL}/quiz/${id}`, {
-            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true,
           });
 
           const quiz = response.data; // Object trực tiếp theo JSON bạn gửi
@@ -107,8 +106,7 @@ export function QuizEditor() {
 
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem("accessToken");
-      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const config = { withCredentials: true };
 
       // Chuyển đổi dữ liệu sang định dạng CamelCase mà Service yêu cầu
       const infoPayload = {
@@ -227,11 +225,10 @@ export function QuizEditor() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                activeTab === tab.id
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${activeTab === tab.id
                   ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30"
                   : "text-slate-300 hover:bg-white/10 hover:text-white"
-              }`}
+                }`}
             >
               <tab.icon className="w-5 h-5" /> {tab.label}
             </button>
