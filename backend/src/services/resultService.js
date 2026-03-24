@@ -13,7 +13,7 @@
  */
 
 import * as quizRepository from '../repositories/quizRepository.js';
-import * as resultRepository from '../repositories/resultRepository.js';
+import * as quizAttemptRepository from '../repositories/quizAttemptRepository.js';
 import AppError from '../errors/AppError.js';
 
 /**
@@ -38,7 +38,7 @@ export const getResultsByQuizId = async (quizId, user, filters) => {
     }
 
     // Bước 3: Lấy dữ liệu từ repository
-    const rawResults = await resultRepository.getResultsByQuizId(quizId, filters);
+    const rawResults = await quizAttemptRepository.getResultsByQuizId(quizId, filters);
 
     // Bước 4: Format dữ liệu trả về (chuyển đổi kiểu dữ liệu cho FE dễ dùng)
     const formattedResults = rawResults.map((row) => ({
@@ -87,7 +87,7 @@ export const getQuizStats = async (quizId, user) => {
     }
 
     // Bước 3: Lấy thống kê từ repository
-    const stats = await resultRepository.getQuizStatsByQuizId(quizId);
+    const stats = await quizAttemptRepository.getQuizStatsByQuizId(quizId);
 
     // Bước 4: Format dữ liệu trả về
     return {

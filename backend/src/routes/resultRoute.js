@@ -1,4 +1,3 @@
-
 import express from 'express';
 import * as resultController from '../controllers/resultController.js';
 import { protectedRoute } from '../middlewares/authMiddleware.js';

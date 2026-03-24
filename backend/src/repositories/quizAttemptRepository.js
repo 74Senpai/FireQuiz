@@ -1,5 +1,5 @@
 /**
- * resultRepository.js
+ * quizAttemptRepository.js
  * -------------------------------------------------------
  * Tầng truy cập dữ liệu (Data Access Layer) cho chức năng
  * "Dashboard kết quả Quiz" của Chủ Quiz (Creator).
