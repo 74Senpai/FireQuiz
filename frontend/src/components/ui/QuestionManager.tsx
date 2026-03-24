@@ -10,6 +10,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Form State
   const [content, setContent] = useState("");
@@ -24,12 +25,17 @@ export function QuestionManager({ quizId }: { quizId: string }) {
 
   const fetchQuestions = async () => {
     try {
+      setError(null); // Reset error trước khi fetch
       const res = await axios.get(`${API_URL}/question/${quizId}/list`, {
         withCredentials: true,
       });
       setQuestions(res.data.data || res.data);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      const errorMessage = e.response?.data?.message ||
+        e.message ||
+        "Không thể tải danh sách câu hỏi.";
+      setError(errorMessage);
     }
   };
 
@@ -68,21 +74,28 @@ export function QuestionManager({ quizId }: { quizId: string }) {
   const handleDelete = async (questionId: number) => {
     if (!confirm("Bạn có chắc chắn muốn xóa câu hỏi này không?")) return;
     try {
+      setError(null); // Reset error trước khi delete
       await axios.delete(`${API_URL}/question/${questionId}`, {
         withCredentials: true,
       });
       setQuestions(questions.filter(q => q.id !== questionId));
-    } catch (error) {
-      alert("Xóa thất bại!");
+    } catch (error: any) {
+      console.error(error);
+      const errorMessage = error.response?.data?.message ||
+        error.message ||
+        "Không thể xóa câu hỏi. Vui lòng thử lại.";
+      setError(errorMessage);
     }
   };
 
   const handleSave = async () => {
     if (!content.trim() || answers.some((a) => !a.content.trim())) {
-      return alert("Vui lòng nhập đầy đủ nội dung và 4 đáp án");
+      setError("Vui lòng nhập đầy đủ nội dung và 4 đáp án");
+      return;
     }
 
     setIsLoading(true);
+    setError(null); // Reset error trước khi save
     try {
       const payload = {
         content,
@@ -106,7 +119,11 @@ export function QuestionManager({ quizId }: { quizId: string }) {
       resetForm();
       fetchQuestions();
     } catch (error: any) {
-      alert(error.response?.data?.message || "Lỗi khi lưu");
+      console.error(error);
+      const errorMessage = error.response?.data?.message ||
+        error.message ||
+        "Không thể lưu câu hỏi. Vui lòng thử lại.";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -127,6 +144,24 @@ export function QuestionManager({ quizId }: { quizId: string }) {
           </Button>
         )}
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50/10 border border-red-200/20 rounded-lg p-3">
+          <div className="flex items-center gap-3">
+            <X className="w-4 h-4 text-red-400" />
+            <p className="text-red-400 text-sm">{error}</p>
+            <Button
+              onClick={() => setError(null)}
+              variant="ghost"
+              size="sm"
+              className="ml-auto text-red-400 hover:text-red-300 h-6 w-6 p-0"
+            >
+              ✕
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Form (Dùng cho cả Add và Edit) */}
       {isAdding && (

@@ -16,6 +16,7 @@ import axios from "axios";
 export function CreatorDashboard() {
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const API_URL = process.env.API_URL || "http://localhost:8080/api";
@@ -23,6 +24,7 @@ export function CreatorDashboard() {
   // Hàm lấy danh sách quiz từ backend
   const fetchQuizzes = async () => {
     setIsLoading(true);
+    setError(null); // Reset error trước khi fetch
     try {
       const response = await axios.get(`${API_URL}/quiz/myquiz`, {
         withCredentials: true,
@@ -30,7 +32,14 @@ export function CreatorDashboard() {
       setQuizzes(response.data.data);
     } catch (error: any) {
       console.error("Lỗi lấy danh sách quiz:", error);
-      if (error.response?.status === 401) navigate("/login");
+      if (error.response?.status === 401) {
+        navigate("/login");
+      } else {
+        const errorMessage = error.response?.data?.message ||
+          error.message ||
+          "Không thể tải danh sách quiz. Vui lòng thử lại.";
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -80,6 +89,32 @@ export function CreatorDashboard() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="space-y-8 animate-fade-in">
+        <div>
+          <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">
+            Danh sách Quiz
+          </h2>
+          <p className="text-slate-400 mt-1">Quản lý quiz, xem kết quả và chỉnh sửa cấu hình.</p>
+        </div>
+        <div className="text-center py-20 bg-red-50/10 rounded-2xl border border-red-200/20">
+          <Trash2 className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <p className="text-red-400 text-lg font-medium">Không thể tải danh sách Quiz</p>
+          <p className="text-red-300 text-sm mt-2 max-w-md mx-auto">{error}</p>
+          <Button
+            onClick={fetchQuizzes}
+            className="mt-4 bg-red-600 hover:bg-red-700"
+            size="sm"
+          >
+            <Loader2 className="w-4 h-4 mr-2" />
+            Thử lại
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between animate-fade-in">
@@ -125,10 +160,10 @@ export function CreatorDashboard() {
                 {/* Status bar dọc */}
                 <div
                   className={`absolute top-0 left-0 w-1.5 h-full transition-all duration-300 group-hover:w-2 ${quiz.status === "PUBLISHED"
-                      ? "bg-emerald-500"
-                      : quiz.status === "DRAFT"
-                        ? "bg-amber-500"
-                        : "bg-slate-500"
+                    ? "bg-emerald-500"
+                    : quiz.status === "DRAFT"
+                      ? "bg-amber-500"
+                      : "bg-slate-500"
                     }`}
                 />
 
@@ -156,10 +191,10 @@ export function CreatorDashboard() {
                   <div className="flex items-center gap-2 mt-2">
                     <span
                       className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${quiz.status === "PUBLISHED"
-                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                          : quiz.status === "DRAFT"
-                            ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                            : "bg-slate-500/20 text-slate-400 border border-slate-500/30"
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                        : quiz.status === "DRAFT"
+                          ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                          : "bg-slate-500/20 text-slate-400 border border-slate-500/30"
                         }`}
                     >
                       {statusLabel}

@@ -24,12 +24,15 @@ export function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [userError, setUserError] = useState<string | null>(null);
 
   const API_URL = process.env.API_URL || "http://localhost:8080/api";
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
+        setUserError(null);
         // Token được gửi tự động qua cookie httpOnly
         const response = await axios.get(`${API_URL}/user/me`, {
           withCredentials: true, // Gửi cookie httpOnly
@@ -45,14 +48,17 @@ export function DashboardLayout() {
         // Nếu token hết hạn hoặc không hợp lệ (401, 403), đẩy về login
         if (error.response?.status === 401 || error.response?.status === 403) {
           navigate("/login");
+        } else {
+          setUserError(
+            error.response?.data?.message ||
+            "Không thể tải thông tin người dùng. Vui lòng thử lại."
+          );
         }
       }
     };
 
     fetchUserData();
   }, [navigate, API_URL]);
-
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -192,6 +198,34 @@ export function DashboardLayout() {
           </div>
         </header>
         <div className="flex-1 overflow-auto p-8 relative">
+          {/* Error Banner */}
+          {userError && (
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg backdrop-blur-sm animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center">
+                    <span className="text-red-400 text-sm">⚠</span>
+                  </div>
+                  <p className="text-red-300 font-medium">{userError}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={fetchUserData}
+                    className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-md text-sm font-medium transition-colors duration-200"
+                  >
+                    Thử lại
+                  </button>
+                  <button
+                    onClick={() => setUserError(null)}
+                    className="p-1 hover:bg-red-500/20 text-red-400 rounded-md transition-colors duration-200"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Animated background elements */}
           <div className="absolute top-20 right-10 w-80 h-80 bg-indigo-500/10 rounded-full filter blur-3xl animate-blob"></div>
           <div className="absolute -bottom-20 left-10 w-80 h-80 bg-purple-500/10 rounded-full filter blur-3xl animate-blob animation-delay-4000"></div>

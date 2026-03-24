@@ -29,6 +29,8 @@ export function QuizEditor() {
   const [activeTab, setActiveTab] = useState("settings");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false); // Trạng thái load dữ liệu cũ
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Form data
   const [title, setTitle] = useState("");
@@ -48,6 +50,7 @@ export function QuizEditor() {
     if (isEditMode && id) {
       const fetchQuizDetail = async () => {
         setIsLoadingData(true);
+        setFetchError(null); // Reset error trước khi fetch
         try {
           const response = await axios.get(`${API_URL}/quiz/${id}`, {
             withCredentials: true,
@@ -74,8 +77,12 @@ export function QuizEditor() {
 
             setMaxParticipants(quiz.max_attempts?.toString() || "");
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error("Lỗi lấy chi tiết:", error);
+          const errorMessage = error.response?.data?.message ||
+            error.message ||
+            "Không thể tải thông tin quiz. Vui lòng thử lại.";
+          setFetchError(errorMessage);
         } finally {
           setIsLoadingData(false);
         }
@@ -105,6 +112,7 @@ export function QuizEditor() {
     }
 
     setIsSubmitting(true);
+    setSaveError(null); // Reset error trước khi save
     try {
       const config = { withCredentials: true };
 
@@ -155,7 +163,10 @@ export function QuizEditor() {
       navigate("/dashboard/manage");
     } catch (error: any) {
       console.error("Lỗi lưu Quiz:", error);
-      alert(error.response?.data?.message || "Có lỗi xảy ra.");
+      const errorMessage = error.response?.data?.message ||
+        error.message ||
+        "Không thể lưu quiz. Vui lòng thử lại.";
+      setSaveError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -214,6 +225,39 @@ export function QuizEditor() {
         </div>
       </div>
 
+      {/* Error Messages */}
+      {fetchError && (
+        <div className="bg-red-50/10 border border-red-200/20 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <ShieldAlert className="w-5 h-5 text-red-400" />
+            <div>
+              <p className="text-red-400 font-medium">Lỗi tải dữ liệu</p>
+              <p className="text-red-300 text-sm">{fetchError}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {saveError && (
+        <div className="bg-red-50/10 border border-red-200/20 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <ShieldAlert className="w-5 h-5 text-red-400" />
+            <div>
+              <p className="text-red-400 font-medium">Lỗi lưu quiz</p>
+              <p className="text-red-300 text-sm">{saveError}</p>
+            </div>
+            <Button
+              onClick={() => setSaveError(null)}
+              variant="ghost"
+              size="sm"
+              className="ml-auto text-red-400 hover:text-red-300"
+            >
+              ✕
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-12 gap-6">
         {/* Sidebar Navigation */}
         <div className="col-span-3 space-y-1">
@@ -226,8 +270,8 @@ export function QuizEditor() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${activeTab === tab.id
-                  ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30"
-                  : "text-slate-300 hover:bg-white/10 hover:text-white"
+                ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30"
+                : "text-slate-300 hover:bg-white/10 hover:text-white"
                 }`}
             >
               <tab.icon className="w-5 h-5" /> {tab.label}

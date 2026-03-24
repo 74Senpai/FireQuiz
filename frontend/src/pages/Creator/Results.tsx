@@ -144,6 +144,10 @@ export function Results() {
   const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
   const [isLoadingResults, setIsLoadingResults] = useState(false);
 
+  // --- State quản lý lỗi ---
+  const [quizzesError, setQuizzesError] = useState<string | null>(null);
+  const [resultsError, setResultsError] = useState<string | null>(null);
+
   // --- State quản lý các bộ lọc ---
   const [filters, setFilters] = useState<Filters>({
     search: "",
@@ -170,6 +174,7 @@ export function Results() {
   useEffect(() => {
     const fetchQuizzes = async () => {
       setIsLoadingQuizzes(true);
+      setQuizzesError(null); // Reset error trước khi fetch
       try {
         const response = await axios.get(`${API_URL}/quiz/myquiz`, {
           withCredentials: true,
@@ -185,6 +190,12 @@ export function Results() {
         console.error("Lỗi lấy danh sách quiz:", error);
         if (error.response?.status === 401 || error.response?.status === 403) {
           navigate("/login");
+        } else {
+          // Hiển thị lỗi cho người dùng
+          const errorMessage = error.response?.data?.message ||
+            error.message ||
+            "Không thể tải danh sách quiz. Vui lòng thử lại.";
+          setQuizzesError(errorMessage);
         }
       } finally {
         setIsLoadingQuizzes(false);
@@ -201,6 +212,7 @@ export function Results() {
     if (!selectedQuizId) return;
 
     setIsLoadingResults(true);
+    setResultsError(null); // Reset error trước khi fetch
     try {
       // Xây dựng query params từ các filter đang được áp dụng
       const queryParams = new URLSearchParams();
@@ -226,6 +238,12 @@ export function Results() {
       console.error("Lỗi lấy kết quả quiz:", error);
       if (error.response?.status === 401 || error.response?.status === 403) {
         navigate("/login");
+      } else {
+        // Hiển thị lỗi cho người dùng
+        const errorMessage = error.response?.data?.message ||
+          error.message ||
+          "Không thể tải kết quả quiz. Vui lòng thử lại.";
+        setResultsError(errorMessage);
       }
       // Reset dữ liệu nếu có lỗi
       setResults([]);
@@ -291,8 +309,33 @@ export function Results() {
   }
 
   // -------------------------------------------------------
-  // Render: Trường hợp chưa có quiz nào
+  // Render: Lỗi tải danh sách quiz
   // -------------------------------------------------------
+  if (quizzesError) {
+    return (
+      <div className="space-y-8 animate-fade-in">
+        <div>
+          <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">
+            Kết quả Quiz
+          </h2>
+          <p className="text-slate-400 mt-1">Xem và phân tích kết quả thí sinh.</p>
+        </div>
+        <div className="text-center py-20 bg-red-50/10 rounded-2xl border border-red-200/20">
+          <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <p className="text-red-400 text-lg font-medium">Không thể tải danh sách Quiz</p>
+          <p className="text-red-300 text-sm mt-2 max-w-md mx-auto">{quizzesError}</p>
+          <Button
+            onClick={() => window.location.reload()}
+            className="mt-4 bg-red-600 hover:bg-red-700"
+            size="sm"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Thử lại
+          </Button>
+        </div>
+      </div>
+    );
+  }
   if (quizzes.length === 0) {
     return (
       <div className="space-y-8 animate-fade-in">
@@ -586,6 +629,21 @@ export function Results() {
             <div className="flex flex-col items-center justify-center py-16 text-slate-400">
               <Loader2 className="w-8 h-8 animate-spin mb-3" />
               <p className="text-sm">Đang tải kết quả...</p>
+            </div>
+          ) : resultsError ? (
+            /* Hiển thị lỗi khi tải kết quả thất bại */
+            <div className="text-center py-16 bg-red-50/10 rounded-lg border border-red-200/20">
+              <XCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+              <p className="text-red-400 text-base font-medium">Không thể tải kết quả</p>
+              <p className="text-red-300 text-sm mt-1 max-w-md mx-auto">{resultsError}</p>
+              <Button
+                onClick={fetchResults}
+                className="mt-4 bg-red-600 hover:bg-red-700"
+                size="sm"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Thử lại
+              </Button>
             </div>
           ) : results.length === 0 ? (
             /* Trường hợp không có kết quả */
