@@ -1,5 +1,4 @@
 import * as authService from '../services/authService.js';
-import { ACCESS_TOKEN_TTL } from '../services/authService.js';
 import { asyncHandler } from '../untils/asyncHandler.js';
 
 export const signUp = asyncHandler(async (req, res) => {
@@ -26,8 +25,9 @@ export const logIn = asyncHandler(async (req, res) => {
     httpOnly: true,
     secure: true,
     sameSite: 'none',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+    maxAge: response.ACCESS_TOKEN_TTL,
   });
+
 
   return res.status(200).json({ message: `User ${email} đã đăng nhập` });
 });
@@ -63,8 +63,9 @@ export const refreshToken = asyncHandler(async (req, res) => {
     httpOnly: true,
     secure: true,
     sameSite: 'none',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+    maxAge: response.ACCESS_TOKEN_TTL,
   });
+
 
   return res.status(200).json({ message: `Cấp lại access token thành công` });
 });
