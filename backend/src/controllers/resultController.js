@@ -52,9 +52,17 @@ export const getResultsByQuizId = asyncHandler(async (req, res) => {
     const user = req.user;
 
     // Trích xuất các tham số lọc từ query string
+    const minScore = req.query.minScore ? parseFloat(req.query.minScore) : undefined;
+    const maxScore = req.query.maxScore ? parseFloat(req.query.maxScore) : undefined;
+
+    // Validate minScore và maxScore phải là số hợp lệ nếu được cung cấp
+    if ((req.query.minScore && isNaN(minScore)) || (req.query.maxScore && isNaN(maxScore))) {
+        throw new AppError('Điểm số (minScore/maxScore) không hợp lệ.', 400);
+    }
+
     const filters = {
-        minScore: req.query.minScore,
-        maxScore: req.query.maxScore,
+        minScore,
+        maxScore,
         startDate: req.query.startDate,
         endDate: req.query.endDate,
         // Chỉ chấp nhận giá trị hợp lệ cho status
