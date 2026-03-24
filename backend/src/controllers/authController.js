@@ -1,4 +1,6 @@
-import * as authService, { ACCESS_TOKEN_TTL } from '../services/authService.js';
+import * as authService from '../services/authService.js';
+import { ACCESS_TOKEN_TTL } from '../services/authService.js';
+import { asyncHandler } from '../untils/asyncHandler.js';
 
 export const signUp = asyncHandler(async (req, res) => {
   const { password, fullName, email } = req.body;
