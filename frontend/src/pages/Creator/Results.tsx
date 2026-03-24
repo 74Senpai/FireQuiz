@@ -325,13 +325,14 @@ export function Results() {
           <p className="text-red-400 text-lg font-medium">Không thể tải danh sách Quiz</p>
           <p className="text-red-300 text-sm mt-2 max-w-md mx-auto">{quizzesError}</p>
           <Button
-            onClick={() => window.location.reload()}
+            onClick={fetchQuizzes}
             className="mt-4 bg-red-600 hover:bg-red-700"
             size="sm"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Thử lại
           </Button>
+
         </div>
       </div>
     );
