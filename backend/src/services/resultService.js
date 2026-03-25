@@ -15,6 +15,7 @@
 import * as quizRepository from '../repositories/quizRepository.js';
 import * as quizAttemptRepository from '../repositories/quizAttemptRepository.js';
 import AppError from '../errors/AppError.js';
+import ExcelJS from 'exceljs';
 
 /**
  * Lấy danh sách kết quả thi của một quiz (có hỗ trợ lọc).
@@ -98,5 +99,71 @@ export const getQuizStats = async (quizId, user) => {
         avgScore: stats.avg_score !== null ? Number(stats.avg_score) : null,
         maxScore: stats.max_score !== null ? Number(stats.max_score) : null,
         minScore: stats.min_score !== null ? Number(stats.min_score) : null,
+    };
+};
+
+/**
+ * Xuất kết quả thi của một quiz ra file Excel.
+ * Chỉ chủ quiz mới có quyền thực hiện.
+ * @param {number} quizId - ID của quiz
+ * @param {object} user - Thông tin người dùng đang đăng nhập
+ * @param {object} filters - Các tham số lọc
+ * @returns {Promise<Buffer>} Buffer chứa nội dung file Excel
+ */
+export const exportResultsToExcel = async (quizId, user, filters) => {
+    // Bước 1: Kiểm tra quyền và sự tồn tại của quiz
+    const quiz = await quizRepository.getQuizById(quizId);
+    if (!quiz) {
+        throw new AppError('Quiz không tồn tại', 404);
+    }
+    if (quiz.creator_id !== user.id) {
+        throw new AppError('Bạn không có quyền xuất kết quả của quiz này', 403);
+    }
+
+    // Bước 2: Lấy tất cả dữ liệu (không phân trang)
+    // Truyền pagination là một object rỗng hoặc limit=null để repo hiểu là không phân trang
+    const { data: results } = await quizAttemptRepository.getResultsByQuizId(quizId, filters, {});
+
+    // Bước 3: Tạo file Excel bằng exceljs
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = user.full_name;
+    workbook.created = new Date();
+    const worksheet = workbook.addWorksheet(`Kết quả Quiz - ${quiz.title.substring(0, 20)}`);
+
+    // Định nghĩa cột
+    worksheet.columns = [
+        { header: 'ID Lượt thi', key: 'attemptId', width: 15 },
+        { header: 'Họ và tên', key: 'fullName', width: 30 },
+        { header: 'Email', key: 'email', width: 30 },
+        { header: 'Điểm', key: 'score', width: 10, style: { numFmt: '0.00' } },
+        { header: 'Trạng thái', key: 'status', width: 15 },
+        { header: 'Bắt đầu', key: 'startedAt', width: 20, style: { numFmt: 'yyyy-mm-dd hh:mm:ss' } },
+        { header: 'Nộp bài', key: 'finishedAt', width: 20, style: { numFmt: 'yyyy-mm-dd hh:mm:ss' } },
+        { header: 'Thời gian làm (giây)', key: 'duration', width: 20 },
+    ];
+
+    // Style cho header
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Thêm dữ liệu vào worksheet
+    results.forEach(result => {
+        worksheet.addRow({
+            attemptId: result.attempt_id,
+            fullName: result.full_name,
+            email: result.email,
+            score: result.score !== null ? Number(result.score) : null,
+            status: result.submit_status === 'SUBMITTED' ? 'Đã nộp' : 'Đang làm',
+            startedAt: result.started_at,
+            finishedAt: result.finished_at,
+            duration: result.duration_seconds,
+        });
+    });
+
+    // Bước 4: Ghi workbook ra buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+    return {
+        fileName: `KetQuaQuiz_${quizId}_${Date.now()}.xlsx`,
+        buffer: buffer,
     };
 };

@@ -34,6 +34,7 @@ import {
   Filter,
   BarChart3,
   RefreshCw,
+  FileDown,
 } from "lucide-react";
 import axios from "axios";
 
@@ -44,14 +45,12 @@ interface Quiz {
   status: string;
   quiz_code: string;
 }
-
 /** Thông tin thí sinh trong một lượt thi */
 interface AttemptUser {
   id: number;
   fullName: string;
   email: string;
 }
-
 /** Một bản ghi kết quả thi (trả về từ API) */
 interface AttemptResult {
   attemptId: number;
@@ -64,7 +63,6 @@ interface AttemptResult {
   submitStatus: "SUBMITTED" | "IN_PROGRESS";
   user: AttemptUser;
 }
-
 /** Thống kê tổng quan của một quiz */
 interface QuizStats {
   totalAttempts: number;
@@ -74,7 +72,6 @@ interface QuizStats {
   maxScore: number | null;
   minScore: number | null;
 }
-
 /** Các tham số lọc */
 interface Filters {
   search: string;
@@ -84,7 +81,6 @@ interface Filters {
   endDate: string;
   status: string; // '' | 'SUBMITTED' | 'IN_PROGRESS'
 }
-
 /**
  * Chuyển đổi số giây thành chuỗi "Xm Ys" dễ đọc.
  * Ví dụ: 3672 → "61m 12s"
@@ -95,7 +91,6 @@ const formatDuration = (seconds: number | null): string => {
   const s = seconds % 60;
   return `${m}m ${s}s`;
 };
-
 /**
  * Chuyển đổi chuỗi datetime thành định dạng ngày giờ Việt Nam.
  * Ví dụ: "2024-03-15T10:30:00Z" → "15/03/2024 17:30"
@@ -110,7 +105,6 @@ const formatDateTime = (dateStr: string | null): string => {
     minute: "2-digit",
   });
 };
-
 /**
  * Trả về màu sắc badge tương ứng với điểm số.
  * Xanh lá: >= 8, Vàng: >= 5, Đỏ: < 5
@@ -121,33 +115,26 @@ const getScoreColor = (score: number | null): string => {
   if (score >= 5) return "text-amber-400 font-bold";
   return "text-rose-400 font-bold";
 };
-
 // -------------------------------------------------------
 // Component chính
 // -------------------------------------------------------
-
 export function Results() {
   const navigate = useNavigate();
-
   // URL gốc của API backend
   const API_URL = process.env.API_URL || "http://localhost:8080/api";
-
   // --- State quản lý danh sách quiz ---
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [selectedQuizId, setSelectedQuizId] = useState<number | null>(null);
-
   // --- State quản lý dữ liệu kết quả ---
   const [results, setResults] = useState<AttemptResult[]>([]);
   const [stats, setStats] = useState<QuizStats | null>(null);
-
   // --- State quản lý trạng thái loading ---
   const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
   const [isLoadingResults, setIsLoadingResults] = useState(false);
-
+    const [isExporting, setIsExporting] = useState(false); // State cho việc xuất file
   // --- State quản lý lỗi ---
   const [quizzesError, setQuizzesError] = useState<string | null>(null);
   const [resultsError, setResultsError] = useState<string | null>(null);
-
   // --- State quản lý các bộ lọc ---
   const [filters, setFilters] = useState<Filters>({
     search: "",
@@ -157,7 +144,6 @@ export function Results() {
     endDate: "",
     status: "",
   });
-
   // --- State lưu giá trị filter đang được áp dụng (để tránh gọi API liên tục) ---
   const [appliedFilters, setAppliedFilters] = useState<Filters>({
     search: "",
@@ -167,7 +153,6 @@ export function Results() {
     endDate: "",
     status: "",
   });
-
   // -------------------------------------------------------
   // Lấy danh sách quiz của chủ quiz khi g
   // -------------------------------------------------------
@@ -181,7 +166,6 @@ export function Results() {
         });
         const quizList: Quiz[] = response.data.data || [];
         setQuizzes(quizList);
-
         // Tự động chọn quiz đầu tiên nếu có
         if (quizList.length > 0) {
           setSelectedQuizId(quizList[0].id);
@@ -192,7 +176,8 @@ export function Results() {
           navigate("/login");
         } else {
           // Hiển thị lỗi cho người dùng
-          const errorMessage = error.response?.data?.message ||
+          const errorMessage =
+            error.response?.data?.message ||
             error.message ||
             "Không thể tải danh sách quiz. Vui lòng thử lại.";
           setQuizzesError(errorMessage);
@@ -201,37 +186,40 @@ export function Results() {
         setIsLoadingQuizzes(false);
       }
     };
-
     fetchQuizzes();
   }, [navigate, API_URL]);
-
   // -------------------------------------------------------
   // Lấy kết quả và thống kê khi quiz được chọn hoặc filter thay đổi
   // -------------------------------------------------------
   const fetchResults = useCallback(async () => {
     if (!selectedQuizId) return;
-
     setIsLoadingResults(true);
     setResultsError(null); // Reset error trước khi fetch
     try {
       // Xây dựng query params từ các filter đang được áp dụng
       const queryParams = new URLSearchParams();
-      if (appliedFilters.search) queryParams.set("search", appliedFilters.search);
-      if (appliedFilters.minScore) queryParams.set("minScore", appliedFilters.minScore);
-      if (appliedFilters.maxScore) queryParams.set("maxScore", appliedFilters.maxScore);
-      if (appliedFilters.startDate) queryParams.set("startDate", appliedFilters.startDate);
-      if (appliedFilters.endDate) queryParams.set("endDate", appliedFilters.endDate);
-      if (appliedFilters.status) queryParams.set("status", appliedFilters.status);
-
+      if (appliedFilters.search)
+        queryParams.set("search", appliedFilters.search);
+      if (appliedFilters.minScore)
+        queryParams.set("minScore", appliedFilters.minScore);
+      if (appliedFilters.maxScore)
+        queryParams.set("maxScore", appliedFilters.maxScore);
+      if (appliedFilters.startDate)
+        queryParams.set("startDate", appliedFilters.startDate);
+      if (appliedFilters.endDate)
+        queryParams.set("endDate", appliedFilters.endDate);
+      if (appliedFilters.status)
+        queryParams.set("status", appliedFilters.status);
       // Gọi song song 2 API: danh sách kết quả + thống kê tổng quan
       const [resultsRes, statsRes] = await Promise.all([
         axios.get(
           `${API_URL}/result/quiz/${selectedQuizId}?${queryParams.toString()}`,
           { withCredentials: true }
         ),
-        axios.get(`${API_URL}/result/quiz/${selectedQuizId}/stats`, { withCredentials: true }),
+        axios.get(`${API_URL}/result/quiz/${selectedQuizId}/stats`, {
+          withCredentials: true,
+        }),
       ]);
-
       setResults(resultsRes.data.data || []);
       setStats(statsRes.data);
     } catch (error: any) {
@@ -240,7 +228,8 @@ export function Results() {
         navigate("/login");
       } else {
         // Hiển thị lỗi cho người dùng
-        const errorMessage = error.response?.data?.message ||
+        const errorMessage =
+          error.response?.data?.message ||
           error.message ||
           "Không thể tải kết quả quiz. Vui lòng thử lại.";
         setResultsError(errorMessage);
@@ -252,16 +241,13 @@ export function Results() {
       setIsLoadingResults(false);
     }
   }, [selectedQuizId, appliedFilters, navigate, API_URL]);
-
   // Gọi fetchResults mỗi khi quiz được chọn hoặc filter thay đổi
   useEffect(() => {
     fetchResults();
   }, [fetchResults]);
-
   // -------------------------------------------------------
   // Xử lý sự kiện
   // -------------------------------------------------------
-
   /** Cập nhật giá trị filter khi người dùng thay đổi input */
   const handleFilterChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -269,12 +255,10 @@ export function Results() {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
-
   /** Áp dụng filter - gọi API với filter mới */
   const handleApplyFilters = () => {
     setAppliedFilters({ ...filters });
   };
-
   /** Xóa tất cả filter và reset về trạng thái ban đầu */
   const handleResetFilters = () => {
     const emptyFilters: Filters = {
@@ -288,11 +272,65 @@ export function Results() {
     setFilters(emptyFilters);
     setAppliedFilters(emptyFilters);
   };
-
   /** Xử lý khi người dùng nhấn Enter trong ô tìm kiếm */
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       handleApplyFilters();
+    }
+  };
+
+  const handleExport = async () => {
+    if (!selectedQuizId) return;
+
+    setIsExporting(true);
+    try {
+      // Sử dụng `appliedFilters` để đảm bảo file xuất ra khớp với dữ liệu đang hiển thị
+      const queryParams = new URLSearchParams();
+      if (appliedFilters.search) queryParams.set('search', appliedFilters.search);
+      if (appliedFilters.minScore) queryParams.set('minScore', appliedFilters.minScore);
+      if (appliedFilters.maxScore) queryParams.set('maxScore', appliedFilters.maxScore);
+      if (appliedFilters.startDate) queryParams.set('startDate', appliedFilters.startDate);
+      if (appliedFilters.endDate) queryParams.set('endDate', appliedFilters.endDate);
+      if (appliedFilters.status) queryParams.set('status', appliedFilters.status);
+
+      const response = await axios.get(
+        `${API_URL}/result/quiz/${selectedQuizId}/export?${queryParams.toString()}`,
+        {
+          withCredentials: true,
+          responseType: 'blob', // Yêu cầu axios trả về dạng blob
+        }
+      );
+
+      // Xử lý file blob trả về
+      const blob = new Blob([response.data], { type: response.headers['content-type'] });
+
+      // Lấy tên file từ header `Content-Disposition`
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `KetQuaQuiz_${selectedQuizId}.xlsx`; // Tên file mặc định
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+        if (filenameMatch.length > 1) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Tạo URL tạm thời và thẻ <a> để trigger download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+
+      // Dọn dẹp
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+      console.error("Lỗi xuất file Excel:", error);
+      // TODO: Hiển thị thông báo lỗi cho người dùng (ví dụ: dùng react-toastify)
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -307,7 +345,6 @@ export function Results() {
       </div>
     );
   }
-
   // -------------------------------------------------------
   // Render: Lỗi tải danh sách quiz
   // -------------------------------------------------------
@@ -318,12 +355,18 @@ export function Results() {
           <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">
             Kết quả Quiz
           </h2>
-          <p className="text-slate-400 mt-1">Xem và phân tích kết quả thí sinh.</p>
+          <p className="text-slate-400 mt-1">
+            Xem và phân tích kết quả thí sinh.
+          </p>
         </div>
         <div className="text-center py-20 bg-red-50/10 rounded-2xl border border-red-200/20">
           <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <p className="text-red-400 text-lg font-medium">Không thể tải danh sách Quiz</p>
-          <p className="text-red-300 text-sm mt-2 max-w-md mx-auto">{quizzesError}</p>
+          <p className="text-red-400 text-lg font-medium">
+            Không thể tải danh sách Quiz
+          </p>
+          <p className="text-red-300 text-sm mt-2 max-w-md mx-auto">
+            {quizzesError}
+          </p>
           <Button
             onClick={fetchQuizzes}
             className="mt-4 bg-red-600 hover:bg-red-700"
@@ -332,7 +375,6 @@ export function Results() {
             <RefreshCw className="w-4 h-4 mr-2" />
             Thử lại
           </Button>
-
         </div>
       </div>
     );
@@ -344,7 +386,9 @@ export function Results() {
           <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">
             Kết quả Quiz
           </h2>
-          <p className="text-slate-400 mt-1">Xem và phân tích kết quả thí sinh.</p>
+          <p className="text-slate-400 mt-1">
+            Xem và phân tích kết quả thí sinh.
+          </p>
         </div>
         <div className="text-center py-20 bg-white/5 rounded-2xl border border-dashed border-white/10">
           <BarChart3 className="w-16 h-16 text-slate-600 mx-auto mb-4" />
@@ -356,10 +400,8 @@ export function Results() {
       </div>
     );
   }
-
   // Lấy tên quiz đang được chọn để hiển thị
   const selectedQuiz = quizzes.find((q) => q.id === selectedQuizId);
-
   // -------------------------------------------------------
   // Render chính
   // -------------------------------------------------------
@@ -596,7 +638,7 @@ export function Results() {
             </div>
 
             {/* Hàng 3: Nút áp dụng và xóa filter */}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {/* Nút áp dụng filter */}
               <Button
                 onClick={handleApplyFilters}
@@ -609,6 +651,20 @@ export function Results() {
                   <Filter className="w-4 h-4" />
                 )}
                 Áp dụng bộ lọc
+              </Button>
+
+              {/* Nút xuất Excel */}
+              <Button
+                onClick={handleExport}
+                disabled={isLoadingResults || isExporting || results.length === 0}
+                className="gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-lg text-sm"
+              >
+                {isExporting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <FileDown className="w-4 h-4" />
+                )}
+                Xuất Excel
               </Button>
 
               {/* Nút xóa tất cả filter */}
@@ -635,8 +691,12 @@ export function Results() {
             /* Hiển thị lỗi khi tải kết quả thất bại */
             <div className="text-center py-16 bg-red-50/10 rounded-lg border border-red-200/20">
               <XCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
-              <p className="text-red-400 text-base font-medium">Không thể tải kết quả</p>
-              <p className="text-red-300 text-sm mt-1 max-w-md mx-auto">{resultsError}</p>
+              <p className="text-red-400 text-base font-medium">
+                Không thể tải kết quả
+              </p>
+              <p className="text-red-300 text-sm mt-1 max-w-md mx-auto">
+                {resultsError}
+              </p>
               <Button
                 onClick={fetchResults}
                 className="mt-4 bg-red-600 hover:bg-red-700"
@@ -697,7 +757,9 @@ export function Results() {
                       </td>
 
                       {/* Điểm số - màu sắc theo mức điểm */}
-                      <td className={`px-5 py-4 ${getScoreColor(item.score)}`}>
+                      <td
+                        className={`px-5 py-4 ${getScoreColor(item.score)}`}
+                      >
                         {item.score !== null ? item.score : "—"}
                       </td>
 
@@ -735,11 +797,9 @@ export function Results() {
     </div>
   );
 }
-
 // -------------------------------------------------------
 // Sub-components
 // -------------------------------------------------------
-
 /**
  * StatCard - Card hiển thị một chỉ số thống kê.
  * Dùng trong phần "Thống kê tổng quan".
@@ -750,7 +810,6 @@ interface StatCardProps {
   value: number | string;
   color: "indigo" | "emerald" | "amber" | "purple" | "yellow" | "rose";
 }
-
 function StatCard({ icon, label, value, color }: StatCardProps) {
   // Map màu sắc cho border và background
   const colorMap: Record<string, string> = {
@@ -761,7 +820,6 @@ function StatCard({ icon, label, value, color }: StatCardProps) {
     yellow: "border-yellow-500/30 bg-yellow-500/10",
     rose: "border-rose-500/30 bg-rose-500/10",
   };
-
   return (
     <div
       className={`rounded-xl border p-4 ${colorMap[color]} backdrop-blur-sm`}
@@ -772,7 +830,6 @@ function StatCard({ icon, label, value, color }: StatCardProps) {
     </div>
   );
 }
-
 /**
  * StatusBadge - Badge hiển thị trạng thái nộp bài.
  * SUBMITTED → Xanh lá (Đã nộp)
@@ -781,7 +838,6 @@ function StatCard({ icon, label, value, color }: StatCardProps) {
 interface StatusBadgeProps {
   status: "SUBMITTED" | "IN_PROGRESS";
 }
-
 function StatusBadge({ status }: StatusBadgeProps) {
   if (status === "SUBMITTED") {
     return (

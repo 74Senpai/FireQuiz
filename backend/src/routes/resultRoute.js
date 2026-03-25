@@ -20,4 +20,11 @@ router.get('/quiz/:quizId', protectedRoute, resultController.getResultsByQuizId)
  */
 router.get('/quiz/:quizId/stats', protectedRoute, resultController.getQuizStats);
 
+/**
+ * GET /api/result/quiz/:quizId/export
+ * Xuất báo cáo kết quả của quiz ra file Excel.
+ * Yêu cầu: đã đăng nhập và là chủ quiz.
+ */
+router.get('/quiz/:quizId/export', protectedRoute, resultController.exportResults);
+
 export default router;

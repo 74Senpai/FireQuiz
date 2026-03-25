@@ -89,8 +89,8 @@ export const getResultsByQuizId = async (quizId, filters = {}, pagination = { li
     const [countRows] = await pool.execute(countSql, params);
     const total = countRows[0]?.total || 0;
 
-    // Query để lấy dữ liệu đã phân trang
-    const dataSql = `
+    // Query để lấy dữ liệu
+    let dataSql = `
     SELECT
       qa.id              AS attempt_id,
       qa.quiz_id,
@@ -110,10 +110,17 @@ export const getResultsByQuizId = async (quizId, filters = {}, pagination = { li
     INNER JOIN users u ON qa.user_id = u.id
     ${whereClause}
     ORDER BY qa.started_at DESC
-    LIMIT ? OFFSET ?
   `;
 
-    const [rows] = await pool.execute(dataSql, [...params, pagination.limit, pagination.offset]);
+    const finalParams = [...params];
+
+    // Chỉ thêm LIMIT và OFFSET nếu có phân trang
+    if (pagination && pagination.limit > 0) {
+        dataSql += ' LIMIT ? OFFSET ?';
+        finalParams.push(pagination.limit, pagination.offset || 0);
+    }
+
+    const [rows] = await pool.execute(dataSql, finalParams);
     return { data: rows, total };
 };
 

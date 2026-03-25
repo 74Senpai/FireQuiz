@@ -121,3 +121,51 @@ export const getQuizStats = asyncHandler(async (req, res) => {
 
     return res.status(200).json(stats);
 });
+
+/**
+ * GET /api/result/quiz/:quizId/export
+ * -------------------------------------------------------
+ * Xuất kết quả thi của một quiz ra file Excel.
+ * Chỉ chủ quiz (creator) mới có quyền gọi API này.
+ *
+ * Query params (lọc, tương tự getResultsByQuizId):
+ *  - minScore, maxScore, startDate, endDate, status, search
+ *
+ * Response 200:
+ *  - File Excel (.xlsx) được tải về.
+ */
+export const exportResults = asyncHandler(async (req, res) => {
+    // Lấy quizId và user tương tự các hàm khác
+    const quizId = parseInt(req.params.quizId, 10);
+    if (isNaN(quizId)) {
+        throw new AppError('Quiz ID không hợp lệ', 400);
+    }
+    const user = req.user;
+
+    // Trích xuất các tham số lọc từ query string (giống hệt getResultsByQuizId)
+    const minScore = req.query.minScore ? parseFloat(req.query.minScore) : undefined;
+    const maxScore = req.query.maxScore ? parseFloat(req.query.maxScore) : undefined;
+    if ((req.query.minScore && isNaN(minScore)) || (req.query.maxScore && isNaN(maxScore))) {
+        throw new AppError('Điểm số (minScore/maxScore) không hợp lệ.', 400);
+    }
+    const filters = {
+        minScore,
+        maxScore,
+        startDate: req.query.startDate,
+        endDate: req.query.endDate,
+        status: ['SUBMITTED', 'IN_PROGRESS'].includes(req.query.status)
+            ? req.query.status
+            : undefined,
+        search: req.query.search,
+    };
+
+    // Gọi service để tạo file Excel
+    const { fileName, buffer } = await resultService.exportResultsToExcel(quizId, user, filters);
+
+    // Thiết lập header cho response để trình duyệt hiểu đây là file cần tải xuống
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+    // Gửi buffer (nội dung file) về cho client
+    res.send(buffer);
+});
