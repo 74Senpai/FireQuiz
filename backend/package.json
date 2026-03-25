@@ -16,11 +16,11 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
-    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.19.1",
-    "nodemailer": "^8.0.2"
+    "nodemailer": "^8.0.2",
+    "write-excel-file": "^3.0.6"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
