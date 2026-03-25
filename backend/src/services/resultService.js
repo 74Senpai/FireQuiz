@@ -254,3 +254,32 @@ export const getQuestionAnalytics = async (quizId, user) => {
     // Chuyển Map thành mảng để trả về
     return Array.from(analyticsMap.values());
 };
+
+export const getQuizLeaderboard = async (quizId, user, limit = 10) => {
+    await resolveQuizAndCheckOwner(
+        quizId,
+        user,
+        'Báº¡n khÃ´ng cÃ³ quyá»n xem leaderboard cá»§a quiz nÃ y'
+    );
+
+    const rawLeaderboard = await quizAttemptRepository.getLeaderboardByQuizId(quizId, limit);
+
+    return {
+        totalParticipants: Number(rawLeaderboard[0]?.total_participants) || 0,
+        data: rawLeaderboard.map((row) => ({
+            rank: Number(row.rank_position),
+            attemptId: row.attempt_id,
+            quizId: row.quiz_id,
+            quizTitle: row.quiz_title,
+            score: row.score !== null ? Number(row.score) : null,
+            startedAt: row.started_at,
+            finishedAt: row.finished_at,
+            durationSeconds: row.duration_seconds !== null ? Number(row.duration_seconds) : null,
+            user: {
+                id: row.user_id,
+                fullName: row.full_name,
+                email: row.email,
+            },
+        })),
+    };
+};

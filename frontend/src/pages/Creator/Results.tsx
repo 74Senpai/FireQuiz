@@ -5,9 +5,11 @@ import {
   BarChart3,
   CheckCircle,
   Clock,
+  Crown,
   FileDown,
   Filter,
   Loader2,
+  Medal,
   RefreshCw,
   Search,
   TrendingUp,
@@ -52,6 +54,18 @@ interface QuizStats {
   avgScore: number | null;
   maxScore: number | null;
   minScore: number | null;
+}
+
+interface LeaderboardEntry {
+  rank: number;
+  attemptId: number;
+  quizId: number;
+  quizTitle: string;
+  score: number | null;
+  startedAt: string;
+  finishedAt: string;
+  durationSeconds: number | null;
+  user: AttemptUser;
 }
 
 interface Filters {
@@ -99,6 +113,38 @@ const getScoreColor = (score: number | null): string => {
   return "text-rose-400 font-bold";
 };
 
+const getLeaderboardAccent = (rank: number) => {
+  if (rank === 1) {
+    return {
+      className: "border-yellow-400/30 bg-yellow-500/10",
+      icon: <Crown className="h-4 w-4 text-yellow-300" />,
+      label: "Top 1",
+    };
+  }
+
+  if (rank === 2) {
+    return {
+      className: "border-slate-300/20 bg-slate-400/10",
+      icon: <Medal className="h-4 w-4 text-slate-200" />,
+      label: "Top 2",
+    };
+  }
+
+  if (rank === 3) {
+    return {
+      className: "border-amber-500/30 bg-amber-500/10",
+      icon: <Medal className="h-4 w-4 text-amber-300" />,
+      label: "Top 3",
+    };
+  }
+
+  return {
+    className: "border-white/10 bg-white/5",
+    icon: <Trophy className="h-4 w-4 text-slate-300" />,
+    label: `Top ${rank}`,
+  };
+};
+
 const buildQueryParams = (filters: Filters) => {
   const queryParams = new URLSearchParams();
 
@@ -117,6 +163,8 @@ export function Results() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [selectedQuizId, setSelectedQuizId] = useState<number | null>(null);
   const [results, setResults] = useState<AttemptResult[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardTotalParticipants, setLeaderboardTotalParticipants] = useState(0);
   const [stats, setStats] = useState<QuizStats | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -125,6 +173,7 @@ export function Results() {
   const [isExporting, setIsExporting] = useState(false);
   const [quizzesError, setQuizzesError] = useState<string | null>(null);
   const [resultsError, setResultsError] = useState<string | null>(null);
+  const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
 
   const fetchQuizzes = useCallback(async () => {
     setIsLoadingQuizzes(true);
@@ -163,6 +212,7 @@ export function Results() {
 
     setIsLoadingResults(true);
     setResultsError(null);
+    setLeaderboardError(null);
 
     try {
       const queryParams = buildQueryParams(appliedFilters);
@@ -171,15 +221,54 @@ export function Results() {
         ? `${API_URL}/result/quiz/${selectedQuizId}?${queryString}`
         : `${API_URL}/result/quiz/${selectedQuizId}`;
 
-      const [resultsRes, statsRes] = await Promise.all([
+      const [resultsRes, statsRes, leaderboardRes] = await Promise.allSettled([
         axios.get(resultsUrl, { withCredentials: true }),
         axios.get(`${API_URL}/result/quiz/${selectedQuizId}/stats`, {
           withCredentials: true,
         }),
+        axios.get(`${API_URL}/result/quiz/${selectedQuizId}/leaderboard`, {
+          withCredentials: true,
+        }),
       ]);
 
-      setResults(resultsRes.data.data || []);
-      setStats(statsRes.data || null);
+      const authError = [resultsRes, statsRes, leaderboardRes].find(
+        (response) =>
+          response.status === "rejected" &&
+          (response.reason?.response?.status === 401 ||
+            response.reason?.response?.status === 403)
+      );
+
+      if (authError) {
+        navigate("/login");
+        return;
+      }
+
+      if (resultsRes.status === "fulfilled") {
+        setResults(resultsRes.value.data.data || []);
+      } else {
+        throw resultsRes.reason;
+      }
+
+      if (statsRes.status === "fulfilled") {
+        setStats(statsRes.value.data || null);
+      } else {
+        throw statsRes.reason;
+      }
+
+      if (leaderboardRes.status === "fulfilled") {
+        setLeaderboard(leaderboardRes.value.data.data || []);
+        setLeaderboardTotalParticipants(
+          Number(leaderboardRes.value.data.totalParticipants) || 0
+        );
+      } else {
+        setLeaderboard([]);
+        setLeaderboardTotalParticipants(0);
+        setLeaderboardError(
+          leaderboardRes.reason?.response?.data?.message ||
+            leaderboardRes.reason?.message ||
+            "Không thể tải bảng xếp hạng."
+        );
+      }
     } catch (error: any) {
       if (error.response?.status === 401 || error.response?.status === 403) {
         navigate("/login");
@@ -192,6 +281,8 @@ export function Results() {
       }
       setResults([]);
       setStats(null);
+      setLeaderboard([]);
+      setLeaderboardTotalParticipants(0);
     } finally {
       setIsLoadingResults(false);
     }
@@ -438,6 +529,118 @@ export function Results() {
             color="rose"
           />
         </div>
+      )}
+
+      {selectedQuizId && (
+        <Card className="border-white/10 bg-white/5 shadow-2xl backdrop-blur-md">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-200">
+              <Trophy className="h-4 w-4 text-yellow-400" />
+              Bảng xếp hạng Top 10
+              {selectedQuiz && (
+                <span className="ml-1 text-sm font-normal text-slate-400">
+                  — {selectedQuiz.title}
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {leaderboardError ? (
+              <div className="rounded-xl border border-red-200/20 bg-red-50/10 p-4 text-sm text-red-300">
+                {leaderboardError}
+              </div>
+            ) : leaderboard.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-white/10 bg-white/5 p-6 text-center text-slate-400">
+                Chưa có đủ bài nộp để tạo bảng xếp hạng.
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-4 md:grid-cols-3">
+                  {leaderboard.slice(0, 3).map((entry) => {
+                    const accent = getLeaderboardAccent(entry.rank);
+
+                    return (
+                      <div
+                        key={entry.user.id}
+                        className={`rounded-2xl border p-4 ${accent.className}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-100">
+                            {accent.icon}
+                            {accent.label}
+                          </span>
+                          <span className={`text-lg ${getScoreColor(entry.score)}`}>
+                            {entry.score ?? "—"}
+                          </span>
+                        </div>
+                        <p className="mt-4 text-base font-semibold text-white">
+                          {entry.user.fullName}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-400">
+                          {entry.user.email}
+                        </p>
+                        <div className="mt-4 flex items-center justify-between text-sm text-slate-300">
+                          <span>Thời gian làm</span>
+                          <span>{formatDuration(entry.durationSeconds)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="overflow-hidden rounded-xl border border-white/10">
+                  <table className="w-full text-left text-sm">
+                    <thead className="border-b border-white/10 bg-white/5 text-xs uppercase text-slate-400">
+                      <tr>
+                        <th className="px-4 py-3 font-medium">Hạng</th>
+                        <th className="px-4 py-3 font-medium">Thí sinh</th>
+                        <th className="px-4 py-3 font-medium">Điểm</th>
+                        <th className="px-4 py-3 font-medium">Thời gian</th>
+                        <th className="px-4 py-3 font-medium">Nộp bài</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/10">
+                      {leaderboard.map((entry) => (
+                        <tr
+                          key={entry.attemptId}
+                          className="bg-white/5 transition-colors duration-200 hover:bg-white/10"
+                        >
+                          <td className="px-4 py-3 text-slate-200">#{entry.rank}</td>
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-slate-100">
+                              {entry.user.fullName}
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              {entry.user.email}
+                            </div>
+                          </td>
+                          <td className={`px-4 py-3 ${getScoreColor(entry.score)}`}>
+                            {entry.score ?? "—"}
+                          </td>
+                          <td className="px-4 py-3 text-slate-300">
+                            {formatDuration(entry.durationSeconds)}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-slate-400">
+                            {formatDateTime(entry.finishedAt)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="text-xs text-slate-400">
+                  Xếp hạng theo bài nộp tốt nhất của mỗi thí sinh. Tổng số thí sinh có
+                  mặt trên leaderboard:{" "}
+                  <span className="font-semibold text-slate-200">
+                    {leaderboardTotalParticipants}
+                  </span>
+                  .
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {selectedQuizId && (
