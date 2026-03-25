@@ -14,8 +14,23 @@
 
 import * as quizRepository from '../repositories/quizRepository.js';
 import * as quizAttemptRepository from '../repositories/quizAttemptRepository.js';
+import * as questionRepository from '../repositories/questionRepository.js';
 import AppError from '../errors/AppError.js';
 import ExcelJS from 'exceljs';
+
+const resolveQuizAndCheckOwner = async (quizId, user, forbiddenMessage) => {
+    const quiz = await quizRepository.getQuizById(quizId);
+
+    if (!quiz) {
+        throw new AppError('Quiz không tồn tại', 404);
+    }
+
+    if (quiz.creator_id !== user.id) {
+        throw new AppError(forbiddenMessage, 403);
+    }
+
+    return quiz;
+};
 
 /**
  * Lấy danh sách kết quả thi của một quiz (có hỗ trợ lọc).
@@ -28,16 +43,11 @@ import ExcelJS from 'exceljs';
  * @returns {Promise<Array>} Danh sách kết quả thi đã được format
  */
 export const getResultsByQuizId = async (quizId, user, filters, pagination) => {
-    // Bước 1: Kiểm tra quiz có tồn tại không
-    const quiz = await quizRepository.getQuizById(quizId);
-    if (!quiz) {
-        throw new AppError('Quiz không tồn tại', 404);
-    }
-
-    // Bước 2: Kiểm tra quyền - chỉ chủ quiz mới được xem kết quả
-    if (quiz.creator_id !== user.id) {
-        throw new AppError('Bạn không có quyền xem kết quả của quiz này', 403);
-    }
+    await resolveQuizAndCheckOwner(
+        quizId,
+        user,
+        'Bạn không có quyền xem kết quả của quiz này'
+    );
 
     // Bước 3: Lấy dữ liệu từ repository
     const { data: rawResults, total } = await quizAttemptRepository.getResultsByQuizId(quizId, filters, pagination);
@@ -77,16 +87,11 @@ export const getResultsByQuizId = async (quizId, user, filters, pagination) => {
  * @returns {Promise<object>} Thống kê tổng quan
  */
 export const getQuizStats = async (quizId, user) => {
-    // Bước 1: Kiểm tra quiz có tồn tại không
-    const quiz = await quizRepository.getQuizById(quizId);
-    if (!quiz) {
-        throw new AppError('Quiz không tồn tại', 404);
-    }
-
-    // Bước 2: Kiểm tra quyền - chỉ chủ quiz mới được xem thống kê
-    if (quiz.creator_id !== user.id) {
-        throw new AppError('Bạn không có quyền xem thống kê của quiz này', 403);
-    }
+    await resolveQuizAndCheckOwner(
+        quizId,
+        user,
+        'Bạn không có quyền xem thống kê của quiz này'
+    );
 
     // Bước 3: Lấy thống kê từ repository
     const stats = await quizAttemptRepository.getQuizStatsByQuizId(quizId);
@@ -111,14 +116,11 @@ export const getQuizStats = async (quizId, user) => {
  * @returns {Promise<Buffer>} Buffer chứa nội dung file Excel
  */
 export const exportResultsToExcel = async (quizId, user, filters) => {
-    // Bước 1: Kiểm tra quyền và sự tồn tại của quiz
-    const quiz = await quizRepository.getQuizById(quizId);
-    if (!quiz) {
-        throw new AppError('Quiz không tồn tại', 404);
-    }
-    if (quiz.creator_id !== user.id) {
-        throw new AppError('Bạn không có quyền xuất kết quả của quiz này', 403);
-    }
+    const quiz = await resolveQuizAndCheckOwner(
+        quizId,
+        user,
+        'Bạn không có quyền xuất kết quả của quiz này'
+    );
 
     // Bước 2: Lấy tất cả dữ liệu (không phân trang)
     // Truyền pagination là một object rỗng hoặc limit=null để repo hiểu là không phân trang
@@ -126,7 +128,7 @@ export const exportResultsToExcel = async (quizId, user, filters) => {
 
     // Bước 3: Tạo file Excel bằng exceljs
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = user.full_name;
+    workbook.creator = user.fullName || 'FireQuiz';
     workbook.created = new Date();
     const worksheet = workbook.addWorksheet(`Kết quả Quiz - ${quiz.title.substring(0, 20)}`);
 
@@ -166,4 +168,89 @@ export const exportResultsToExcel = async (quizId, user, filters) => {
         fileName: `KetQuaQuiz_${quizId}_${Date.now()}.xlsx`,
         buffer: buffer,
     };
+};
+
+/**
+ * Lấy và xử lý thống kê chi tiết cho từng câu hỏi của một quiz.
+ *
+ * @param {number} quizId - ID của quiz.
+ * @param {object} user - Thông tin người dùng đang đăng nhập.
+ * @returns {Promise<Array<object>>} Mảng dữ liệu thống kê đã được xử lý.
+ */
+export const getQuestionAnalytics = async (quizId, user) => {
+    await resolveQuizAndCheckOwner(
+        quizId,
+        user,
+        'Bạn không có quyền xem thống kê của quiz này'
+    );
+
+    // Bước 2: Lấy dữ liệu thô từ repository
+    const rawAnalytics = await questionRepository.getQuestionAnalytics(quizId);
+
+    // Bước 3: Xử lý dữ liệu từ dạng phẳng sang dạng cấu trúc lồng nhau
+    // Dữ liệu trả về từ DB là một danh sách dài, mỗi hàng là một answer_option.
+    // Ta cần nhóm chúng lại theo từng question_id.
+    const analyticsMap = new Map();
+
+    rawAnalytics.forEach(row => {
+        const questionId = Number(row.question_id);
+        const totalAttempts = Number(row.total_attempts) || 0;
+        const submittedAttempts = Number(row.submitted_attempts) || 0;
+        const exposureCount = Number(row.exposure_count) || 0;
+        const responseCount = Number(row.response_count) || 0;
+        const correctCount = Number(row.correct_count) || 0;
+        const incorrectCount = Number(row.incorrect_count) || 0;
+        const skippedCount = Number(row.skipped_count) || 0;
+        const gradingDenominator = exposureCount || submittedAttempts || 0;
+        const totalAttemptDenominator = totalAttempts || 0;
+
+        // Nếu chưa có question này trong Map, khởi tạo nó
+        if (!analyticsMap.has(questionId)) {
+            analyticsMap.set(questionId, {
+                questionId,
+                questionContent: row.question_content,
+                questionType: row.question_type,
+                totalAttempts,
+                submittedAttempts,
+                exposureCount,
+                totalResponses: responseCount,
+                correctResponses: correctCount,
+                incorrectResponses: incorrectCount,
+                skippedResponses: skippedCount,
+                responseRate: totalAttemptDenominator > 0 ? responseCount / totalAttemptDenominator : 0,
+                responseRateOnSubmittedAttempts:
+                    submittedAttempts > 0 ? responseCount / submittedAttempts : 0,
+                correctRate: gradingDenominator > 0 ? correctCount / gradingDenominator : 0,
+                incorrectRate: gradingDenominator > 0 ? incorrectCount / gradingDenominator : 0,
+                skippedRate: gradingDenominator > 0 ? skippedCount / gradingDenominator : 0,
+                difficulty:
+                    gradingDenominator === 0
+                        ? 'NO_DATA'
+                        : correctCount / gradingDenominator >= 0.8
+                            ? 'EASY'
+                            : correctCount / gradingDenominator >= 0.5
+                                ? 'MEDIUM'
+                                : 'HARD',
+                options: [],
+            });
+        }
+
+        // Thêm thông tin option vào câu hỏi tương ứng
+        // Chỉ thêm nếu option_id tồn tại (đề phòng câu hỏi không có phương án nào)
+        if (row.option_id) {
+            analyticsMap.get(questionId).options.push({
+                optionId: Number(row.option_id),
+                optionContent: row.option_content,
+                isCorrect: !!row.is_correct, // Chuyển 0/1 thành false/true
+                selectionCount: Number(row.selection_count) || 0,
+                selectionRate:
+                    gradingDenominator > 0
+                        ? (Number(row.selection_count) || 0) / gradingDenominator
+                        : 0,
+            });
+        }
+    });
+
+    // Chuyển Map thành mảng để trả về
+    return Array.from(analyticsMap.values());
 };

@@ -1,57 +1,38 @@
-/**
- * Results.tsx
- * -------------------------------------------------------
- * Trang "Dashboard kết quả Quiz" dành cho Chủ Quiz (Creator).
- *
- * Chức năng chính:
- *  1. Hiển thị danh sách quiz của chủ quiz để chọn xem kết quả
- *  2. Hiển thị thống kê tổng quan (tổng lượt thi, điểm TB, ...)
- *  3. Bảng danh sách thí sinh với đầy đủ thông tin kết quả
- *  4. Lọc theo: điểm số, thời gian nộp bài, trạng thái nộp bài
- *  5. Tìm kiếm theo tên hoặc email thí sinh
- * -------------------------------------------------------
- */
-
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-  Search,
-  Users,
-  Trophy,
-  TrendingUp,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Loader2,
-  Filter,
-  BarChart3,
-  RefreshCw,
-  FileDown,
-} from "lucide-react";
 import axios from "axios";
+import {
+  BarChart3,
+  CheckCircle,
+  Clock,
+  FileDown,
+  Filter,
+  Loader2,
+  RefreshCw,
+  Search,
+  TrendingUp,
+  Trophy,
+  Users,
+  XCircle,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { QuestionAnalytics } from "@/components/ui/QuestionAnalytics";
 
-/** Thông tin một quiz trong danh sách dropdown */
 interface Quiz {
   id: number;
   title: string;
   status: string;
   quiz_code: string;
 }
-/** Thông tin thí sinh trong một lượt thi */
+
 interface AttemptUser {
   id: number;
   fullName: string;
   email: string;
 }
-/** Một bản ghi kết quả thi (trả về từ API) */
+
 interface AttemptResult {
   attemptId: number;
   quizId: number;
@@ -63,7 +44,7 @@ interface AttemptResult {
   submitStatus: "SUBMITTED" | "IN_PROGRESS";
   user: AttemptUser;
 }
-/** Thống kê tổng quan của một quiz */
+
 interface QuizStats {
   totalAttempts: number;
   submittedCount: number;
@@ -72,29 +53,34 @@ interface QuizStats {
   maxScore: number | null;
   minScore: number | null;
 }
-/** Các tham số lọc */
+
 interface Filters {
   search: string;
   minScore: string;
   maxScore: string;
   startDate: string;
   endDate: string;
-  status: string; // '' | 'SUBMITTED' | 'IN_PROGRESS'
+  status: string;
 }
-/**
- * Chuyển đổi số giây thành chuỗi "Xm Ys" dễ đọc.
- * Ví dụ: 3672 → "61m 12s"
- */
+
+const API_URL = process.env.API_URL || "http://localhost:8080/api";
+
+const EMPTY_FILTERS: Filters = {
+  search: "",
+  minScore: "",
+  maxScore: "",
+  startDate: "",
+  endDate: "",
+  status: "",
+};
+
 const formatDuration = (seconds: number | null): string => {
   if (seconds === null || seconds === undefined) return "—";
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}m ${s}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}m ${remainingSeconds}s`;
 };
-/**
- * Chuyển đổi chuỗi datetime thành định dạng ngày giờ Việt Nam.
- * Ví dụ: "2024-03-15T10:30:00Z" → "15/03/2024 17:30"
- */
+
 const formatDateTime = (dateStr: string | null): string => {
   if (!dateStr) return "—";
   return new Date(dateStr).toLocaleString("vi-VN", {
@@ -105,176 +91,138 @@ const formatDateTime = (dateStr: string | null): string => {
     minute: "2-digit",
   });
 };
-/**
- * Trả về màu sắc badge tương ứng với điểm số.
- * Xanh lá: >= 8, Vàng: >= 5, Đỏ: < 5
- */
+
 const getScoreColor = (score: number | null): string => {
   if (score === null) return "text-slate-400";
   if (score >= 8) return "text-emerald-400 font-bold";
   if (score >= 5) return "text-amber-400 font-bold";
   return "text-rose-400 font-bold";
 };
-// -------------------------------------------------------
-// Component chính
-// -------------------------------------------------------
+
+const buildQueryParams = (filters: Filters) => {
+  const queryParams = new URLSearchParams();
+
+  if (filters.search) queryParams.set("search", filters.search.trim());
+  if (filters.minScore) queryParams.set("minScore", filters.minScore);
+  if (filters.maxScore) queryParams.set("maxScore", filters.maxScore);
+  if (filters.startDate) queryParams.set("startDate", filters.startDate);
+  if (filters.endDate) queryParams.set("endDate", filters.endDate);
+  if (filters.status) queryParams.set("status", filters.status);
+
+  return queryParams;
+};
+
 export function Results() {
   const navigate = useNavigate();
-  // URL gốc của API backend
-  const API_URL = process.env.API_URL || "http://localhost:8080/api";
-  // --- State quản lý danh sách quiz ---
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [selectedQuizId, setSelectedQuizId] = useState<number | null>(null);
-  // --- State quản lý dữ liệu kết quả ---
   const [results, setResults] = useState<AttemptResult[]>([]);
   const [stats, setStats] = useState<QuizStats | null>(null);
-  // --- State quản lý trạng thái loading ---
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
   const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
   const [isLoadingResults, setIsLoadingResults] = useState(false);
-    const [isExporting, setIsExporting] = useState(false); // State cho việc xuất file
-  // --- State quản lý lỗi ---
+  const [isExporting, setIsExporting] = useState(false);
   const [quizzesError, setQuizzesError] = useState<string | null>(null);
   const [resultsError, setResultsError] = useState<string | null>(null);
-  // --- State quản lý các bộ lọc ---
-  const [filters, setFilters] = useState<Filters>({
-    search: "",
-    minScore: "",
-    maxScore: "",
-    startDate: "",
-    endDate: "",
-    status: "",
-  });
-  // --- State lưu giá trị filter đang được áp dụng (để tránh gọi API liên tục) ---
-  const [appliedFilters, setAppliedFilters] = useState<Filters>({
-    search: "",
-    minScore: "",
-    maxScore: "",
-    startDate: "",
-    endDate: "",
-    status: "",
-  });
-  // -------------------------------------------------------
-  // Lấy danh sách quiz của chủ quiz khi g
-  // -------------------------------------------------------
-  useEffect(() => {
-    const fetchQuizzes = async () => {
-      setIsLoadingQuizzes(true);
-      setQuizzesError(null); // Reset error trước khi fetch
-      try {
-        const response = await axios.get(`${API_URL}/quiz/myquiz`, {
-          withCredentials: true,
-        });
-        const quizList: Quiz[] = response.data.data || [];
-        setQuizzes(quizList);
-        // Tự động chọn quiz đầu tiên nếu có
-        if (quizList.length > 0) {
-          setSelectedQuizId(quizList[0].id);
+
+  const fetchQuizzes = useCallback(async () => {
+    setIsLoadingQuizzes(true);
+    setQuizzesError(null);
+
+    try {
+      const response = await axios.get(`${API_URL}/quiz/myquiz`, {
+        withCredentials: true,
+      });
+
+      const quizList: Quiz[] = response.data.data || [];
+      setQuizzes(quizList);
+      setSelectedQuizId((current) => {
+        if (current && quizList.some((quiz) => quiz.id === current)) {
+          return current;
         }
-      } catch (error: any) {
-        console.error("Lỗi lấy danh sách quiz:", error);
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          navigate("/login");
-        } else {
-          // Hiển thị lỗi cho người dùng
-          const errorMessage =
-            error.response?.data?.message ||
+        return quizList[0]?.id ?? null;
+      });
+    } catch (error: any) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        navigate("/login");
+      } else {
+        setQuizzesError(
+          error.response?.data?.message ||
             error.message ||
-            "Không thể tải danh sách quiz. Vui lòng thử lại.";
-          setQuizzesError(errorMessage);
-        }
-      } finally {
-        setIsLoadingQuizzes(false);
+            "Không thể tải danh sách quiz."
+        );
       }
-    };
-    fetchQuizzes();
-  }, [navigate, API_URL]);
-  // -------------------------------------------------------
-  // Lấy kết quả và thống kê khi quiz được chọn hoặc filter thay đổi
-  // -------------------------------------------------------
+    } finally {
+      setIsLoadingQuizzes(false);
+    }
+  }, [navigate]);
+
   const fetchResults = useCallback(async () => {
     if (!selectedQuizId) return;
+
     setIsLoadingResults(true);
-    setResultsError(null); // Reset error trước khi fetch
+    setResultsError(null);
+
     try {
-      // Xây dựng query params từ các filter đang được áp dụng
-      const queryParams = new URLSearchParams();
-      if (appliedFilters.search)
-        queryParams.set("search", appliedFilters.search);
-      if (appliedFilters.minScore)
-        queryParams.set("minScore", appliedFilters.minScore);
-      if (appliedFilters.maxScore)
-        queryParams.set("maxScore", appliedFilters.maxScore);
-      if (appliedFilters.startDate)
-        queryParams.set("startDate", appliedFilters.startDate);
-      if (appliedFilters.endDate)
-        queryParams.set("endDate", appliedFilters.endDate);
-      if (appliedFilters.status)
-        queryParams.set("status", appliedFilters.status);
-      // Gọi song song 2 API: danh sách kết quả + thống kê tổng quan
+      const queryParams = buildQueryParams(appliedFilters);
+      const queryString = queryParams.toString();
+      const resultsUrl = queryString
+        ? `${API_URL}/result/quiz/${selectedQuizId}?${queryString}`
+        : `${API_URL}/result/quiz/${selectedQuizId}`;
+
       const [resultsRes, statsRes] = await Promise.all([
-        axios.get(
-          `${API_URL}/result/quiz/${selectedQuizId}?${queryParams.toString()}`,
-          { withCredentials: true }
-        ),
+        axios.get(resultsUrl, { withCredentials: true }),
         axios.get(`${API_URL}/result/quiz/${selectedQuizId}/stats`, {
           withCredentials: true,
         }),
       ]);
+
       setResults(resultsRes.data.data || []);
-      setStats(statsRes.data);
+      setStats(statsRes.data || null);
     } catch (error: any) {
-      console.error("Lỗi lấy kết quả quiz:", error);
       if (error.response?.status === 401 || error.response?.status === 403) {
         navigate("/login");
       } else {
-        // Hiển thị lỗi cho người dùng
-        const errorMessage =
+        setResultsError(
           error.response?.data?.message ||
-          error.message ||
-          "Không thể tải kết quả quiz. Vui lòng thử lại.";
-        setResultsError(errorMessage);
+            error.message ||
+            "Không thể tải kết quả quiz."
+        );
       }
-      // Reset dữ liệu nếu có lỗi
       setResults([]);
       setStats(null);
     } finally {
       setIsLoadingResults(false);
     }
-  }, [selectedQuizId, appliedFilters, navigate, API_URL]);
-  // Gọi fetchResults mỗi khi quiz được chọn hoặc filter thay đổi
+  }, [appliedFilters, navigate, selectedQuizId]);
+
+  useEffect(() => {
+    fetchQuizzes();
+  }, [fetchQuizzes]);
+
   useEffect(() => {
     fetchResults();
   }, [fetchResults]);
-  // -------------------------------------------------------
-  // Xử lý sự kiện
-  // -------------------------------------------------------
-  /** Cập nhật giá trị filter khi người dùng thay đổi input */
+
   const handleFilterChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
+    const { name, value } = event.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
-  /** Áp dụng filter - gọi API với filter mới */
+
   const handleApplyFilters = () => {
     setAppliedFilters({ ...filters });
   };
-  /** Xóa tất cả filter và reset về trạng thái ban đầu */
+
   const handleResetFilters = () => {
-    const emptyFilters: Filters = {
-      search: "",
-      minScore: "",
-      maxScore: "",
-      startDate: "",
-      endDate: "",
-      status: "",
-    };
-    setFilters(emptyFilters);
-    setAppliedFilters(emptyFilters);
+    setFilters(EMPTY_FILTERS);
+    setAppliedFilters(EMPTY_FILTERS);
   };
-  /** Xử lý khi người dùng nhấn Enter trong ô tìm kiếm */
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
       handleApplyFilters();
     }
   };
@@ -283,88 +231,82 @@ export function Results() {
     if (!selectedQuizId) return;
 
     setIsExporting(true);
+
     try {
-      // Sử dụng `appliedFilters` để đảm bảo file xuất ra khớp với dữ liệu đang hiển thị
-      const queryParams = new URLSearchParams();
-      if (appliedFilters.search) queryParams.set('search', appliedFilters.search);
-      if (appliedFilters.minScore) queryParams.set('minScore', appliedFilters.minScore);
-      if (appliedFilters.maxScore) queryParams.set('maxScore', appliedFilters.maxScore);
-      if (appliedFilters.startDate) queryParams.set('startDate', appliedFilters.startDate);
-      if (appliedFilters.endDate) queryParams.set('endDate', appliedFilters.endDate);
-      if (appliedFilters.status) queryParams.set('status', appliedFilters.status);
+      const queryString = buildQueryParams(appliedFilters).toString();
+      const exportUrl = queryString
+        ? `${API_URL}/result/quiz/${selectedQuizId}/export?${queryString}`
+        : `${API_URL}/result/quiz/${selectedQuizId}/export`;
 
-      const response = await axios.get(
-        `${API_URL}/result/quiz/${selectedQuizId}/export?${queryParams.toString()}`,
-        {
-          withCredentials: true,
-          responseType: 'blob', // Yêu cầu axios trả về dạng blob
-        }
-      );
+      const response = await axios.get(exportUrl, {
+        withCredentials: true,
+        responseType: "blob",
+      });
 
-      // Xử lý file blob trả về
-      const blob = new Blob([response.data], { type: response.headers['content-type'] });
+      const blob = new Blob([response.data], {
+        type:
+          response.headers["content-type"] ||
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
 
-      // Lấy tên file từ header `Content-Disposition`
-      const contentDisposition = response.headers['content-disposition'];
-      let filename = `KetQuaQuiz_${selectedQuizId}.xlsx`; // Tên file mặc định
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
-        if (filenameMatch.length > 1) {
-          filename = filenameMatch[1];
-        }
+      let filename = `KetQuaQuiz_${selectedQuizId}.xlsx`;
+      const contentDisposition = response.headers["content-disposition"];
+      const filenameMatch = contentDisposition?.match(/filename="?(.+?)"?$/);
+      if (filenameMatch?.[1]) {
+        filename = filenameMatch[1];
       }
 
-      // Tạo URL tạm thời và thẻ <a> để trigger download
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', filename);
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
-
-      // Dọn dẹp
-      link.parentNode.removeChild(link);
+      link.remove();
       window.URL.revokeObjectURL(url);
-
-    } catch (error) {
-      console.error("Lỗi xuất file Excel:", error);
-      // TODO: Hiển thị thông báo lỗi cho người dùng (ví dụ: dùng react-toastify)
+    } catch (error: any) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        navigate("/login");
+      } else {
+        setResultsError(
+          error.response?.data?.message ||
+            error.message ||
+            "Không thể xuất file Excel."
+        );
+      }
     } finally {
       setIsExporting(false);
     }
   };
 
-  // -------------------------------------------------------
-  // Render: Loading state khi đang tải danh sách quiz
-  // -------------------------------------------------------
+  const selectedQuiz = quizzes.find((quiz) => quiz.id === selectedQuizId);
+  const hasActiveFilters = Object.values(appliedFilters).some((value) => value !== "");
+
   if (isLoadingQuizzes) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-400">
-        <Loader2 className="w-10 h-10 animate-spin mb-4" />
-        <p>Đang tải danh sách Quiz...</p>
+      <div className="flex min-h-[400px] flex-col items-center justify-center text-slate-400">
+        <Loader2 className="mb-4 h-10 w-10 animate-spin" />
+        <p>Đang tải danh sách quiz...</p>
       </div>
     );
   }
-  // -------------------------------------------------------
-  // Render: Lỗi tải danh sách quiz
-  // -------------------------------------------------------
+
   if (quizzesError) {
     return (
       <div className="space-y-8 animate-fade-in">
         <div>
-          <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">
+          <h2 className="bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent">
             Kết quả Quiz
           </h2>
-          <p className="text-slate-400 mt-1">
-            Xem và phân tích kết quả thí sinh.
-          </p>
+          <p className="mt-1 text-slate-400">Xem và phân tích kết quả thí sinh.</p>
         </div>
-        <div className="text-center py-20 bg-red-50/10 rounded-2xl border border-red-200/20">
-          <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <p className="text-red-400 text-lg font-medium">
-            Không thể tải danh sách Quiz
+
+        <div className="rounded-2xl border border-red-200/20 bg-red-50/10 py-20 text-center">
+          <XCircle className="mx-auto mb-4 h-16 w-16 text-red-400" />
+          <p className="text-lg font-medium text-red-400">
+            Không thể tải danh sách quiz
           </p>
-          <p className="text-red-300 text-sm mt-2 max-w-md mx-auto">
+          <p className="mx-auto mt-2 max-w-md text-sm text-red-300">
             {quizzesError}
           </p>
           <Button
@@ -372,86 +314,76 @@ export function Results() {
             className="mt-4 bg-red-600 hover:bg-red-700"
             size="sm"
           >
-            <RefreshCw className="w-4 h-4 mr-2" />
+            <RefreshCw className="mr-2 h-4 w-4" />
             Thử lại
           </Button>
         </div>
       </div>
     );
   }
+
   if (quizzes.length === 0) {
     return (
       <div className="space-y-8 animate-fade-in">
         <div>
-          <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">
+          <h2 className="bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent">
             Kết quả Quiz
           </h2>
-          <p className="text-slate-400 mt-1">
-            Xem và phân tích kết quả thí sinh.
-          </p>
+          <p className="mt-1 text-slate-400">Xem và phân tích kết quả thí sinh.</p>
         </div>
-        <div className="text-center py-20 bg-white/5 rounded-2xl border border-dashed border-white/10">
-          <BarChart3 className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-          <p className="text-slate-400 text-lg">Bạn chưa có quiz nào.</p>
-          <p className="text-slate-500 text-sm mt-2">
+
+        <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 py-20 text-center">
+          <BarChart3 className="mx-auto mb-4 h-16 w-16 text-slate-600" />
+          <p className="text-lg text-slate-400">Bạn chưa có quiz nào.</p>
+          <p className="mt-2 text-sm text-slate-500">
             Hãy tạo quiz trước để xem kết quả thí sinh.
           </p>
         </div>
       </div>
     );
   }
-  // Lấy tên quiz đang được chọn để hiển thị
-  const selectedQuiz = quizzes.find((q) => q.id === selectedQuizId);
-  // -------------------------------------------------------
-  // Render chính
-  // -------------------------------------------------------
+
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* ===== TIÊU ĐỀ TRANG ===== */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-[length:200%_auto] animate-gradient-shift drop-shadow-lg inline-block transform transition-all duration-300 hover:scale-[1.02] hover:drop-shadow-[0_0_15px_rgba(167,139,250,0.6)]">
+          <h2 className="inline-block bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-[length:200%_auto] bg-clip-text text-4xl font-extrabold tracking-tight text-transparent">
             Kết quả Quiz
           </h2>
-          <p className="text-slate-400 mt-1">
+          <p className="mt-1 text-slate-400">
             Xem và phân tích kết quả thí sinh theo từng bài thi.
           </p>
         </div>
-        {/* Nút làm mới dữ liệu */}
+
         <Button
           onClick={fetchResults}
           disabled={isLoadingResults}
           variant="ghost"
-          className="gap-2 text-slate-300 hover:text-white hover:bg-white/10"
+          className="gap-2 text-slate-300 hover:bg-white/10 hover:text-white"
         >
           <RefreshCw
-            className={`w-4 h-4 ${isLoadingResults ? "animate-spin" : ""}`}
+            className={`h-4 w-4 ${isLoadingResults ? "animate-spin" : ""}`}
           />
           Làm mới
         </Button>
       </div>
 
-      {/* ===== CHỌN QUIZ ===== */}
-      <Card className="bg-white/5 backdrop-blur-md border-white/10 shadow-xl">
+      <Card className="border-white/10 bg-white/5 shadow-xl backdrop-blur-md">
         <CardHeader className="pb-3">
-          <CardTitle className="text-slate-200 text-base font-semibold flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-indigo-400" />
-            Chọn Quiz để xem kết quả
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-200">
+            <BarChart3 className="h-4 w-4 text-indigo-400" />
+            Chọn quiz để xem kết quả
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/*
-           * Dropdown chọn quiz
-           * Khi thay đổi → cập nhật selectedQuizId → trigger fetchResults
-           */}
           <select
             value={selectedQuizId ?? ""}
-            onChange={(e) => {
-              setSelectedQuizId(Number(e.target.value));
-              // Reset filter khi đổi quiz
-              handleResetFilters();
+            onChange={(event) => {
+              setSelectedQuizId(Number(event.target.value));
+              setFilters(EMPTY_FILTERS);
+              setAppliedFilters(EMPTY_FILTERS);
             }}
-            className="w-full max-w-md h-10 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 cursor-pointer"
+            className="h-10 w-full max-w-md cursor-pointer rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             {quizzes.map((quiz) => (
               <option
@@ -467,47 +399,40 @@ export function Results() {
         </CardContent>
       </Card>
 
-      {/* ===== THỐNG KÊ TỔNG QUAN ===== */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {/* Tổng lượt thi */}
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
           <StatCard
-            icon={<Users className="w-5 h-5 text-indigo-400" />}
+            icon={<Users className="h-5 w-5 text-indigo-400" />}
             label="Tổng lượt thi"
             value={stats.totalAttempts}
             color="indigo"
           />
-          {/* Đã nộp bài */}
           <StatCard
-            icon={<CheckCircle className="w-5 h-5 text-emerald-400" />}
+            icon={<CheckCircle className="h-5 w-5 text-emerald-400" />}
             label="Đã nộp bài"
             value={stats.submittedCount}
             color="emerald"
           />
-          {/* Đang làm */}
           <StatCard
-            icon={<Clock className="w-5 h-5 text-amber-400" />}
+            icon={<Clock className="h-5 w-5 text-amber-400" />}
             label="Đang làm"
             value={stats.inProgressCount}
             color="amber"
           />
-          {/* Điểm trung bình */}
           <StatCard
-            icon={<TrendingUp className="w-5 h-5 text-purple-400" />}
+            icon={<TrendingUp className="h-5 w-5 text-purple-400" />}
             label="Điểm TB"
             value={stats.avgScore !== null ? stats.avgScore.toFixed(2) : "—"}
             color="purple"
           />
-          {/* Điểm cao nhất */}
           <StatCard
-            icon={<Trophy className="w-5 h-5 text-yellow-400" />}
+            icon={<Trophy className="h-5 w-5 text-yellow-400" />}
             label="Cao nhất"
             value={stats.maxScore !== null ? stats.maxScore : "—"}
             color="yellow"
           />
-          {/* Điểm thấp nhất */}
           <StatCard
-            icon={<XCircle className="w-5 h-5 text-rose-400" />}
+            icon={<XCircle className="h-5 w-5 text-rose-400" />}
             label="Thấp nhất"
             value={stats.minScore !== null ? stats.minScore : "—"}
             color="rose"
@@ -515,63 +440,74 @@ export function Results() {
         </div>
       )}
 
-      {/* ===== BẢNG KẾT QUẢ THÍ SINH ===== */}
-      <Card className="bg-white/5 backdrop-blur-md border-white/10 shadow-2xl">
+      {selectedQuizId && (
+        <Card className="border-white/10 bg-white/5 shadow-2xl backdrop-blur-md">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-200">
+              <BarChart3 className="h-4 w-4 text-indigo-400" />
+              Thống kê chuyên sâu câu hỏi
+              {selectedQuiz && (
+                <span className="ml-1 text-sm font-normal text-slate-400">
+                  — {selectedQuiz.title}
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <QuestionAnalytics quizId={selectedQuizId} />
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="border-white/10 bg-white/5 shadow-2xl backdrop-blur-md">
         <CardHeader className="pb-4">
-          <CardTitle className="text-slate-200 text-base font-semibold flex items-center gap-2">
-            <Users className="w-4 h-4 text-purple-400" />
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-200">
+            <Users className="h-4 w-4 text-purple-400" />
             Danh sách thí sinh
             {selectedQuiz && (
-              <span className="text-slate-400 font-normal text-sm ml-1">
+              <span className="ml-1 text-sm font-normal text-slate-400">
                 — {selectedQuiz.title}
               </span>
             )}
           </CardTitle>
 
-          {/* ===== KHU VỰC BỘ LỌC ===== */}
           <div className="mt-4 space-y-3">
-            {/* Hàng 1: Tìm kiếm + Trạng thái */}
             <div className="flex flex-wrap gap-3">
-              {/* Ô tìm kiếm theo tên/email */}
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <div className="relative min-w-[200px] flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <Input
                   name="search"
                   value={filters.search}
                   onChange={handleFilterChange}
                   onKeyDown={handleSearchKeyDown}
-                  className="pl-9 bg-white/10 text-slate-100 placeholder:text-slate-400 border-white/20"
+                  className="border-white/20 bg-white/10 pl-9 text-slate-100 placeholder:text-slate-400"
                   placeholder="Tìm theo tên hoặc email thí sinh..."
                 />
               </div>
 
-              {/* Lọc theo trạng thái nộp bài */}
               <select
                 name="status"
                 value={filters.status}
                 onChange={handleFilterChange}
-                className="h-10 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 min-w-[160px]"
+                className="h-10 min-w-[160px] rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 <option value="" className="bg-slate-800">
                   Tất cả trạng thái
                 </option>
                 <option value="SUBMITTED" className="bg-slate-800">
-                  ✅ Đã nộp bài
+                  Đã nộp bài
                 </option>
                 <option value="IN_PROGRESS" className="bg-slate-800">
-                  ⏳ Đang làm bài
+                  Đang làm bài
                 </option>
               </select>
             </div>
 
-            {/* Hàng 2: Lọc điểm + Lọc thời gian */}
-            <div className="flex flex-wrap gap-3 items-center">
-              {/* Icon filter */}
-              <Filter className="w-4 h-4 text-slate-400 flex-shrink-0" />
+            <div className="flex flex-wrap items-center gap-3">
+              <Filter className="h-4 w-4 flex-shrink-0 text-slate-400" />
 
-              {/* Lọc điểm tối thiểu */}
               <div className="flex items-center gap-2">
-                <label className="text-xs text-slate-400 whitespace-nowrap">
+                <label className="whitespace-nowrap text-xs text-slate-400">
                   Điểm từ:
                 </label>
                 <Input
@@ -582,14 +518,13 @@ export function Results() {
                   step="0.1"
                   value={filters.minScore}
                   onChange={handleFilterChange}
-                  className="w-20 bg-white/10 text-slate-100 border-white/20 text-sm"
+                  className="w-20 border-white/20 bg-white/10 text-sm text-slate-100"
                   placeholder="0"
                 />
               </div>
 
-              {/* Lọc điểm tối đa */}
               <div className="flex items-center gap-2">
-                <label className="text-xs text-slate-400 whitespace-nowrap">
+                <label className="whitespace-nowrap text-xs text-slate-400">
                   đến:
                 </label>
                 <Input
@@ -600,17 +535,15 @@ export function Results() {
                   step="0.1"
                   value={filters.maxScore}
                   onChange={handleFilterChange}
-                  className="w-20 bg-white/10 text-slate-100 border-white/20 text-sm"
+                  className="w-20 border-white/20 bg-white/10 text-sm text-slate-100"
                   placeholder="10"
                 />
               </div>
 
-              {/* Dấu phân cách */}
-              <div className="w-px h-6 bg-white/20 hidden sm:block" />
+              <div className="hidden h-6 w-px bg-white/20 sm:block" />
 
-              {/* Lọc ngày bắt đầu */}
               <div className="flex items-center gap-2">
-                <label className="text-xs text-slate-400 whitespace-nowrap">
+                <label className="whitespace-nowrap text-xs text-slate-400">
                   Từ ngày:
                 </label>
                 <Input
@@ -618,13 +551,12 @@ export function Results() {
                   type="date"
                   value={filters.startDate}
                   onChange={handleFilterChange}
-                  className="bg-white/10 text-slate-100 border-white/20 text-sm w-36"
+                  className="w-36 border-white/20 bg-white/10 text-sm text-slate-100"
                 />
               </div>
 
-              {/* Lọc ngày kết thúc */}
               <div className="flex items-center gap-2">
-                <label className="text-xs text-slate-400 whitespace-nowrap">
+                <label className="whitespace-nowrap text-xs text-slate-400">
                   Đến ngày:
                 </label>
                 <Input
@@ -632,48 +564,44 @@ export function Results() {
                   type="date"
                   value={filters.endDate}
                   onChange={handleFilterChange}
-                  className="bg-white/10 text-slate-100 border-white/20 text-sm w-36"
+                  className="w-36 border-white/20 bg-white/10 text-sm text-slate-100"
                 />
               </div>
             </div>
 
-            {/* Hàng 3: Nút áp dụng và xóa filter */}
             <div className="flex flex-wrap gap-2">
-              {/* Nút áp dụng filter */}
               <Button
                 onClick={handleApplyFilters}
                 disabled={isLoadingResults}
-                className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg text-sm"
+                className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-sm shadow-lg hover:from-indigo-700 hover:to-purple-700"
               >
                 {isLoadingResults ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Filter className="w-4 h-4" />
+                  <Filter className="h-4 w-4" />
                 )}
                 Áp dụng bộ lọc
               </Button>
 
-              {/* Nút xuất Excel */}
               <Button
                 onClick={handleExport}
                 disabled={isLoadingResults || isExporting || results.length === 0}
-                className="gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-lg text-sm"
+                className="gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-sm shadow-lg hover:from-emerald-700 hover:to-teal-700"
               >
                 {isExporting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <FileDown className="w-4 h-4" />
+                  <FileDown className="h-4 w-4" />
                 )}
                 Xuất Excel
               </Button>
 
-              {/* Nút xóa tất cả filter */}
               <Button
                 onClick={handleResetFilters}
                 variant="ghost"
-                className="gap-2 text-slate-400 hover:text-white hover:bg-white/10 text-sm"
+                className="gap-2 text-sm text-slate-400 hover:bg-white/10 hover:text-white"
               >
-                <XCircle className="w-4 h-4" />
+                <XCircle className="h-4 w-4" />
                 Xóa bộ lọc
               </Button>
             </div>
@@ -681,20 +609,18 @@ export function Results() {
         </CardHeader>
 
         <CardContent>
-          {/* Loading state khi đang tải kết quả */}
           {isLoadingResults ? (
             <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-              <Loader2 className="w-8 h-8 animate-spin mb-3" />
+              <Loader2 className="mb-3 h-8 w-8 animate-spin" />
               <p className="text-sm">Đang tải kết quả...</p>
             </div>
           ) : resultsError ? (
-            /* Hiển thị lỗi khi tải kết quả thất bại */
-            <div className="text-center py-16 bg-red-50/10 rounded-lg border border-red-200/20">
-              <XCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
-              <p className="text-red-400 text-base font-medium">
+            <div className="rounded-lg border border-red-200/20 bg-red-50/10 py-16 text-center">
+              <XCircle className="mx-auto mb-3 h-12 w-12 text-red-400" />
+              <p className="text-base font-medium text-red-400">
                 Không thể tải kết quả
               </p>
-              <p className="text-red-300 text-sm mt-1 max-w-md mx-auto">
+              <p className="mx-auto mt-1 max-w-md text-sm text-red-300">
                 {resultsError}
               </p>
               <Button
@@ -702,27 +628,24 @@ export function Results() {
                 className="mt-4 bg-red-600 hover:bg-red-700"
                 size="sm"
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
+                <RefreshCw className="mr-2 h-4 w-4" />
                 Thử lại
               </Button>
             </div>
           ) : results.length === 0 ? (
-            /* Trường hợp không có kết quả */
-            <div className="text-center py-16 text-slate-400">
-              <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <div className="py-16 text-center text-slate-400">
+              <Users className="mx-auto mb-3 h-12 w-12 opacity-30" />
               <p className="text-base">Không có kết quả nào.</p>
-              <p className="text-sm mt-1 text-slate-500">
-                {Object.values(appliedFilters).some((v) => v !== "")
+              <p className="mt-1 text-sm text-slate-500">
+                {hasActiveFilters
                   ? "Thử thay đổi bộ lọc để xem thêm kết quả."
                   : "Chưa có thí sinh nào tham gia quiz này."}
               </p>
             </div>
           ) : (
-            /* Bảng danh sách kết quả */
-            <div className="rounded-lg border border-white/20 overflow-hidden overflow-x-auto">
-              <table className="w-full text-sm text-left min-w-[700px]">
-                {/* Header bảng */}
-                <thead className="text-xs text-slate-400 uppercase bg-white/5 border-b border-white/10">
+            <div className="overflow-hidden overflow-x-auto rounded-lg border border-white/20">
+              <table className="min-w-[700px] w-full text-left text-sm">
+                <thead className="border-b border-white/10 bg-white/5 text-xs uppercase text-slate-400">
                   <tr>
                     <th className="px-5 py-3 font-medium">#</th>
                     <th className="px-5 py-3 font-medium">Tên thí sinh</th>
@@ -733,47 +656,30 @@ export function Results() {
                     <th className="px-5 py-3 font-medium">Trạng thái</th>
                   </tr>
                 </thead>
-
-                {/* Body bảng - danh sách thí sinh */}
                 <tbody className="divide-y divide-white/10">
                   {results.map((item, index) => (
                     <tr
                       key={item.attemptId}
-                      className="bg-white/5 hover:bg-white/10 transition-colors duration-200"
+                      className="bg-white/5 transition-colors duration-200 hover:bg-white/10"
                     >
-                      {/* STT */}
-                      <td className="px-5 py-4 text-slate-500 text-xs">
+                      <td className="px-5 py-4 text-xs text-slate-500">
                         {index + 1}
                       </td>
-
-                      {/* Tên thí sinh */}
                       <td className="px-5 py-4 font-medium text-slate-100">
                         {item.user.fullName}
                       </td>
-
-                      {/* Email thí sinh */}
-                      <td className="px-5 py-4 text-slate-400 text-xs">
+                      <td className="px-5 py-4 text-xs text-slate-400">
                         {item.user.email}
                       </td>
-
-                      {/* Điểm số - màu sắc theo mức điểm */}
-                      <td
-                        className={`px-5 py-4 ${getScoreColor(item.score)}`}
-                      >
+                      <td className={`px-5 py-4 ${getScoreColor(item.score)}`}>
                         {item.score !== null ? item.score : "—"}
                       </td>
-
-                      {/* Thời gian làm bài */}
                       <td className="px-5 py-4 text-slate-400">
                         {formatDuration(item.durationSeconds)}
                       </td>
-
-                      {/* Thời gian nộp bài */}
-                      <td className="px-5 py-4 text-slate-400 text-xs">
+                      <td className="px-5 py-4 text-xs text-slate-400">
                         {formatDateTime(item.finishedAt)}
                       </td>
-
-                      {/* Badge trạng thái nộp bài */}
                       <td className="px-5 py-4">
                         <StatusBadge status={item.submitStatus} />
                       </td>
@@ -782,10 +688,9 @@ export function Results() {
                 </tbody>
               </table>
 
-              {/* Footer bảng: hiển thị tổng số bản ghi */}
-              <div className="px-5 py-3 bg-white/5 border-t border-white/10 text-xs text-slate-400">
+              <div className="border-t border-white/10 bg-white/5 px-5 py-3 text-xs text-slate-400">
                 Hiển thị{" "}
-                <span className="text-slate-200 font-semibold">
+                <span className="font-semibold text-slate-200">
                   {results.length}
                 </span>{" "}
                 kết quả
@@ -797,22 +702,16 @@ export function Results() {
     </div>
   );
 }
-// -------------------------------------------------------
-// Sub-components
-// -------------------------------------------------------
-/**
- * StatCard - Card hiển thị một chỉ số thống kê.
- * Dùng trong phần "Thống kê tổng quan".
- */
+
 interface StatCardProps {
   icon: React.ReactNode;
   label: string;
   value: number | string;
   color: "indigo" | "emerald" | "amber" | "purple" | "yellow" | "rose";
 }
+
 function StatCard({ icon, label, value, color }: StatCardProps) {
-  // Map màu sắc cho border và background
-  const colorMap: Record<string, string> = {
+  const colorMap: Record<StatCardProps["color"], string> = {
     indigo: "border-indigo-500/30 bg-indigo-500/10",
     emerald: "border-emerald-500/30 bg-emerald-500/10",
     amber: "border-amber-500/30 bg-amber-500/10",
@@ -820,36 +719,33 @@ function StatCard({ icon, label, value, color }: StatCardProps) {
     yellow: "border-yellow-500/30 bg-yellow-500/10",
     rose: "border-rose-500/30 bg-rose-500/10",
   };
+
   return (
-    <div
-      className={`rounded-xl border p-4 ${colorMap[color]} backdrop-blur-sm`}
-    >
-      <div className="flex items-center gap-2 mb-2">{icon}</div>
+    <div className={`rounded-xl border p-4 backdrop-blur-sm ${colorMap[color]}`}>
+      <div className="mb-2 flex items-center gap-2">{icon}</div>
       <p className="text-2xl font-bold text-white">{value}</p>
-      <p className="text-xs text-slate-400 mt-1">{label}</p>
+      <p className="mt-1 text-xs text-slate-400">{label}</p>
     </div>
   );
 }
-/**
- * StatusBadge - Badge hiển thị trạng thái nộp bài.
- * SUBMITTED → Xanh lá (Đã nộp)
- * IN_PROGRESS → Vàng (Đang làm)
- */
+
 interface StatusBadgeProps {
   status: "SUBMITTED" | "IN_PROGRESS";
 }
+
 function StatusBadge({ status }: StatusBadgeProps) {
   if (status === "SUBMITTED") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-        <CheckCircle className="w-3 h-3" />
+      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+        <CheckCircle className="h-3 w-3" />
         Đã nộp
       </span>
     );
   }
+
   return (
-    <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
-      <Clock className="w-3 h-3" />
+    <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-400">
+      <Clock className="h-3 w-3" />
       Đang làm
     </span>
   );

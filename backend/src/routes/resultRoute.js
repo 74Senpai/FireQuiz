@@ -27,4 +27,11 @@ router.get('/quiz/:quizId/stats', protectedRoute, resultController.getQuizStats)
  */
 router.get('/quiz/:quizId/export', protectedRoute, resultController.exportResults);
 
+/**
+ * GET /api/result/quiz/:quizId/question-analytics
+ * Lấy thống kê chi tiết theo từng câu hỏi của quiz.
+ * Yêu cầu: đã đăng nhập và là chủ quiz.
+ */
+router.get('/quiz/:quizId/question-analytics', protectedRoute, resultController.getQuestionAnalytics);
+
 export default router;

@@ -169,3 +169,37 @@ export const exportResults = asyncHandler(async (req, res) => {
     // Gửi buffer (nội dung file) về cho client
     res.send(buffer);
 });
+
+/**
+ * GET /api/result/quiz/:quizId/question-analytics
+ * -------------------------------------------------------
+ * Lấy thống kê chi tiết theo từng câu hỏi của một quiz.
+ * Dùng để vẽ biểu đồ, phân tích độ khó/dễ của câu hỏi.
+ * Chỉ chủ quiz (creator) mới có quyền gọi API này.
+ *
+ * Response 200:
+ *  [
+ *    {
+ *      questionId, questionContent, totalResponses, correctResponses, correctRate,
+ *      options: [ { optionId, optionContent, isCorrect, selectionCount } ]
+ *    }
+ *  ]
+ */
+export const getQuestionAnalytics = asyncHandler(async (req, res) => {
+    // Lấy quizId từ URL params và chuyển sang số nguyên
+    const quizId = parseInt(req.params.quizId, 10);
+
+    // Kiểm tra quizId có hợp lệ không
+    if (isNaN(quizId)) {
+        throw new AppError('Quiz ID không hợp lệ', 400);
+    }
+
+    // Lấy thông tin người dùng đang đăng nhập
+    const user = req.user;
+
+    // Gọi service để lấy và xử lý dữ liệu thống kê
+    const analytics = await resultService.getQuestionAnalytics(quizId, user);
+
+    // Trả về dữ liệu đã được xử lý
+    return res.status(200).json(analytics);
+});
