@@ -1,5 +1,6 @@
 import * as quizRepository from '../repositories/quizRepository.js';
 import { findById } from '../repositories/userRepository.js';
+import * as questionService from './questionService.js';
 import AppError from '../errors/AppError.js';
 
 export const createQuiz = async (user, data) => {
@@ -38,6 +39,23 @@ export const getQuiz = async (id, user) => {
   }
 
   return quiz;
+};
+
+export const getQuizPreview = async (id, user) => {
+  if (!user) {
+    throw new AppError("Ban khong co quyen xem truoc quiz nay", 401);
+  }
+
+  const quiz = await quizRepository.getQuizById(id);
+
+  checkQuizExistAndOwner(quiz, user);
+
+  const questions = await questionService.getListQuestionByQuizId(id, user);
+
+  return {
+    quiz,
+    questions,
+  };
 };
 
 const checkQuizExistAndOwner = (quiz, user) => {

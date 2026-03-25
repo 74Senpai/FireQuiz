@@ -2,11 +2,13 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { QuizPreviewModal } from "@/components/ui/QuizPreviewModal";
 import {
   Plus,
   Clock,
   Users,
   Calendar,
+  Eye,
   Pencil,
   Trash2,
   Loader2,
@@ -17,6 +19,7 @@ export function CreatorDashboard() {
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [previewQuizId, setPreviewQuizId] = useState<number | null>(null);
   const navigate = useNavigate();
 
   const API_URL = process.env.API_URL || "http://localhost:8080/api";
@@ -155,7 +158,7 @@ export function CreatorDashboard() {
                 key={quiz.id}
                 className={`relative overflow-hidden group cursor-pointer animate-slide-up hover:scale-[1.02] transition-all duration-300 bg-white/5 border-white/10`}
                 style={{ animationDelay: `${index * 100}ms` }}
-                onClick={() => navigate(`/dashboard/quiz/${quiz.id}`)}
+                onClick={() => navigate(`/dashboard/quiz/${quiz.id}/edit`)}
               >
                 {/* Status bar dọc */}
                 <div
@@ -173,6 +176,16 @@ export function CreatorDashboard() {
                       {quiz.title}
                     </CardTitle>
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPreviewQuizId(quiz.id);
+                        }}
+                        className="p-2 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/35 text-indigo-300 transition-colors"
+                        aria-label="Xem truoc quiz"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                       <Link
                         to={`/dashboard/quiz/${quiz.id}/edit`}
                         onClick={(e) => e.stopPropagation()}
@@ -230,6 +243,12 @@ export function CreatorDashboard() {
           })}
         </div>
       )}
+
+      <QuizPreviewModal
+        quizId={previewQuizId}
+        isOpen={previewQuizId !== null}
+        onClose={() => setPreviewQuizId(null)}
+      />
     </div>
   );
 }
