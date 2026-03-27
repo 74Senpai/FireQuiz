@@ -46,6 +46,10 @@ interface QuestionAnalyticsProps {
   quizId: number;
 }
 
+interface QuestionAnalyticsResponse {
+  data: QuestionAnalytic[];
+}
+
 const API_URL = process.env.API_URL || "http://localhost:8080/api";
 
 const DIFFICULTY_LABELS: Record<DifficultyLevel, string> = {
@@ -80,20 +84,14 @@ export function QuestionAnalytics({ quizId }: QuestionAnalyticsProps) {
       setError(null);
 
       try {
-        const response = await axios.get(
+        const response = await axios.get<QuestionAnalyticsResponse>(
           `${API_URL}/result/quiz/${quizId}/question-analytics`,
           { withCredentials: true }
         );
 
         if (ignore) return;
 
-        const nextData = Array.isArray(response.data?.data)
-          ? response.data.data
-          : Array.isArray(response.data)
-            ? response.data
-            : [];
-
-        setAnalytics(nextData);
+        setAnalytics(Array.isArray(response.data?.data) ? response.data.data : []);
       } catch (err: any) {
         if (ignore) return;
 

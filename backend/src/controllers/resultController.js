@@ -88,7 +88,9 @@ export const getQuestionAnalytics = asyncHandler(async (req, res) => {
     const quizId = parseQuizId(req.params.quizId);
     const analytics = await resultService.getQuestionAnalytics(quizId, req.user);
 
-    return res.status(200).json(analytics);
+    return res.status(200).json({
+        data: analytics,
+    });
 });
 
 export const getQuizLeaderboard = asyncHandler(async (req, res) => {
