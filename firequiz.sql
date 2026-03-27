@@ -102,24 +102,30 @@ CREATE INDEX idx_answers_question_id ON answers (question_id);
 CREATE TABLE attempt_questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     quiz_attempt_id INT NOT NULL,
+    original_question_id INT NULL,
     content VARCHAR(255) NOT NULL,
     type VARCHAR(10) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_attempt_questions_quiz_attempts FOREIGN KEY (quiz_attempt_id) REFERENCES quiz_attempts (id)
+    CONSTRAINT fk_attempt_questions_quiz_attempts FOREIGN KEY (quiz_attempt_id) REFERENCES quiz_attempts (id),
+    CONSTRAINT fk_attempt_questions_original_question FOREIGN KEY (original_question_id) REFERENCES questions (id) ON DELETE SET NULL
 );
 
 CREATE INDEX idx_attempt_questions_attempt ON attempt_questions (quiz_attempt_id);
+CREATE INDEX idx_attempt_questions_original_question ON attempt_questions (original_question_id);
 
 CREATE TABLE attempt_options (
     id INT AUTO_INCREMENT PRIMARY KEY,
     attempt_question_id INT NOT NULL,
+    original_answer_id INT NULL,
     content VARCHAR(255) NOT NULL,
     is_correct BOOLEAN NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_attempt_options_attempt_questions FOREIGN KEY (attempt_question_id) REFERENCES attempt_questions (id)
+    CONSTRAINT fk_attempt_options_attempt_questions FOREIGN KEY (attempt_question_id) REFERENCES attempt_questions (id),
+    CONSTRAINT fk_attempt_options_original_answer FOREIGN KEY (original_answer_id) REFERENCES answers (id) ON DELETE SET NULL
 );
 
 CREATE INDEX idx_attempt_options_question ON attempt_options (attempt_question_id);
+CREATE INDEX idx_attempt_options_original_answer ON attempt_options (original_answer_id);
 
 CREATE TABLE attempt_answers (
     id INT AUTO_INCREMENT PRIMARY KEY,
