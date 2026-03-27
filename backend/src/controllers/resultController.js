@@ -38,11 +38,20 @@ const parseResultFilters = (query) => {
     };
 };
 
+const parsePagination = (query) => {
+    const parsedLimit = parseInt(query.limit, 10);
+    const parsedOffset = parseInt(query.offset, 10);
+
+    return {
+        limit: Math.max(1, Math.min(Number.isNaN(parsedLimit) ? 10 : parsedLimit, 100)),
+        offset: Math.max(0, Number.isNaN(parsedOffset) ? 0 : parsedOffset),
+    };
+};
+
 export const getResultsByQuizId = asyncHandler(async (req, res) => {
     const quizId = parseQuizId(req.params.quizId);
     const filters = parseResultFilters(req.query);
-    const limit = Number(req.query.limit) > 0 ? Number(req.query.limit) : 10;
-    const offset = Number(req.query.offset) >= 0 ? Number(req.query.offset) : 0;
+    const { limit, offset } = parsePagination(req.query);
 
     const results = await resultService.getResultsByQuizId(
         quizId,
