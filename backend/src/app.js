@@ -7,6 +7,7 @@ import authRoute from './routes/authRoute.js';
 import userRoute from './routes/userRoute.js';
 import quizRoute from './routes/quizRoute.js';
 import questionRoute from './routes/questionRoute.js';
+import attemptRoute from './routes/attemptRoute.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import cookieParser from 'cookie-parser';
 import { protectedRoute } from './middlewares/authMiddleware.js';
@@ -53,6 +54,8 @@ app.use('/api/question', questionRoute);
 // private route
 app.use(protectedRoute);
 app.use('/api/user', userRoute);
+// Chú thích (BE): Route đồng bộ đáp án tạm thời – yêu cầu đăng nhập
+app.use('/api/attempts', attemptRoute);
 
 // global exception handler
 app.use(errorHandler);
