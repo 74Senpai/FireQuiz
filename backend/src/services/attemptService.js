@@ -306,20 +306,28 @@ export const startAttempt = async (quizId, userId) => {
     throw new AppError('Quiz không công khai', 403);
   }
 
+  const now = new Date();
+  if (quiz.available_from && new Date(quiz.available_from) > now) {
+    throw new AppError('Quiz chưa mở', 403);
+  }
+  if (quiz.available_until && new Date(quiz.available_until) < now) {
+    throw new AppError('Quiz đã đóng', 403);
+  }
+
   // Chú thích (BE): Kiểm tra xem có bài làm nào đang dang dở không (chưa nộp)
   const activeAttempt = await attemptRepository.getActiveAttempt(quizId, userId);
-
+  
   if (activeAttempt) {
     // Nếu có, tiếp tục bài làm cũ (tránh mất kết quả tự động lưu khi rớt mạng)
     const attemptData = await attemptRepository.getAttemptSnapshot(activeAttempt.id);
-
+    
     // Tính toán thời gian còn lại (nếu có giới hạn thời gian)
     let remainingSeconds = quiz.time_limit_seconds;
     if (remainingSeconds) {
       const elapsedSeconds = Math.floor((now - new Date(activeAttempt.started_at)) / 1000);
       remainingSeconds = Math.max(0, quiz.time_limit_seconds - elapsedSeconds);
     }
-
+    
     return {
       quizTitle: activeAttempt.quiz_title,
       timeLimitSeconds: remainingSeconds,
@@ -327,16 +335,16 @@ export const startAttempt = async (quizId, userId) => {
     };
   }
 
-  // Chú thích (BE): Nếu không có bài dang dở, kiểm tra số lượt làm bài tối đa (dùng chung cho bộ quiz)
+  // Chú thích (BE): Nếu không có bài dang dở, kiểm tra số lần làm bài tối đa
   if (quiz.max_attempts) {
-    const totalAttempts = await attemptRepository.countTotalAttempts(quizId);
-    if (totalAttempts >= quiz.max_attempts) {
-      throw new AppError('Đã hết số lượt tham gia giới hạn của bài trắc nghiệm này', 403);
+    const attemptsCount = await attemptRepository.countUserAttempts(quizId, userId);
+    if (attemptsCount >= quiz.max_attempts) {
+      throw new AppError('Bạn đã vượt quá số lần làm bài cho phép', 403);
     }
   }
 
-  const attemptData = await generateAttemptSnapshot(quizId, userId, quiz.title);
-
+  const attemptData = await attemptRepository.generateAttemptSnapshot(quizId, userId, quiz.title);
+  
   // Trả về dữ liệu để hiển thị trang làm bài
   return {
     quizTitle: quiz.title,
