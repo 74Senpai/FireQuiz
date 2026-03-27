@@ -130,3 +130,16 @@ export const removePin = asyncHandler(async (req, res) => {
   await quizService.removePin(id, user);
   return res.status(204).send();
 });
+
+// Chú thích (BE): Controller xử lý API cho chức năng tham gia Quiz bằng mã PIN
+export const joinQuiz = asyncHandler(async (req, res) => {
+  const code = req.params.code;
+  const quiz = await quizService.joinQuiz(code);
+  
+  return res.status(200).json(quiz);
+});
+
+export const getPublicQuizzes = asyncHandler(async (req, res) => {
+  const quizzes = await quizService.getPublicQuizzes();
+  return res.status(200).json({ data: quizzes });
+});
