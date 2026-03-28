@@ -1,16 +1,6 @@
-import { readFileSync } from 'node:fs';
-
 import pool from '../db/db.js';
 
-const readSqlFile = (relativePath) =>
-    readFileSync(new URL(relativePath, import.meta.url), 'utf8').trim();
-
-const QUIZ_RESULTS_COUNT_SQL = readSqlFile('./sql/getQuizResultsCount.sql');
-const QUIZ_RESULTS_DATA_SQL = readSqlFile('./sql/getQuizResultsData.sql');
-const QUIZ_STATS_SQL = readSqlFile('./sql/getQuizStats.sql');
-const QUIZ_LEADERBOARD_SQL = readSqlFile('./sql/getQuizLeaderboard.sql');
-
-const buildWhereClause = (filters = {}) => {
+const buildAttemptFilters = (quizId, filters = {}) => {
     const {
         minScore,
         maxScore,
@@ -21,7 +11,7 @@ const buildWhereClause = (filters = {}) => {
     } = filters;
 
     const conditions = ['qa.quiz_id = ?'];
-    const params = [];
+    const params = [quizId];
 
     if (minScore !== undefined && minScore !== null && minScore !== '') {
         conditions.push('qa.score >= ?');
@@ -60,35 +50,86 @@ const buildWhereClause = (filters = {}) => {
     };
 };
 
-export const getResultsByQuizId = async (quizId, filters = {}, pagination = { limit: 10, offset: 0 }) => {
-    const { whereClause, params } = buildWhereClause(filters);
-    const baseParams = [quizId, ...params];
+export const countAttemptsByQuizId = async (quizId, filters = {}) => {
+    const { whereClause, params } = buildAttemptFilters(quizId, filters);
+    const sql = `
+        SELECT COUNT(*) AS total
+        FROM quiz_attempts qa
+        INNER JOIN users u ON qa.user_id = u.id
+        ${whereClause};
+    `;
 
-    const countSql = QUIZ_RESULTS_COUNT_SQL.replace('__WHERE_CLAUSE__', whereClause);
-    const [countRows] = await pool.execute(countSql, baseParams);
-    const total = countRows[0]?.total || 0;
-
-    const hasPagination = pagination && pagination.limit > 0;
-    const paginationClause = hasPagination ? 'LIMIT ? OFFSET ?' : '';
-    const dataSql = QUIZ_RESULTS_DATA_SQL
-        .replace('__WHERE_CLAUSE__', whereClause)
-        .replace('__PAGINATION_CLAUSE__', paginationClause);
-
-    const finalParams = hasPagination
-        ? [...baseParams, pagination.limit, pagination.offset || 0]
-        : baseParams;
-
-    const [rows] = await pool.execute(dataSql, finalParams);
-    return { data: rows, total };
+    const [rows] = await pool.execute(sql, params);
+    return rows[0]?.total || 0;
 };
 
-export const getQuizStatsByQuizId = async (quizId) => {
-    const [rows] = await pool.execute(QUIZ_STATS_SQL, [quizId]);
-    return rows[0] || {};
+export const getAttemptsWithUsersByQuizId = async (
+    quizId,
+    filters = {},
+    pagination = { limit: 10, offset: 0 }
+) => {
+    const { whereClause, params } = buildAttemptFilters(quizId, filters);
+
+    let sql = `
+        SELECT
+            qa.id AS attempt_id,
+            qa.quiz_id,
+            qa.quiz_title,
+            qa.score,
+            qa.started_at,
+            qa.finished_at,
+            u.id AS user_id,
+            u.full_name,
+            u.email
+        FROM quiz_attempts qa
+        INNER JOIN users u ON qa.user_id = u.id
+        ${whereClause}
+        ORDER BY qa.started_at DESC
+    `;
+
+    const finalParams = [...params];
+
+    if (pagination && pagination.limit > 0) {
+        sql += ' LIMIT ? OFFSET ?';
+        finalParams.push(pagination.limit, pagination.offset || 0);
+    }
+
+    const [rows] = await pool.execute(sql, finalParams);
+    return rows;
 };
 
-export const getLeaderboardByQuizId = async (quizId, limit = 10) => {
-    const safeLimit = Number.isInteger(limit) && limit > 0 ? limit : 10;
-    const [rows] = await pool.execute(QUIZ_LEADERBOARD_SQL, [quizId, safeLimit]);
+export const getAttemptsByQuizId = async (quizId) => {
+    const sql = `
+        SELECT id, quiz_id, quiz_title, score, started_at, finished_at
+        FROM quiz_attempts
+        WHERE quiz_id = ?
+        ORDER BY started_at DESC;
+    `;
+
+    const [rows] = await pool.execute(sql, [quizId]);
+    return rows;
+};
+
+export const getSubmittedAttemptsWithUsersByQuizId = async (quizId) => {
+    const sql = `
+        SELECT
+            qa.id AS attempt_id,
+            qa.quiz_id,
+            qa.quiz_title,
+            qa.score,
+            qa.started_at,
+            qa.finished_at,
+            u.id AS user_id,
+            u.full_name,
+            u.email
+        FROM quiz_attempts qa
+        INNER JOIN users u ON qa.user_id = u.id
+        WHERE qa.quiz_id = ?
+          AND qa.finished_at IS NOT NULL
+          AND qa.score IS NOT NULL
+        ORDER BY qa.started_at DESC;
+    `;
+
+    const [rows] = await pool.execute(sql, [quizId]);
     return rows;
 };

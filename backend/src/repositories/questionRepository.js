@@ -1,16 +1,12 @@
-import { readFileSync } from 'node:fs';
-
 import pool from '../db/db.js';
 
-const readSqlFile = (relativePath) =>
-  readFileSync(new URL(relativePath, import.meta.url), 'utf8').trim();
+const buildInClause = (values = []) => {
+  if (!Array.isArray(values) || values.length === 0) {
+    return null;
+  }
 
-const LEGACY_QUESTION_ANALYTICS_SQL = readSqlFile(
-  './sql/getLegacyQuestionAnalytics.sql'
-);
-const STABLE_QUESTION_ANALYTICS_SQL = readSqlFile(
-  './sql/getStableQuestionAnalytics.sql'
-);
+  return values.map(() => '?').join(', ');
+};
 
 export const create = async (data) => {
   const { content, type, quizId } = data;
@@ -52,7 +48,7 @@ export const deleteQuestionById = async (id) => {
   await pool.execute(sql, [id]);
 };
 
-const hasStableAttemptReferenceColumns = async () => {
+export const hasStableAttemptReferenceColumns = async () => {
   const sql = `
     SELECT table_name, column_name
     FROM information_schema.columns
@@ -71,12 +67,84 @@ const hasStableAttemptReferenceColumns = async () => {
   }
 };
 
-export const getQuestionAnalytics = async (quizId) => {
-  const useStableMapping = await hasStableAttemptReferenceColumns();
-  const sql = useStableMapping
-    ? STABLE_QUESTION_ANALYTICS_SQL
-    : LEGACY_QUESTION_ANALYTICS_SQL;
+export const getAutoGradableQuestionsByQuizId = async (quizId) => {
+  const sql = `
+    SELECT id, content, type
+    FROM questions
+    WHERE quiz_id = ?
+      AND type IN ('ANANSWER', 'MULTI_ANSWERS')
+    ORDER BY id ASC;
+  `;
 
-  const [rows] = await pool.execute(sql, [quizId, quizId, quizId]);
+  const [rows] = await pool.execute(sql, [quizId]);
+  return rows;
+};
+
+export const getAnswersByQuestionIds = async (questionIds = []) => {
+  const inClause = buildInClause(questionIds);
+  if (!inClause) {
+    return [];
+  }
+
+  const sql = `
+    SELECT id, question_id, content, is_correct
+    FROM answers
+    WHERE question_id IN (${inClause})
+    ORDER BY question_id ASC, id ASC;
+  `;
+
+  const [rows] = await pool.execute(sql, questionIds);
+  return rows;
+};
+
+export const getSubmittedAttemptQuestionsByQuizId = async (quizId) => {
+  const sql = `
+    SELECT
+      aq.id,
+      aq.quiz_attempt_id,
+      aq.original_question_id,
+      aq.type
+    FROM attempt_questions aq
+    INNER JOIN quiz_attempts qa ON qa.id = aq.quiz_attempt_id
+    WHERE qa.quiz_id = ?
+      AND qa.finished_at IS NOT NULL
+    ORDER BY aq.quiz_attempt_id ASC, aq.id ASC;
+  `;
+
+  const [rows] = await pool.execute(sql, [quizId]);
+  return rows;
+};
+
+export const getAttemptOptionsByAttemptQuestionIds = async (attemptQuestionIds = []) => {
+  const inClause = buildInClause(attemptQuestionIds);
+  if (!inClause) {
+    return [];
+  }
+
+  const sql = `
+    SELECT id, attempt_question_id, original_answer_id
+    FROM attempt_options
+    WHERE attempt_question_id IN (${inClause})
+    ORDER BY attempt_question_id ASC, id ASC;
+  `;
+
+  const [rows] = await pool.execute(sql, attemptQuestionIds);
+  return rows;
+};
+
+export const getAttemptAnswerCountsByAttemptOptionIds = async (attemptOptionIds = []) => {
+  const inClause = buildInClause(attemptOptionIds);
+  if (!inClause) {
+    return [];
+  }
+
+  const sql = `
+    SELECT attempt_option_id, COUNT(*) AS selection_count
+    FROM attempt_answers
+    WHERE attempt_option_id IN (${inClause})
+    GROUP BY attempt_option_id;
+  `;
+
+  const [rows] = await pool.execute(sql, attemptOptionIds);
   return rows;
 };
