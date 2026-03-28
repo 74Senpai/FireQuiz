@@ -25,7 +25,7 @@ export const logIn = asyncHandler(async (req, res) => {
     httpOnly: true,
     secure: true,
     sameSite: 'none',
-    maxAge: response.ACCESS_TOKEN_TTL,
+    maxAge: response.ACCESS_TOKEN_MAX_AGE,
   });
 
 
@@ -63,7 +63,7 @@ export const refreshToken = asyncHandler(async (req, res) => {
     httpOnly: true,
     secure: true,
     sameSite: 'none',
-    maxAge: response.ACCESS_TOKEN_TTL,
+    maxAge: response.ACCESS_TOKEN_MAX_AGE,
   });
 
 
