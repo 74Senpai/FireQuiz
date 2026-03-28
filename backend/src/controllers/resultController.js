@@ -20,15 +20,60 @@ const parseScoreFilters = (query) => {
         throw new AppError('Diem so (minScore/maxScore) khong hop le.', 400);
     }
 
+    if (
+        minScore !== undefined &&
+        maxScore !== undefined &&
+        minScore > maxScore
+    ) {
+        throw new AppError('minScore khong duoc lon hon maxScore.', 400);
+    }
+
     return { minScore, maxScore };
+};
+
+const parseDurationFilters = (query) => {
+    const minDurationSeconds = query.minDurationSeconds
+        ? parseInt(query.minDurationSeconds, 10)
+        : undefined;
+    const maxDurationSeconds = query.maxDurationSeconds
+        ? parseInt(query.maxDurationSeconds, 10)
+        : undefined;
+
+    if (
+        (query.minDurationSeconds &&
+            (isNaN(minDurationSeconds) || minDurationSeconds < 0)) ||
+        (query.maxDurationSeconds &&
+            (isNaN(maxDurationSeconds) || maxDurationSeconds < 0))
+    ) {
+        throw new AppError(
+            'Thoi gian lam bai (minDurationSeconds/maxDurationSeconds) khong hop le.',
+            400
+        );
+    }
+
+    if (
+        minDurationSeconds !== undefined &&
+        maxDurationSeconds !== undefined &&
+        minDurationSeconds > maxDurationSeconds
+    ) {
+        throw new AppError(
+            'minDurationSeconds khong duoc lon hon maxDurationSeconds.',
+            400
+        );
+    }
+
+    return { minDurationSeconds, maxDurationSeconds };
 };
 
 const parseResultFilters = (query) => {
     const { minScore, maxScore } = parseScoreFilters(query);
+    const { minDurationSeconds, maxDurationSeconds } = parseDurationFilters(query);
 
     return {
         minScore,
         maxScore,
+        minDurationSeconds,
+        maxDurationSeconds,
         startDate: query.startDate,
         endDate: query.endDate,
         status: ['SUBMITTED', 'IN_PROGRESS'].includes(query.status)

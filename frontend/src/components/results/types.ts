@@ -3,6 +3,7 @@ export interface Quiz {
   title: string;
   status: string;
   quiz_code: string;
+  grading_scale: number | null;
 }
 
 export interface AttemptUser {
@@ -48,6 +49,8 @@ export interface Filters {
   search: string;
   minScore: string;
   maxScore: string;
+  minDurationSeconds: string;
+  maxDurationSeconds: string;
   startDate: string;
   endDate: string;
   status: string;
@@ -57,6 +60,8 @@ export const EMPTY_FILTERS: Filters = {
   search: "",
   minScore: "",
   maxScore: "",
+  minDurationSeconds: "",
+  maxDurationSeconds: "",
   startDate: "",
   endDate: "",
   status: "",

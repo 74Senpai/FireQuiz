@@ -26,6 +26,12 @@ const buildQueryParams = (filters: Filters) => {
   if (filters.search) queryParams.set("search", filters.search.trim());
   if (filters.minScore) queryParams.set("minScore", filters.minScore);
   if (filters.maxScore) queryParams.set("maxScore", filters.maxScore);
+  if (filters.minDurationSeconds) {
+    queryParams.set("minDurationSeconds", filters.minDurationSeconds);
+  }
+  if (filters.maxDurationSeconds) {
+    queryParams.set("maxDurationSeconds", filters.maxDurationSeconds);
+  }
   if (filters.startDate) queryParams.set("startDate", filters.startDate);
   if (filters.endDate) queryParams.set("endDate", filters.endDate);
   if (filters.status) queryParams.set("status", filters.status);
@@ -179,6 +185,38 @@ export function Results() {
   };
 
   const handleApplyFilters = () => {
+    const minScore = filters.minScore ? Number(filters.minScore) : null;
+    const maxScore = filters.maxScore ? Number(filters.maxScore) : null;
+    const minDurationSeconds = filters.minDurationSeconds
+      ? Number(filters.minDurationSeconds)
+      : null;
+    const maxDurationSeconds = filters.maxDurationSeconds
+      ? Number(filters.maxDurationSeconds)
+      : null;
+
+    if (
+      minScore !== null &&
+      maxScore !== null &&
+      Number.isFinite(minScore) &&
+      Number.isFinite(maxScore) &&
+      minScore > maxScore
+    ) {
+      setResultsError("Diem toi thieu khong duoc lon hon diem toi da.");
+      return;
+    }
+
+    if (
+      minDurationSeconds !== null &&
+      maxDurationSeconds !== null &&
+      Number.isFinite(minDurationSeconds) &&
+      Number.isFinite(maxDurationSeconds) &&
+      minDurationSeconds > maxDurationSeconds
+    ) {
+      setResultsError("Thoi gian lam bai toi thieu khong duoc lon hon thoi gian toi da.");
+      return;
+    }
+
+    setResultsError(null);
     setAppliedFilters({ ...filters });
   };
 
@@ -252,6 +290,7 @@ export function Results() {
   };
 
   const selectedQuiz = quizzes.find((quiz) => quiz.id === selectedQuizId);
+  const scoreMax = Number(selectedQuiz?.grading_scale) || 10;
   const hasActiveFilters = Object.values(appliedFilters).some((value) => value !== "");
 
   if (isLoadingQuizzes) {
@@ -366,6 +405,7 @@ export function Results() {
 
       <ResultsTableCard
         quizTitle={selectedQuiz?.title}
+        scoreMax={scoreMax}
         filters={filters}
         hasActiveFilters={hasActiveFilters}
         isLoadingResults={isLoadingResults}

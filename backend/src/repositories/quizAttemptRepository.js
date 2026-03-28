@@ -4,6 +4,8 @@ const buildAttemptFilters = (quizId, filters = {}) => {
     const {
         minScore,
         maxScore,
+        minDurationSeconds,
+        maxDurationSeconds,
         startDate,
         endDate,
         status,
@@ -21,6 +23,24 @@ const buildAttemptFilters = (quizId, filters = {}) => {
     if (maxScore !== undefined && maxScore !== null && maxScore !== '') {
         conditions.push('qa.score <= ?');
         params.push(Number(maxScore));
+    }
+
+    if (
+        minDurationSeconds !== undefined &&
+        minDurationSeconds !== null &&
+        minDurationSeconds !== ''
+    ) {
+        conditions.push('TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at) >= ?');
+        params.push(Number(minDurationSeconds));
+    }
+
+    if (
+        maxDurationSeconds !== undefined &&
+        maxDurationSeconds !== null &&
+        maxDurationSeconds !== ''
+    ) {
+        conditions.push('TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at) <= ?');
+        params.push(Number(maxDurationSeconds));
     }
 
     if (startDate) {

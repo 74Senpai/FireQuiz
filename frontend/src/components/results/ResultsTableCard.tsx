@@ -20,6 +20,7 @@ import type { AttemptResult, Filters } from "./types";
 
 interface ResultsTableCardProps {
   quizTitle?: string;
+  scoreMax: number;
   filters: Filters;
   hasActiveFilters: boolean;
   isLoadingResults: boolean;
@@ -60,6 +61,7 @@ function StatusBadge({ status }: StatusBadgeProps) {
 
 export function ResultsTableCard({
   quizTitle,
+  scoreMax,
   filters,
   hasActiveFilters,
   isLoadingResults,
@@ -129,7 +131,7 @@ export function ResultsTableCard({
                 name="minScore"
                 type="number"
                 min="0"
-                max="10"
+                max={scoreMax}
                 step="0.1"
                 value={filters.minScore}
                 onChange={onFilterChange}
@@ -146,16 +148,48 @@ export function ResultsTableCard({
                 name="maxScore"
                 type="number"
                 min="0"
-                max="10"
+                max={scoreMax}
                 step="0.1"
                 value={filters.maxScore}
                 onChange={onFilterChange}
                 className="w-20 border-white/20 bg-white/10 text-sm text-slate-100"
-                placeholder="10"
+                placeholder={`${scoreMax}`}
               />
             </div>
 
             <div className="hidden h-6 w-px bg-white/20 sm:block" />
+
+            <div className="flex items-center gap-2">
+              <label className="whitespace-nowrap text-xs text-slate-400">
+                TG từ:
+              </label>
+              <Input
+                name="minDurationSeconds"
+                type="number"
+                min="0"
+                step="1"
+                value={filters.minDurationSeconds}
+                onChange={onFilterChange}
+                className="w-24 border-white/20 bg-white/10 text-sm text-slate-100"
+                placeholder="0s"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="whitespace-nowrap text-xs text-slate-400">
+                đến:
+              </label>
+              <Input
+                name="maxDurationSeconds"
+                type="number"
+                min="0"
+                step="1"
+                value={filters.maxDurationSeconds}
+                onChange={onFilterChange}
+                className="w-24 border-white/20 bg-white/10 text-sm text-slate-100"
+                placeholder="3600s"
+              />
+            </div>
 
             <div className="flex items-center gap-2">
               <label className="whitespace-nowrap text-xs text-slate-400">
