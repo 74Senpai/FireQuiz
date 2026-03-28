@@ -1,6 +1,14 @@
-import * as quizRepository from '../repositories/quizRepository.js';
-import { findById } from '../repositories/userRepository.js';
-import * as questionService from './questionService.js';
+import {
+  createQuiz as createQuizRecord,
+  getListQuizByUserId as getListQuizByCreatorId,
+  getQuizById,
+  hardDelete,
+  setStatus as setQuizStatus,
+  softDelete,
+  updateQuizInfo,
+  updateQuizSettings,
+} from '../repositories/quizRepository.js';
+import { getListQuestionByQuizId } from './questionService.js';
 import AppError from '../errors/AppError.js';
 
 export const createQuiz = async (user, data) => {
@@ -20,13 +28,13 @@ export const createQuiz = async (user, data) => {
     throw new AppError("Không thể thiếu tên bộ câu hỏi hoặc người tạo", 400);
   }
 
-  const quizId = await quizRepository.createQuiz({title, description, gradingScale, timeLimitSeconds, availableFrom, availableUntil, maxAttempts, creatorId:id });
+  const quizId = await createQuizRecord({title, description, gradingScale, timeLimitSeconds, availableFrom, availableUntil, maxAttempts, creatorId:id });
   console.log(`info: in quizService.js:22 quizId = ${quizId}`);
   return quizId;
 }
 
 export const getQuiz = async (id, user) => {
-  const quiz = await quizRepository.getQuizById(id);
+  const quiz = await getQuizById(id);
 
   if (!quiz) {
     throw new AppError("Quiz không tồn tại", 404);
@@ -46,11 +54,11 @@ export const getQuizPreview = async (id, user) => {
     throw new AppError("Ban khong co quyen xem truoc quiz nay", 401);
   }
 
-  const quiz = await quizRepository.getQuizById(id);
+  const quiz = await getQuizById(id);
 
   checkQuizExistAndOwner(quiz, user);
 
-  const questions = await questionService.getListQuestionByQuizId(id, user);
+  const questions = await getListQuestionByQuizId(id, user);
 
   return {
     quiz,
@@ -69,21 +77,21 @@ const checkQuizExistAndOwner = (quiz, user) => {
 };
 
 export const setStatus = async (id, user, status) => {
-  const quiz = await quizRepository.getQuizById(id);
+  const quiz = await getQuizById(id);
 
   checkQuizExistAndOwner(quiz, user);
 
-  await quizRepository.setStatus(id, status);
+  await setQuizStatus(id, status);
 };
 
 export const changeQuizInfo = async (id, user, info) => {
   const { title, description } = info;
   
-  const quiz = await quizRepository.getQuizById(id);
+  const quiz = await getQuizById(id);
 
   checkQuizExistAndOwner(quiz, user);
 
-  await quizRepository.updateQuizInfo(id, info);
+  await updateQuizInfo(id, info);
 };
 
 export const changeQuizSettings = async(id, user, settings) => {
@@ -95,28 +103,28 @@ export const changeQuizSettings = async(id, user, settings) => {
     maxAttempts
   } = settings;
 
-  const quiz = await quizRepository.getQuizById(id);
+  const quiz = await getQuizById(id);
 
   checkQuizExistAndOwner(quiz, user);
 
-  await quizRepository.updateQuizSettings(id, settings);
+  await updateQuizSettings(id, settings);
 };
 
 export const getListQuizByUserId = async (user) => {
-  const quizzes = await quizRepository.getListQuizByUserId(user.id);
+  const quizzes = await getListQuizByCreatorId(user.id);
   return quizzes;
 };
 
 export const deleteQuiz = async (id, user) => {
-  const quiz = await quizRepository.getQuizById(id);
+  const quiz = await getQuizById(id);
   
   checkQuizExistAndOwner(quiz, user);
 
   try {
-    await quizRepository.hardDelete(id);
+      await hardDelete(id);
   } catch (err) {
     if (err.code === "ER_ROW_IS_REFERENCED_2") {
-      await quizRepository.softDelete(id);
+      await softDelete(id);
     } else {
       throw new AppError("Xóa bộ câu hỏi thất bại", 404);
     }
