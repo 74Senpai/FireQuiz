@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import axios from "axios";
+import { register } from "@/services/authServices";
 
 export function Register() {
   const [isLoading, setIsLoading] = React.useState(false);
@@ -42,31 +42,28 @@ export function Register() {
   };
 
   
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     if (!validate()) return;
-    
+
     setIsLoading(true);
-    setErrors({}); // Reset lỗi trước khi gọi API
-    
+    setErrors({});
+
     try {
-      const API_URL = process.env.API_URL || "http://localhost:8080/api";
-      // Gọi API Register
-      // Lưu ý: Đổi URL tương ứng với backend của bạn (ví dụ: http://localhost:5000/api/register)
-      await axios.post(`${API_URL}/auth/register`, {
-        fullName: name, // Backend yêu cầu fullName
-        email: email,
-        password: password,
+      await register({
+        fullName: name,
+        email,
+        password,
       });
 
-      // Nếu thành công (Status 204 từ backend)
-      // Bạn có thể chuyển hướng sang trang login hoặc tự động login luôn
       alert("Đăng ký thành công!");
       navigate("/login");
-    } catch (error: any) {
-      // Xử lý lỗi trả về từ backend (AppError)
+
+    } catch (error) {
       const message =
-        error.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại.";
+        error.response?.data?.message ||
+        "Đã có lỗi xảy ra. Vui lòng thử lại.";
+
       setErrors({ api: message });
     } finally {
       setIsLoading(false);
