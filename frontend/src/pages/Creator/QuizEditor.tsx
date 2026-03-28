@@ -41,51 +41,136 @@ export function QuizEditor() {
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  /**
-   * Xác thực các trường trong tab cài đặt
-   * Chú thích: tiêu đề là bắt buộc, thời gian làm bài phải là số nguyên dương
-   */
-  const validateSettings = (currentErrs: { [key: string]: string } = {}) => {
-    const errs = { ...currentErrs };
-    if (!title.trim()) {
-      errs.title = "Tiêu đề Quiz là bắt buộc";
+  const API_URL = process.env.API_URL || "http://localhost:8080/api";
+
+  // 1. useEffect: Lấy dữ liệu Quiz cũ nếu là chế độ Edit
+  useEffect(() => {
+    if (isEditMode && id) {
+      const fetchQuizDetail = async () => {
+        setIsLoadingData(true);
+        try {
+          const token = localStorage.getItem("accessToken");
+          const response = await axios.get(`${API_URL}/quiz/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const quiz = response.data; // Object trực tiếp theo JSON bạn gửi
+
+          if (quiz) {
+            setTitle(quiz.title || "");
+            setDescription(quiz.description || "");
+
+            // Lưu ý: Map từ snake_case của DB sang State
+            setGradeScale(quiz.grading_scale?.toString() || "10");
+            setTimeLimit(
+              quiz.time_limit_seconds
+                ? (quiz.time_limit_seconds / 60).toString()
+                : "",
+            );
+
+            const toInputDate = (d: any) =>
+              d ? new Date(d).toISOString().slice(0, 16) : "";
+            setOpenTime(toInputDate(quiz.available_from));
+            setCloseTime(toInputDate(quiz.available_until));
+
+            setMaxParticipants(quiz.max_attempts?.toString() || "");
+          }
+        } catch (error) {
+          console.error("Lỗi lấy chi tiết:", error);
+        } finally {
+          setIsLoadingData(false);
+        }
+      };
+      fetchQuizDetail();
     }
-    if (timeLimit && Number(timeLimit) < 1) {
-      errs.timeLimit = "Thời gian làm bài phải lớn hơn hoặc bằng 1";
+  }, [id, isEditMode, API_URL]);
+
+  const validate = () => {
+    let errs: { [key: string]: string } = {};
+    if (!title.trim()) errs.title = "Tiêu đề Quiz là bắt buộc";
+    if (timeLimit && Number(timeLimit) < 1)
+      errs.timeLimit = "Thời gian phải ít nhất 1 phút";
+    if (openTime && closeTime && new Date(openTime) >= new Date(closeTime)) {
+      errs.schedule = "Thời gian mở phải trước thời gian đóng";
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  /**
-   * Xác thực các trường trong tab lịch trình
-   * Thời gian mở phải trước thời gian đóng nếu cả hai đều được thiết lập
-   */
-  const validateSchedule = (currentErrs: { [key: string]: string } = {}) => {
-    const errs = { ...currentErrs };
-    if (openTime && closeTime) {
-      if (new Date(openTime) >= new Date(closeTime)) {
-        errs.schedule = "Thời gian mở phải trước thời gian đóng";
+  // 2. Hàm lưu (Create hoặc Update)
+  const saveQuiz = async (newStatus: "DRAFT" | "PUBLIC") => {
+    if (!validate()) {
+      if (errors.title) setActiveTab("settings");
+      else if (errors.schedule) setActiveTab("schedule");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      // Chuyển đổi dữ liệu sang định dạng CamelCase mà Service yêu cầu
+      const infoPayload = {
+        title: title,
+        description: description,
+      };
+
+      const settingsPayload = {
+        gradingScale: parseInt(gradeScale),
+        timeLimitSeconds: timeLimit ? parseInt(timeLimit) * 60 : null,
+        availableFrom: openTime || null,
+        availableUntil: closeTime || null,
+        maxAttempts: maxParticipants ? parseInt(maxParticipants) : null,
+      };
+
+      if (isEditMode) {
+        // CHẾ ĐỘ CẬP NHẬT (PATCH)
+        // Gọi đồng thời 3 API như Router quy định
+        await Promise.all([
+          axios.patch(`${API_URL}/quiz/${id}/info`, infoPayload, config),
+          axios.patch(
+            `${API_URL}/quiz/${id}/settings`,
+            settingsPayload,
+            config,
+          ),
+          axios.patch(
+            `${API_URL}/quiz/${id}/status`,
+            { status: newStatus },
+            config,
+          ),
+        ]);
+        alert("Cập nhật bài thi thành công!");
+      } else {
+        // CHẾ ĐỘ TẠO MỚI (POST)
+        // Gộp tất cả vào 1 payload (Backend createQuiz nhận gộp)
+        const createPayload = {
+          ...infoPayload,
+          ...settingsPayload,
+          status: newStatus,
+        };
+
+        await axios.post(`${API_URL}/quiz`, createPayload, config);
+        alert("Tạo bài thi mới thành công!");
       }
 
-  const handleSaveDraft = () => {
-    // Lưu nháp không yêu cầu xác thực toàn bộ, nhưng vẫn kiểm tra các trường cài đặt
-    const errs = validateSettings();
-    setErrors(errs);
-    if (Object.keys(errs).length === 0) {
-      console.log("Đã lưu nháp");
+      navigate("/dashboard/manage");
+    } catch (error: any) {
+      console.error("Lỗi lưu Quiz:", error);
+      alert(error.response?.data?.message || "Có lỗi xảy ra.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handlePublish = () => {
-    // chạy cả hai hàm xác thực trước khi xuất bản
-    let errs = validateSettings();
-    errs = validateSchedule(errs);
-    setErrors(errs);
-    if (Object.keys(errs).length === 0) {
-      console.log("Đang xuất bản quiz...");
-    }
-  };
+  if (isLoadingData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-white">
+        <Loader2 className="w-10 h-10 animate-spin mb-4" />
+        <p>Đang tải thông tin Quiz...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto animate-fade-in text-white">
