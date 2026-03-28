@@ -193,12 +193,17 @@ export function DashboardLayout() {
             })()}
           </h1>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-400 hover:text-slate-200 transition-colors duration-300 hidden sm:inline-block">
-              Đã đăng nhập với tư cách Người dùng
-            </span>
-            <Link to="/dashboard/profile" className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110 transition-all duration-300 cursor-pointer border border-white/10">
-              U
-            </Link>
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-bold text-white">
+                {user ? user.full_name : "Đang tải..."}
+              </p>
+              <p className="text-xs text-slate-400 capitalize">
+                {user ? user.role : "Khách"}
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110 transition-all duration-300 cursor-pointer border border-white/20">
+              {user ? getInitial(user.full_name) : "?"}
+            </div>
           </div>
         </header>
         <div className="flex-1 overflow-auto p-8 relative">
