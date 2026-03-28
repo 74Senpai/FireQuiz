@@ -1,245 +1,94 @@
-/**
- * quizAttemptRepository.js
- * -------------------------------------------------------
- * Tầng truy cập dữ liệu (Data Access Layer) cho chức năng
- * "Dashboard kết quả Quiz" của Chủ Quiz (Creator).
- *
- * Các hàm trong file này thực hiện truy vấn SQL trực tiếp
- * vào database, kết hợp bảng quiz_attempts và users để
- * trả về báo cáo chi tiết về thí sinh.
- * -------------------------------------------------------
- */
+import { readFileSync } from 'node:fs';
 
 import pool from '../db/db.js';
 
-/**
- * Lấy danh sách tất cả lượt thi của một quiz cụ thể.
- * Kết hợp bảng quiz_attempts + users để lấy thông tin thí sinh.
- *
- * Hỗ trợ lọc theo:
- *  - minScore / maxScore : lọc theo khoảng điểm
- *  - startDate / endDate : lọc theo khoảng thời gian nộp bài
- *  - status              : lọc theo trạng thái (SUBMITTED / IN_PROGRESS)
- *  - search              : tìm kiếm theo tên hoặc email thí sinh
- *
- * @param {number} quizId   - ID của quiz cần xem báo cáo
- * @param {object} filters  - Các tham số lọc (tùy chọn)
- * @returns {Promise<Array>} Danh sách kết quả thi
- */
-export const getResultsByQuizId = async (quizId, filters = {}, pagination = { limit: 10, offset: 0 }) => {
+const readSqlFile = (relativePath) =>
+    readFileSync(new URL(relativePath, import.meta.url), 'utf8').trim();
+
+const QUIZ_RESULTS_COUNT_SQL = readSqlFile('./sql/getQuizResultsCount.sql');
+const QUIZ_RESULTS_DATA_SQL = readSqlFile('./sql/getQuizResultsData.sql');
+const QUIZ_STATS_SQL = readSqlFile('./sql/getQuizStats.sql');
+const QUIZ_LEADERBOARD_SQL = readSqlFile('./sql/getQuizLeaderboard.sql');
+
+const buildWhereClause = (filters = {}) => {
     const {
         minScore,
         maxScore,
         startDate,
         endDate,
-        status,   // 'SUBMITTED' | 'IN_PROGRESS'
+        status,
         search,
     } = filters;
 
-    // Mảng chứa các điều kiện WHERE động
     const conditions = ['qa.quiz_id = ?'];
-    // Mảng chứa các giá trị tương ứng để tránh SQL Injection
-    const params = [quizId];
+    const params = [];
 
-    // --- Lọc theo điểm tối thiểu ---
     if (minScore !== undefined && minScore !== null && minScore !== '') {
         conditions.push('qa.score >= ?');
         params.push(Number(minScore));
     }
 
-    // --- Lọc theo điểm tối đa ---
     if (maxScore !== undefined && maxScore !== null && maxScore !== '') {
         conditions.push('qa.score <= ?');
         params.push(Number(maxScore));
     }
 
-    // --- Lọc theo ngày bắt đầu (thời gian nộp bài từ ngày nào) ---
     if (startDate) {
         conditions.push('qa.finished_at >= ?');
         params.push(startDate);
     }
 
-    // --- Lọc theo ngày kết thúc (thời gian nộp bài đến ngày nào) ---
     if (endDate) {
-        // Thêm ' 23:59:59' để bao gồm cả ngày kết thúc
         conditions.push('qa.finished_at <= ?');
         params.push(`${endDate} 23:59:59`);
     }
 
-    // --- Lọc theo trạng thái nộp bài ---
-    // SUBMITTED: finished_at IS NOT NULL (đã nộp)
-    // IN_PROGRESS: finished_at IS NULL (đang làm)
     if (status === 'SUBMITTED') {
         conditions.push('qa.finished_at IS NOT NULL');
     } else if (status === 'IN_PROGRESS') {
         conditions.push('qa.finished_at IS NULL');
     }
 
-    // --- Tìm kiếm theo tên hoặc email thí sinh ---
     if (search) {
         conditions.push('(u.full_name LIKE ? OR u.email LIKE ?)');
         params.push(`%${search}%`, `%${search}%`);
     }
 
-    // Ghép tất cả điều kiện lại thành chuỗi WHERE
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    return {
+        whereClause: `WHERE ${conditions.join(' AND ')}`,
+        params,
+    };
+};
 
-    // Query để đếm tổng số bản ghi
-    const countSql = `SELECT COUNT(*) AS total FROM quiz_attempts qa INNER JOIN users u ON qa.user_id = u.id ${whereClause}`;
-    const [countRows] = await pool.execute(countSql, params);
+export const getResultsByQuizId = async (quizId, filters = {}, pagination = { limit: 10, offset: 0 }) => {
+    const { whereClause, params } = buildWhereClause(filters);
+    const baseParams = [quizId, ...params];
+
+    const countSql = QUIZ_RESULTS_COUNT_SQL.replace('__WHERE_CLAUSE__', whereClause);
+    const [countRows] = await pool.execute(countSql, baseParams);
     const total = countRows[0]?.total || 0;
 
-    // Query để lấy dữ liệu
-    let dataSql = `
-    SELECT
-      qa.id              AS attempt_id,
-      qa.quiz_id,
-      qa.quiz_title,
-      qa.score,
-      qa.started_at,
-      qa.finished_at,
-      TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at) AS duration_seconds,
-      CASE
-        WHEN qa.finished_at IS NOT NULL THEN 'SUBMITTED'
-        ELSE 'IN_PROGRESS'
-      END AS submit_status,
-      u.id               AS user_id,
-      u.full_name,
-      u.email
-    FROM quiz_attempts qa
-    INNER JOIN users u ON qa.user_id = u.id
-    ${whereClause}
-    ORDER BY qa.started_at DESC
-  `;
+    const hasPagination = pagination && pagination.limit > 0;
+    const paginationClause = hasPagination ? 'LIMIT ? OFFSET ?' : '';
+    const dataSql = QUIZ_RESULTS_DATA_SQL
+        .replace('__WHERE_CLAUSE__', whereClause)
+        .replace('__PAGINATION_CLAUSE__', paginationClause);
 
-    const finalParams = [...params];
-
-    // Chỉ thêm LIMIT và OFFSET nếu có phân trang
-    if (pagination && pagination.limit > 0) {
-        dataSql += ' LIMIT ? OFFSET ?';
-        finalParams.push(pagination.limit, pagination.offset || 0);
-    }
+    const finalParams = hasPagination
+        ? [...baseParams, pagination.limit, pagination.offset || 0]
+        : baseParams;
 
     const [rows] = await pool.execute(dataSql, finalParams);
     return { data: rows, total };
 };
 
-/**
- * Lấy thống kê tổng quan của một quiz:
- * - Tổng số lượt thi
- * - Số lượt đã nộp bài
- * - Điểm trung bình
- * - Điểm cao nhất
- * - Điểm thấp nhất
- *
- * @param {number} quizId - ID của quiz
- * @returns {Promise<object>} Thống kê tổng quan
- */
 export const getQuizStatsByQuizId = async (quizId) => {
-    const sql = `
-    SELECT
-      COUNT(*)                                    AS total_attempts,
-      SUM(CASE WHEN finished_at IS NOT NULL THEN 1 ELSE 0 END) AS submitted_count,
-      SUM(CASE WHEN finished_at IS NULL     THEN 1 ELSE 0 END) AS in_progress_count,
-      ROUND(AVG(CASE WHEN finished_at IS NOT NULL THEN score END), 2) AS avg_score,
-      MAX(CASE WHEN finished_at IS NOT NULL THEN score END)    AS max_score,
-      MIN(CASE WHEN finished_at IS NOT NULL THEN score END)    AS min_score
-    FROM quiz_attempts
-    WHERE quiz_id = ?
-  `;
-
-    const [rows] = await pool.execute(sql, [quizId]);
-    // Trả về object thống kê (hàng đầu tiên)
+    const [rows] = await pool.execute(QUIZ_STATS_SQL, [quizId]);
     return rows[0] || {};
 };
 
-/**
- * Lấy bảng xếp hạng của một quiz dựa trên bài nộp tốt nhất của mỗi thí sinh.
- * Thứ tự xếp hạng:
- *  1. Điểm cao hơn
- *  2. Thời gian làm nhanh hơn
- *  3. Nộp sớm hơn
- *
- * @param {number} quizId
- * @param {number} limit
- * @returns {Promise<Array>}
- */
 export const getLeaderboardByQuizId = async (quizId, limit = 10) => {
     const safeLimit = Number.isInteger(limit) && limit > 0 ? limit : 10;
-
-    const sql = `
-    WITH ranked_attempts AS (
-      SELECT
-        qa.id AS attempt_id,
-        qa.quiz_id,
-        qa.quiz_title,
-        qa.score,
-        qa.started_at,
-        qa.finished_at,
-        TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at) AS duration_seconds,
-        u.id AS user_id,
-        u.full_name,
-        u.email,
-        ROW_NUMBER() OVER (
-          PARTITION BY qa.user_id
-          ORDER BY
-            qa.score DESC,
-            TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at) ASC,
-            qa.finished_at ASC,
-            qa.id ASC
-        ) AS best_attempt_rank
-      FROM quiz_attempts qa
-      INNER JOIN users u ON qa.user_id = u.id
-      WHERE
-        qa.quiz_id = ?
-        AND qa.finished_at IS NOT NULL
-        AND qa.score IS NOT NULL
-    ),
-    best_attempts AS (
-      SELECT *
-      FROM ranked_attempts
-      WHERE best_attempt_rank = 1
-    ),
-    leaderboard AS (
-      SELECT
-        attempt_id,
-        quiz_id,
-        quiz_title,
-        score,
-        started_at,
-        finished_at,
-        duration_seconds,
-        user_id,
-        full_name,
-        email,
-        ROW_NUMBER() OVER (
-          ORDER BY
-            score DESC,
-            duration_seconds ASC,
-            finished_at ASC,
-            attempt_id ASC
-        ) AS rank_position,
-        COUNT(*) OVER () AS total_participants
-      FROM best_attempts
-    )
-    SELECT
-      attempt_id,
-      quiz_id,
-      quiz_title,
-      score,
-      started_at,
-      finished_at,
-      duration_seconds,
-      user_id,
-      full_name,
-      email,
-      rank_position,
-      total_participants
-    FROM leaderboard
-    ORDER BY rank_position
-    LIMIT ?;
-  `;
-
-    const [rows] = await pool.execute(sql, [quizId, safeLimit]);
+    const [rows] = await pool.execute(QUIZ_LEADERBOARD_SQL, [quizId, safeLimit]);
     return rows;
 };
