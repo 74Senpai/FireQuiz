@@ -9,37 +9,9 @@ import { sendOTPEmail } from "../untils/mailService.js";
 import dotenv from "dotenv";
 dotenv.config();
 
-const ACCESS_TOKEN_TTL = process.env.ACCESS_TOKEN_TTL || "7d";
+const ACCESS_TOKEN_TTL = "7d";
 // 14d
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
-
-const parseDurationToMs = (duration) => {
-  if (typeof duration !== "string" || !duration.trim()) {
-    return 7 * 24 * 60 * 60 * 1000;
-  }
-
-  const normalized = duration.trim().toLowerCase();
-  const match = normalized.match(/^(\d+)(ms|s|m|h|d)$/);
-
-  if (!match) {
-    return 7 * 24 * 60 * 60 * 1000;
-  }
-
-  const value = Number(match[1]);
-  const unit = match[2];
-
-  const unitMap = {
-    ms: 1,
-    s: 1000,
-    m: 60 * 1000,
-    h: 60 * 60 * 1000,
-    d: 24 * 60 * 60 * 1000,
-  };
-
-  return value * unitMap[unit];
-};
-
-const ACCESS_TOKEN_MAX_AGE = parseDurationToMs(ACCESS_TOKEN_TTL);
 
 export const signUp = async (data) => {
   const { password, fullName, email } = data;
@@ -88,12 +60,7 @@ export const logIn = async (data) => {
     token: refreshToken,
   });
 
-  return {
-    accessToken,
-    ACCESS_TOKEN_MAX_AGE,
-    REFRESH_TOKEN_TTL,
-    refreshToken,
-  };
+  return { accessToken, REFRESH_TOKEN_TTL, refreshToken };
 };
 
 export const logOut = async (token) => {
@@ -132,12 +99,7 @@ export const refreshToken = async (token) => {
 
   await sessionRepository.deleteSessionByToken(token);
 
-  return {
-    accessToken,
-    ACCESS_TOKEN_MAX_AGE,
-    refreshToken: newRefreshToken,
-    REFRESH_TOKEN_TTL,
-  };
+  return { accessToken, refreshToken: newRefreshToken, REFRESH_TOKEN_TTL };
 };
 
 export const forgotPassword = async (email) => {
@@ -189,5 +151,3 @@ export const resetPassword = async (resetToken, newPassword) => {
 
   return { message: "Đổi mật khẩu thành công" };
 };
-
-export { ACCESS_TOKEN_MAX_AGE, ACCESS_TOKEN_TTL };

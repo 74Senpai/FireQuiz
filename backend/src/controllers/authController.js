@@ -1,5 +1,6 @@
 import * as authService from '../services/authService.js';
 import { asyncHandler } from '../untils/asyncHandler.js';
+import AppError from '../errors/AppError.js';
 
 export const signUp = asyncHandler(async (req, res) => {
   const { password, fullName, email } = req.body;
@@ -21,15 +22,7 @@ export const logIn = asyncHandler(async (req, res) => {
     maxAge: response.REFRESH_TOKEN_TTL
   });
 
-  res.cookie('accessToken', response.accessToken, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-    maxAge: response.ACCESS_TOKEN_MAX_AGE,
-  });
-
-
-  return res.status(200).json({ message: `User ${email} đã đăng nhập` });
+  return res.status(200).json({ message: `User ${email} đã đăng nhập`, accessToken: response.accessToken });
 });
 
 export const logOut = asyncHandler(async (req, res) => {
@@ -38,7 +31,6 @@ export const logOut = asyncHandler(async (req, res) => {
     await authService.logOut(token);
 
     res.clearCookie("refreshToken");
-    res.clearCookie("accessToken");
   }
   return res.status(204).send();
 });
@@ -59,15 +51,7 @@ export const refreshToken = asyncHandler(async (req, res) => {
     maxAge: response.REFRESH_TOKEN_TTL
   });
 
-  res.cookie('accessToken', response.accessToken, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-    maxAge: response.ACCESS_TOKEN_MAX_AGE,
-  });
-
-
-  return res.status(200).json({ message: `Cấp lại access token thành công` });
+  return res.status(200).json({ message: `Cấp lại access token thành công`, accessToken: response.accessToken });
 });
 
 export const forgotPassword = asyncHandler(async (req, res) => {
