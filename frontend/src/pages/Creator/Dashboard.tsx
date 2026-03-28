@@ -11,53 +11,43 @@ import {
   Trash2,
   Loader2,
 } from "lucide-react";
-import axios from "axios";
-
+import * as quizService from "@/services/quizServices";
 export function CreatorDashboard() {
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  const API_URL = process.env.API_URL || "http://localhost:8080/api";
-
   // Hàm lấy danh sách quiz từ backend
   const fetchQuizzes = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("accessToken");
-      const response = await axios.get(`${API_URL}/quiz/myquiz`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setQuizzes(response.data.data);
-    } catch (error: any) {
+      const data = await quizService.getMyQuizzes();
+      setQuizzes(data.data);
+    } catch (error) {
       console.error("Lỗi lấy danh sách quiz:", error);
-      if (error.response?.status === 401) navigate("/login");
     } finally {
       setIsLoading(false);
+    }
+  };
+  // Hàm xóa quiz thực tế qua API
+  const handleDelete = async (e, id) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!window.confirm("Bạn có chắc chắn muốn xóa quiz này?")) return;
+
+    try {
+      await quizService.deleteQuiz(id);
+
+      setQuizzes((prev) => prev.filter((q) => q.id !== id));
+    } catch (error) {
+      alert("Không thể xóa quiz. Vui lòng thử lại.");
     }
   };
 
   useEffect(() => {
     fetchQuizzes();
   }, []);
-
-  // Hàm xóa quiz thực tế qua API
-  const handleDelete = async (e: React.MouseEvent, id: number) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (window.confirm("Bạn có chắc chắn muốn xóa quiz này?")) {
-      try {
-        const token = localStorage.getItem("accessToken");
-        await axios.delete(`${API_URL}/quiz/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        // Cập nhật lại UI sau khi xóa thành công
-        setQuizzes(quizzes.filter((q) => q.id !== id));
-      } catch (error) {
-        alert("Không thể xóa quiz. Vui lòng thử lại.");
-      }
-    }
-  };
 
   // Helper: Chuyển đổi status từ Backend sang UI
   const getStatusLabel = (status: string) => {
