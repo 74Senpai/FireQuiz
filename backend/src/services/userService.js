@@ -1,4 +1,5 @@
 import * as userRepository from '../repositories/userRepository.js';
+import AppError from '../errors/AppError.js';
 
 export const getUserById = async (id) => {
   const user = await userRepository.findById(id);

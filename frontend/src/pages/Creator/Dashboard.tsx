@@ -72,7 +72,7 @@ export function CreatorDashboard() {
   // Helper: Chuyển đổi status từ Backend sang UI
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case "PUBLISHED":
+      case "PUBLIC":
         return "Đã xuất bản";
       case "DRAFT":
         return "Nháp";
@@ -143,7 +143,7 @@ export function CreatorDashboard() {
         <div className="text-center py-20 bg-white/5 rounded-2xl border border-dashed border-white/10">
           <p className="text-slate-400">Bạn chưa có bài thi nào.</p>
           <Link
-            to="/dashboard/manage/new"
+            to="/dashboard/quiz/new"
             className="text-indigo-400 hover:underline mt-2 inline-block"
           >
             Bắt đầu tạo bài thi đầu tiên
@@ -162,7 +162,7 @@ export function CreatorDashboard() {
               >
                 {/* Status bar dọc */}
                 <div
-                  className={`absolute top-0 left-0 w-1.5 h-full transition-all duration-300 group-hover:w-2 ${quiz.status === "PUBLISHED"
+                  className={`absolute top-0 left-0 w-1.5 h-full transition-all duration-300 group-hover:w-2 ${quiz.status === "PUBLIC"
                     ? "bg-emerald-500"
                     : quiz.status === "DRAFT"
                       ? "bg-amber-500"
@@ -203,7 +203,7 @@ export function CreatorDashboard() {
                   </div>
                   <div className="flex items-center gap-2 mt-2">
                     <span
-                      className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${quiz.status === "PUBLISHED"
+                      className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${quiz.status === "PUBLIC"
                         ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                         : quiz.status === "DRAFT"
                           ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"

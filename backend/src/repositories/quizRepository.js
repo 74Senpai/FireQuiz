@@ -5,6 +5,7 @@ export const createQuiz = async (data) => {
     title,
     creatorId,
     description,
+    status,
     gradingScale,
     timeLimitSeconds,
     availableFrom,
@@ -14,14 +15,15 @@ export const createQuiz = async (data) => {
 
   const sql = `
     INSERT INTO quizzes
-    (title, creator_id, description, grading_scale, time_limit_seconds, available_from, available_until, max_attempts)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    (title, creator_id, description, status, grading_scale, time_limit_seconds, available_from, available_until, max_attempts)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const [result] = await pool.execute(sql, [
     title,
     creatorId,
     description ?? null,
+    status ?? 'DRAFT',
     gradingScale ?? null,
     timeLimitSeconds ?? null,
     availableFrom ?? null,

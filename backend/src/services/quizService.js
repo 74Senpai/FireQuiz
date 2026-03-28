@@ -11,10 +11,25 @@ import {
 import { getListQuestionByQuizId } from './questionService.js';
 import AppError from '../errors/AppError.js';
 
+const ALLOWED_QUIZ_STATUSES = ['DRAFT', 'PUBLIC', 'CLOSED'];
+
+const normalizeQuizStatus = (status) => {
+  if (!status) {
+    return 'DRAFT';
+  }
+
+  if (!ALLOWED_QUIZ_STATUSES.includes(status)) {
+    throw new AppError('Status quiz khong hop le', 400);
+  }
+
+  return status;
+};
+
 export const createQuiz = async (user, data) => {
   const {
     title,
     description,
+    status,
     gradingScale,
     timeLimitSeconds,
     availableFrom,
@@ -28,7 +43,17 @@ export const createQuiz = async (user, data) => {
     throw new AppError("Không thể thiếu tên bộ câu hỏi hoặc người tạo", 400);
   }
 
-  const quizId = await createQuizRecord({title, description, gradingScale, timeLimitSeconds, availableFrom, availableUntil, maxAttempts, creatorId:id });
+  const quizId = await createQuizRecord({
+    title,
+    description,
+    status: normalizeQuizStatus(status),
+    gradingScale,
+    timeLimitSeconds,
+    availableFrom,
+    availableUntil,
+    maxAttempts,
+    creatorId: id
+  });
   console.log(`info: in quizService.js:22 quizId = ${quizId}`);
   return quizId;
 }
@@ -81,7 +106,7 @@ export const setStatus = async (id, user, status) => {
 
   checkQuizExistAndOwner(quiz, user);
 
-  await setQuizStatus(id, status);
+  await setQuizStatus(id, normalizeQuizStatus(status));
 };
 
 export const changeQuizInfo = async (id, user, info) => {

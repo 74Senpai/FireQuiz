@@ -5,10 +5,19 @@ import AppError from '../errors/AppError.js';
 
 export const createQuestion = async (user, data) => {
   const { content, type, quizId, answers } = data; // Nhận thêm answers
+  const quiz = await getQuizById(quizId);
   
   // 1. Validate loại câu hỏi
   const allowedTypes = ['MULTI_ANSWERS', 'ANANSWER', 'TEXT'];
   if (!allowedTypes.includes(type)) throw new AppError("Loại câu hỏi không hợp lệ", 400);
+
+  if (!quiz) {
+    throw new AppError("Quiz không tồn tại", 404);
+  }
+
+  if (quiz.creator_id != user.id) {
+    throw new AppError("Bạn không có quyền thực hiện hành động này", 403);
+  }
 
   // 2. Validate đáp án (Phải có đúng 4 đáp án và 1 đáp án đúng cho loại ANANSWER)
   if (type === 'ANANSWER') {
@@ -46,7 +55,7 @@ export const getListQuestionByQuizId = async (quizId, user) => {
 
   // Kiểm tra quyền truy cập (owner hoặc public)
   const isOwner = user && user.id === quiz.creator_id;
-  if (!isOwner && quiz.status === "DRAFT") throw new AppError("Không có quyền", 403);
+  if (!isOwner && quiz.status !== "PUBLIC") throw new AppError("Không có quyền", 403);
 
   const questions = await questionRepository.getListQuestionByQuizId(quizId);
 
@@ -128,7 +137,7 @@ export const deleteQuestion = async (questionId, userId) => {
 const checkQuizAccess = (quiz, user) => {
   const isOwner = user && user.id === quiz.creator_id;
 
-  if (!isOwner && (quiz.status === "DRAFT" || quiz.status === "PRIVATE")) {
+  if (!isOwner && quiz.status !== "PUBLIC") {
     throw new AppError("Quiz không tồn tại hoặc bạn không có quyền truy cập", 403);
   }
 };
