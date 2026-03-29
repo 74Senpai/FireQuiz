@@ -156,7 +156,7 @@ export function TakeQuiz() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
-      {/* Header / Timer */}
+      {/* Tiêu đề / Đồng hồ đếm ngược */}
       <div className="sticky top-0 z-10 bg-white/10 backdrop-blur-md border-b border-white/20 pb-4 pt-2 flex items-center justify-between shadow-lg">
         <div>
           <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">
@@ -193,7 +193,7 @@ export function TakeQuiz() {
         </div>
       </div>
 
-      {/* Question Content */}
+      {/* Nội dung câu hỏi */}
       <Card className="border-indigo-400/30 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl shadow-2xl hover:shadow-indigo-500/30 animate-slide-up">
         <CardContent className="p-8 space-y-8">
           <h3 className="text-2xl font-semibold text-slate-100 leading-relaxed">
@@ -233,7 +233,7 @@ export function TakeQuiz() {
         </CardContent>
       </Card>
 
-      {/* Navigation */}
+      {/* Điều hướng */}
       <div className="flex items-center justify-between pt-4 animate-slide-up animate-delay-100">
         <Button
           variant="outline"

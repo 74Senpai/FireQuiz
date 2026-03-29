@@ -59,7 +59,7 @@ export function TakerDashboard() {
   }, []);
 
   const completedQuizzes = [
-    { id: 3, title: "Final Exam - Physics", score: "8.5/10", date: "2026-02-28" },
+    { id: 3, title: "Thi cuối kỳ - Vật lý", score: "8.5/10", date: "2026-02-28" },
   ];
 
   return (

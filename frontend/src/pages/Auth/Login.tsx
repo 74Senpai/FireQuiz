@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import axios from "axios";
+import { useAuthStore } from "../../stores/authStore";
 
 export function Login() {
   const navigate = useNavigate();
@@ -30,35 +30,24 @@ export function Login() {
     return Object.keys(errs).length === 0;
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const { login } = useAuthStore();
+
+  const handleLogin = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
     setIsLoading(true);
-    setErrors({}); // Reset lỗi cũ
+    setErrors({});
 
     try {
-      // Lấy URL từ env (Đảm bảo đã có VITE_API_URL trong file .env)
-      const API_URL = process.env.API_URL || "http://localhost:8080/api";
+      await login({ email, password });
 
-      const response = await axios.post(
-        `${API_URL}/auth/login`, 
-        { email, password },
-        { withCredentials: true } // QUAN TRỌNG: Để nhận Refresh Token Cookie
-      );
-
-      // Nếu thành công:
-      const { accessToken } = response.data;
-      
-      // Lưu Access Token vào localStorage để dùng cho các request sau
-      localStorage.setItem("accessToken", accessToken);
-
-      // Chuyển hướng người dùng
       navigate("/dashboard");
-      
-    } catch (error: any) {
-      // Xử lý lỗi từ Backend (ví dụ: Sai mật khẩu, User không tồn tại)
-      const message = error.response?.data?.message || "Đăng nhập thất bại. Vui lòng thử lại.";
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        "Đăng nhập thất bại. Vui lòng thử lại.";
+
       setErrors({ api: message });
     } finally {
       setIsLoading(false);

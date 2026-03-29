@@ -10,8 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import React from "react";
-import axios from "axios";
 import { Loader2, Mail, Lock, ShieldCheck, ChevronLeft } from "lucide-react";
+import * as authService from "@/services/authServices";
 
 export function ForgotPassword() {
   const navigate = useNavigate();
@@ -26,76 +26,83 @@ export function ForgotPassword() {
   const [resetToken, setResetToken] = React.useState("");
   const [errors, setErrors] = React.useState<any>({});
 
-  const API_URL = process.env.API_URL || "http://localhost:8080/api";
 
   // STEP 1: Gửi OTP
-  const handleSendOTP = async (e: React.FormEvent) => {
+  const handleSendOTP = async (e) => {
     e.preventDefault();
     if (!email) return setErrors({ email: "Email là bắt buộc" });
 
     setIsLoading(true);
     try {
-      await axios.post(`${API_URL}/auth/forgot-password`, { email });
+      await authService.forgotPassword(email);
+
       setStep(2);
       setErrors({});
-    } catch (err: any) {
-      alert(
-        err.response?.data?.message || "Email không tồn tại trong hệ thống",
-      );
+    } catch (err) {
+      setErrors({
+        api:
+          err.response?.data?.message ||
+          "Email không tồn tại trong hệ thống",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   // STEP 2: Xác thực OTP
-  const handleVerifyOTP = async (e: React.FormEvent) => {
+  const handleVerifyOTP = async (e) => {
     e.preventDefault();
     if (!otp) return;
 
     setIsLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/auth/verify-otp`, {
-        email,
-        otp,
-      });
+      const res = await authService.verifyOTP({ email, otp });
+
       setResetToken(res.data.resetToken);
       setStep(3);
       setErrors({});
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Mã OTP không đúng hoặc đã hết hạn");
+    } catch (err) {
+      setErrors({
+        api:
+          err.response?.data?.message ||
+          "Mã OTP không đúng hoặc đã hết hạn",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   // STEP 3: Đổi mật khẩu mới
-  const handleResetPassword = async (e: React.FormEvent) => {
+  const handleResetPassword = async (e) => {
     e.preventDefault();
     setErrors({});
 
-    // Validate mật khẩu 8 ký tự trở lên
     if (newPassword.length < 8) {
       return setErrors({ pass: "Mật khẩu phải có ít nhất 8 ký tự" });
     }
+
     if (newPassword !== confirmPassword) {
       return setErrors({ confirm: "Mật khẩu xác nhận không khớp" });
     }
 
     setIsLoading(true);
     try {
-      await axios.post(`${API_URL}/auth/reset-password`, {
+      await authService.resetPassword({
         resetToken,
         newPassword,
       });
-      alert("Đổi mật khẩu thành công! Hãy đăng nhập lại.");
+
       navigate("/login");
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Đổi mật khẩu thất bại");
+    } catch (err) {
+      setErrors({
+        api:
+          err.response?.data?.message ||
+          "Đổi mật khẩu thất bại",
+      });
     } finally {
       setIsLoading(false);
     }
   };
-
   return (
     <div className="relative group">
       <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl blur opacity-25"></div>

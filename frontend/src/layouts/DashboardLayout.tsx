@@ -100,15 +100,12 @@ export function DashboardLayout() {
   };
 
   const links = [
-    { name: "Trang chính", href: "/dashboard", icon: BookOpen },
+    { name: "Phân tích & Thống kê", href: "/dashboard", icon: BookOpen },
     { name: "Quản lý Quiz", href: "/dashboard/manage", icon: LayoutDashboard },
-    {
-      name: "Ngân hàng câu hỏi",
-      href: "/dashboard/question-bank",
-      icon: FileQuestion,
-    },
-    { name: "Kết quả", href: "/dashboard/results", icon: Users },
-    { name: "Lịch sử", href: "/dashboard/history", icon: Clock },
+    { name: "Ngân hàng câu hỏi", href: "/dashboard/question-bank", icon: FileQuestion },
+    { name: "Thông tin tài khoản", href: "/dashboard/profile", icon: Settings },
+    { name: "Lịch sử tham gia", href: "/dashboard/history", icon: Clock },
+    { name: "Kết quả thi", href: "/dashboard/results", icon: Users },
   ];
 
   // Lấy chữ cái đầu của tên để làm Avatar
@@ -183,15 +180,14 @@ export function DashboardLayout() {
         <header className="h-16 bg-white/5 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-8 shadow-lg">
           <h1 className="text-2xl font-bold text-white capitalize animate-fade-in">
             {(() => {
-              const key =
-                location.pathname.split("/").pop()?.replace("-", " ") ||
-                "Trang chính";
-              const map: Record<string, string> = {
-                dashboard: "Trang chính",
-                manage: "Quản lý Quiz",
-                "question-bank": "Ngân hàng câu hỏi",
-                results: "Kết quả",
-                history: "Lịch sử",
+              const key = location.pathname.split("/").pop()?.replace("-", " ") || "Trang chính";
+              const map: Record<string,string> = {
+                "dashboard":"Trang chính",
+                "manage":"Quản lý Quiz",
+                "question bank":"Ngân hàng câu hỏi",
+                "results":"Kết quả",
+                "history":"Lịch sử",
+                "profile": "Thông tin tài khoản của bạn"
               };
               return map[key] || key;
             })()}
