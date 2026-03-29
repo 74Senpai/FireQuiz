@@ -68,23 +68,58 @@ Bất kì ai có nhu cầu tạo và chia sẻ các bộ quiz hoặc làm quiz.
 | Scrum Master     | Trần Đức Thông  |
 | Development Team | Trần Đức Thông<br> Vũ Mạnh Huy<br> Nguyễn Huy Hoàng<br> Nguyễn Lương Tiên |
 
+## Cấu trúc thư mục
+
+```FireQuiz/
+├── backend/
+│   ├── src/
+│   │   ├── controllers/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── utils/
+│   │   ├── middleware/
+│   │   ├── repositories/
+│   │   ├── db/
+│   │   ├── validators/
+│   │   ├── errors/
+│   │   └── app.js
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── layouts/
+│   │   ├── lib/
+│   │   ├── App.tsx
+│   │   ├── main.tsx
+│   │   └── index.css
+
+```
+Ngoài ra còn có các thư mục khác như `public/` chứa các tài nguyên tĩnh, `tests/` chứa các bài kiểm tra đơn vị và tích hợp, và `docs/` chứa tài liệu dự án. Cũng như các tệp cấu hình như `package.json`, `vite.config.js`, `tsconfig.json`, và `README.md` ở cấp gốc của mỗi phần frontend và backend.
+
+
+
 ## Cài đặt
 1. Clone repository về máy:
    ```bash
    git clone https://github.com/74Senpai/FireQuiz.git
     ```
 2. Cài đặt dependencies:
-- Frontend:
+- Frontend/Backend:
+Di chuyển vào thư mục frontend hoặc backend và chạy lệnh:
    ```bash
    npm install
    ```
 
 4. Chạy ứng dụng:
-- Development mode:
+- Frontend/Backend:
    ```bash
    npm run dev
    ```
-- Production mode:
-   ```bash
-    npm start
-    ```
+
+Tài liệu tham khảo:
+- [ReactJS Documentation](https://reactjs.org/docs/getting-started.html)
+- [Express.js Documentation](https://expressjs.com/en/starter/installing.html)
+- [MySQL Documentation](https://dev.mysql.com/doc/)
+- [Vite Documentation](https://vitejs.dev/guide/)
+- [Node.js Documentation](https://nodejs.org/en/docs/)
+
