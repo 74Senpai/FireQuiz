@@ -7,14 +7,17 @@ import {
   Clock,
   Users,
   Calendar,
+  Eye,
   Pencil,
   Trash2,
   Loader2,
 } from "lucide-react";
 import * as quizService from "@/services/quizServices";
+import { QuizPreviewModal } from "@/components/ui/QuizPreviewModal";
 export function CreatorDashboard() {
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [previewQuizId, setPreviewQuizId] = useState<number | null>(null);
   const navigate = useNavigate();
 
   // Hàm lấy danh sách quiz từ backend
@@ -131,6 +134,16 @@ export function CreatorDashboard() {
                       {quiz.title}
                     </CardTitle>
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setPreviewQuizId(quiz.id);
+                        }}
+                        className="p-2 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                       <Link
                         to={`/dashboard/quiz/${quiz.id}/edit`}
                         onClick={(e) => e.stopPropagation()}
@@ -189,6 +202,12 @@ export function CreatorDashboard() {
           })}
         </div>
       )}
+
+      <QuizPreviewModal
+        open={previewQuizId !== null}
+        quizId={previewQuizId}
+        onClose={() => setPreviewQuizId(null)}
+      />
     </div>
   );
 }

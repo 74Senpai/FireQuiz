@@ -1,4 +1,6 @@
 import * as quizRepository from '../repositories/quizRepository.js';
+import * as questionRepository from '../repositories/questionRepository.js';
+import * as answerRepository from '../repositories/answerRepository.js';
 import { findById } from '../repositories/userRepository.js';
 import AppError from '../errors/AppError.js';
 
@@ -38,6 +40,28 @@ export const getQuiz = async (id, user) => {
   }
 
   return quiz;
+};
+
+export const getQuizPreview = async (id, user) => {
+  const quiz = await quizRepository.getQuizById(id);
+
+  checkQuizExistAndOwner(quiz, user);
+
+  const questions = await questionRepository.getListQuestionByQuizId(id);
+  const questionsWithAnswers = await Promise.all(
+    questions.map(async (question) => {
+      const answers = await answerRepository.getAnswersByQuestionId(question.id);
+      return {
+        ...question,
+        answers,
+      };
+    }),
+  );
+
+  return {
+    quiz,
+    questions: questionsWithAnswers,
+  };
 };
 
 const checkQuizExistAndOwner = (quiz, user) => {
