@@ -9,5 +9,8 @@ export const getQuizPreview = (id) =>
 export const getQuizLeaderboard = (id) =>
   axios.get(`/quiz/${id}/leaderboard`).then((res) => res.data);
 
+export const getQuizQuestionAnalytics = (id) =>
+  axios.get(`/quiz/${id}/question-analytics`).then((res) => res.data);
+
 export const deleteQuiz = (id) =>
   axios.delete(`/quiz/${id}`);

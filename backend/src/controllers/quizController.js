@@ -40,6 +40,15 @@ export const getLeaderboard = asyncHandler(async (req, res) => {
   return res.status(200).json(leaderboard);
 });
 
+export const getQuestionAnalytics = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const user = req.user;
+
+  const analytics = await quizService.getQuestionAnalytics(id, user);
+
+  return res.status(200).json(analytics);
+});
+
 export const setStatus = asyncHandler(async (req, res) => {
   const user = req.user;
   const id = req.params.id;
