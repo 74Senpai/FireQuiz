@@ -52,6 +52,17 @@ export function Results() {
             variant="outline"
             disabled={!selectedQuizId}
             onClick={() =>
+              navigate(`/dashboard/question-analytics?quizId=${selectedQuizId}`)
+            }
+            className="gap-2 border-sky-400/40 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20"
+          >
+            Xem thong ke cau hoi
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!selectedQuizId}
+            onClick={() =>
               navigate(`/dashboard/leaderboard?quizId=${selectedQuizId}`)
             }
             className="gap-2 border-amber-400/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20"
@@ -94,6 +105,41 @@ export function Results() {
             className="gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
           >
             Mo bang xep hang
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="border-sky-400/20 bg-gradient-to-br from-sky-500/10 to-cyan-500/5 backdrop-blur-md shadow-2xl">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-sky-200">
+            Thong ke chuyen sau cau hoi
+          </CardTitle>
+          <CardDescription className="text-slate-300">
+            Xem bieu do ty le dung sai cua tung cau hoi de danh gia do kho.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4 md:flex-row md:items-center">
+          <select
+            value={selectedQuizId}
+            onChange={(event) => setSelectedQuizId(event.target.value)}
+            className="flex h-10 w-full rounded-lg border border-sky-400/20 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 md:max-w-md"
+          >
+            <option value="">Chon quiz de xem thong ke</option>
+            {quizzes.map((quiz) => (
+              <option key={quiz.id} value={quiz.id}>
+                {quiz.title}
+              </option>
+            ))}
+          </select>
+          <Button
+            type="button"
+            disabled={!selectedQuizId}
+            onClick={() =>
+              navigate(`/dashboard/question-analytics?quizId=${selectedQuizId}`)
+            }
+            className="gap-2 bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600"
+          >
+            Mo thong ke cau hoi
           </Button>
         </CardContent>
       </Card>

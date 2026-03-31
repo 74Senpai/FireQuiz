@@ -83,6 +83,29 @@ export const getLeaderboard = async (id, user) => {
   };
 };
 
+export const getQuestionAnalytics = async (id, user) => {
+  const quiz = await quizRepository.getQuizById(id);
+
+  checkQuizExistAndOwner(quiz, user);
+
+  const analytics = await attemptRepository.getQuestionAnalyticsByQuizId(id);
+  const totalAttempts = analytics[0]?.total_attempts || 0;
+
+  return {
+    quiz: {
+      id: quiz.id,
+      title: quiz.title,
+      status: quiz.status,
+      gradingScale: quiz.grading_scale,
+    },
+    summary: {
+      totalAttempts,
+      totalQuestions: analytics.length,
+    },
+    data: analytics,
+  };
+};
+
 const checkQuizExistAndOwner = (quiz, user) => {
   if (!quiz) {
     throw new AppError("Quiz không tồn tại", 404);
