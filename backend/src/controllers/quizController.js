@@ -31,6 +31,15 @@ export const getQuizPreview = asyncHandler(async (req, res) => {
   return res.status(200).json(preview);
 });
 
+export const getLeaderboard = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const user = req.user;
+
+  const leaderboard = await quizService.getLeaderboard(id, user);
+
+  return res.status(200).json(leaderboard);
+});
+
 export const setStatus = asyncHandler(async (req, res) => {
   const user = req.user;
   const id = req.params.id;
