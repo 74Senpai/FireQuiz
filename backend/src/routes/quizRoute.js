@@ -11,6 +11,7 @@ router.patch("/:id/settings", protectedRoute, quizController.changeQuizSettings)
 router.get("/myquiz", protectedRoute, quizController.getListQuizByUserId);
 router.get("/:id/preview", protectedRoute, quizController.getQuizPreview);
 router.get("/:id/leaderboard", protectedRoute, quizController.getLeaderboard);
+router.get("/:id/question-analytics", protectedRoute, quizController.getQuestionAnalytics);
 router.delete("/:id", protectedRoute, quizController.deleteQuiz)
 router.get("/:id", getIdFromToken, quizController.getQuiz);
 
