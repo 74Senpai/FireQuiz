@@ -1,7 +1,7 @@
 import * as quizRepository from '../repositories/quizRepository.js';
 import * as questionRepository from '../repositories/questionRepository.js';
 import * as answerRepository from '../repositories/answerRepository.js';
-import * as attemptRepository from '../repositories/attemptRepository.js';
+import * as attemptAggregationService from '../services/attemptAggregationService.js';
 import { findById } from '../repositories/userRepository.js';
 import AppError from '../errors/AppError.js';
 
@@ -70,7 +70,7 @@ export const getLeaderboard = async (id, user) => {
 
   checkQuizExistAndOwner(quiz, user);
 
-  const leaderboard = await attemptRepository.getLeaderboardByQuizId(id);
+  const leaderboard = await attemptAggregationService.getLeaderboardDataByQuizId(id);
 
   return {
     quiz: {
@@ -88,7 +88,7 @@ export const getQuestionAnalytics = async (id, user) => {
 
   checkQuizExistAndOwner(quiz, user);
 
-  const analytics = await attemptRepository.getQuestionAnalyticsByQuizId(id);
+  const analytics = await attemptAggregationService.getQuestionAnalyticsDataByQuizId(id);
   const totalAttempts = analytics[0]?.total_attempts || 0;
 
   return {
@@ -111,7 +111,7 @@ export const getResultsDashboard = async (id, user) => {
 
   checkQuizExistAndOwner(quiz, user);
 
-  const dashboard = await attemptRepository.getResultsDashboardByQuizId(id);
+  const dashboard = await attemptAggregationService.getResultsDashboardDataByQuizId(id);
 
   return {
     quiz: {
