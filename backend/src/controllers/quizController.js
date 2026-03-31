@@ -50,6 +50,15 @@ export const getQuestionAnalytics = asyncHandler(async (req, res) => {
   return res.status(200).json(analytics);
 });
 
+export const getResultsDashboard = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const user = req.user;
+
+  const dashboard = await quizService.getResultsDashboard(id, user);
+
+  return res.status(200).json(dashboard);
+});
+
 export const exportQuizResultsExcel = asyncHandler(async (req, res) => {
   const id = req.params.id;
   const user = req.user;

@@ -200,3 +200,108 @@ export const getResultReportByQuizId = async (quizId) => {
   const [rows] = await pool.execute(sql, [quizId]);
   return rows;
 };
+
+export const getResultsDashboardByQuizId = async (quizId) => {
+  const sql = `
+    WITH ranked_attempts AS (
+      SELECT
+        qa.id AS attempt_id,
+        qa.user_id,
+        qa.quiz_id,
+        qa.score,
+        qa.started_at,
+        qa.finished_at,
+        CASE
+          WHEN qa.finished_at IS NULL THEN NULL
+          ELSE TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at)
+        END AS duration_seconds,
+        CASE
+          WHEN qa.finished_at IS NULL THEN 'IN_PROGRESS'
+          ELSE 'SUBMITTED'
+        END AS submission_status,
+        ROW_NUMBER() OVER (
+          PARTITION BY qa.user_id
+          ORDER BY qa.created_at DESC, qa.id DESC
+        ) AS rn
+      FROM quiz_attempts qa
+      WHERE qa.quiz_id = ?
+    ),
+    latest_attempts AS (
+      SELECT *
+      FROM ranked_attempts
+      WHERE rn = 1
+    ),
+    attempt_question_eval AS (
+      SELECT
+        aq.quiz_attempt_id,
+        aq.id AS attempt_question_id,
+        COUNT(DISTINCT CASE WHEN ao.is_correct = 1 THEN ao.id END) AS total_correct_options,
+        COUNT(DISTINCT CASE WHEN aa.id IS NOT NULL AND ao.is_correct = 1 THEN ao.id END) AS selected_correct_options,
+        COUNT(DISTINCT CASE WHEN aa.id IS NOT NULL AND ao.is_correct = 0 THEN ao.id END) AS selected_incorrect_options
+      FROM attempt_questions aq
+      INNER JOIN latest_attempts la ON la.attempt_id = aq.quiz_attempt_id
+      LEFT JOIN attempt_options ao ON ao.attempt_question_id = aq.id
+      LEFT JOIN attempt_answers aa ON aa.attempt_option_id = ao.id
+      GROUP BY aq.quiz_attempt_id, aq.id
+    ),
+    attempt_summary AS (
+      SELECT
+        aqe.quiz_attempt_id,
+        SUM(
+          CASE
+            WHEN aqe.total_correct_options > 0
+              AND aqe.selected_incorrect_options = 0
+              AND aqe.selected_correct_options = aqe.total_correct_options
+            THEN 1
+            ELSE 0
+          END
+        ) AS correct_count,
+        SUM(
+          CASE
+            WHEN aqe.total_correct_options > 0
+              AND aqe.selected_incorrect_options = 0
+              AND aqe.selected_correct_options = aqe.total_correct_options
+            THEN 0
+            ELSE 1
+          END
+        ) AS incorrect_count
+      FROM attempt_question_eval aqe
+      GROUP BY aqe.quiz_attempt_id
+    ),
+    user_attempt_count AS (
+      SELECT
+        qa.user_id,
+        COUNT(*) AS total_attempts
+      FROM quiz_attempts qa
+      WHERE qa.quiz_id = ?
+      GROUP BY qa.user_id
+    )
+    SELECT
+      la.attempt_id,
+      la.user_id,
+      u.full_name,
+      u.email,
+      la.score,
+      la.started_at,
+      la.finished_at,
+      la.duration_seconds,
+      la.submission_status,
+      COALESCE(uac.total_attempts, 0) AS total_attempts,
+      COALESCE(ats.correct_count, 0) AS correct_count,
+      COALESCE(ats.incorrect_count, 0) AS incorrect_count
+    FROM latest_attempts la
+    INNER JOIN users u ON u.id = la.user_id
+    LEFT JOIN attempt_summary ats ON ats.quiz_attempt_id = la.attempt_id
+    LEFT JOIN user_attempt_count uac ON uac.user_id = la.user_id
+    WHERE u.is_active = 1
+    ORDER BY
+      CASE WHEN la.finished_at IS NULL THEN 1 ELSE 0 END,
+      la.score DESC,
+      la.duration_seconds ASC,
+      la.finished_at DESC,
+      la.attempt_id DESC;
+  `;
+
+  const [rows] = await pool.execute(sql, [quizId, quizId]);
+  return rows;
+};
