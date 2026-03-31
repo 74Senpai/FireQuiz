@@ -11,6 +11,7 @@ import {
 import { Download, Search, FileSpreadsheet } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import * as quizService from "@/services/quizServices";
+import { ResultsDashboardPanel } from "@/components/ui/ResultsDashboardPanel";
 
 export function Results() {
   const navigate = useNavigate();
@@ -284,6 +285,10 @@ export function Results() {
           </div>
         </CardContent>
       </Card>
+
+      {selectedQuizId ? (
+        <ResultsDashboardPanel quizId={selectedQuizId} />
+      ) : null}
     </div>
   );
 }

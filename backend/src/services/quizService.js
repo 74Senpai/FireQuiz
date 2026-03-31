@@ -106,6 +106,33 @@ export const getQuestionAnalytics = async (id, user) => {
   };
 };
 
+export const getResultsDashboard = async (id, user) => {
+  const quiz = await quizRepository.getQuizById(id);
+
+  checkQuizExistAndOwner(quiz, user);
+
+  const dashboard = await attemptRepository.getResultsDashboardByQuizId(id);
+
+  return {
+    quiz: {
+      id: quiz.id,
+      title: quiz.title,
+      status: quiz.status,
+      gradingScale: quiz.grading_scale,
+    },
+    summary: {
+      totalParticipants: dashboard.length,
+      submittedCount: dashboard.filter(
+        (item) => item.submission_status === "SUBMITTED",
+      ).length,
+      inProgressCount: dashboard.filter(
+        (item) => item.submission_status === "IN_PROGRESS",
+      ).length,
+    },
+    data: dashboard,
+  };
+};
+
 const checkQuizExistAndOwner = (quiz, user) => {
   if (!quiz) {
     throw new AppError("Quiz không tồn tại", 404);
