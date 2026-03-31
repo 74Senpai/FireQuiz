@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import * as quizRepository from '../repositories/quizRepository.js';
-import * as attemptRepository from '../repositories/attemptRepository.js';
+import * as attemptAggregationService from '../services/attemptAggregationService.js';
 import AppError from '../errors/AppError.js';
 
 const checkQuizExistAndOwner = (quiz, user) => {
@@ -48,7 +48,7 @@ const getReportData = async (quizId, user) => {
 
   checkQuizExistAndOwner(quiz, user);
 
-  const rows = await attemptRepository.getResultReportByQuizId(quizId);
+  const rows = await attemptAggregationService.getResultReportDataByQuizId(quizId);
 
   return {
     quiz,
