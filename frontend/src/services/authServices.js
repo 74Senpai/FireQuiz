@@ -6,7 +6,7 @@ export const login = async (data) => {
 };
 
 export const getProfile = async () => {
-  const res = await axiosInstance.get("/auth/me");
+  const res = await axiosInstance.get("/user/me");
   return res.data;
 };
 

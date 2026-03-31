@@ -29,7 +29,10 @@ export const useAuthStore = create((set) => ({
     try {
       const data = await authService.getProfile();
 
-      set({
+    try {
+      const data = await authService.getProfile();
+
+      setState({
         user: {
           full_name: data.fullName,
           email: data.email,
@@ -38,17 +41,30 @@ export const useAuthStore = create((set) => ({
         isAuthenticated: true,
         isLoading: false,
       });
-    } catch {
-      set({
+
+      return data;
+    } catch (error) {
+      localStorage.removeItem("accessToken");
+      setState({
         user: null,
         isAuthenticated: false,
         isLoading: false,
       });
+      throw error;
     }
   },
 
-  logout: () => {
+  logout() {
     localStorage.removeItem("accessToken");
-    set({ user: null, isAuthenticated: false });
+    setState({ user: null, isAuthenticated: false, isLoading: false });
   },
-}));
+};
+
+export const useAuthStore = () => {
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  return {
+    ...snapshot,
+    ...actions,
+  };
+};
