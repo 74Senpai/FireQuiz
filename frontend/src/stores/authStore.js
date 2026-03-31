@@ -1,27 +1,51 @@
-export const useAuthStore = create((set) => ({
-  user: null,
-  isAuthenticated: false,
-  isLoading: true,
+import { useSyncExternalStore } from "react";
+import * as authService from "../services/authServices";
 
-  login: async (data) => {
+let state = {
+  user: null,
+  isAuthenticated: Boolean(localStorage.getItem("accessToken")),
+  isLoading: false,
+};
+
+const listeners = new Set();
+
+const emitChange = () => {
+  listeners.forEach((listener) => listener());
+};
+
+const setState = (partialState) => {
+  state = { ...state, ...partialState };
+  emitChange();
+};
+
+const subscribe = (listener) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
+
+const getSnapshot = () => state;
+
+const actions = {
+  async login(data) {
     const res = await authService.login(data);
 
-    // lưu token
     localStorage.setItem("accessToken", res.accessToken);
-
-    // set state
-    set({
-      user: res.user,
+    setState({
+      user: res.user ?? null,
       isAuthenticated: true,
       isLoading: false,
     });
+
+    return res;
   },
 
-  fetchUser: async () => {
-    try {
-      const data = await authService.getMe();
+  async fetchUser() {
+    setState({ isLoading: true });
 
-      set({
+    try {
+      const data = await authService.getProfile();
+
+      setState({
         user: {
           full_name: data.fullName,
           email: data.email,
@@ -30,17 +54,30 @@ export const useAuthStore = create((set) => ({
         isAuthenticated: true,
         isLoading: false,
       });
-    } catch {
-      set({
+
+      return data;
+    } catch (error) {
+      localStorage.removeItem("accessToken");
+      setState({
         user: null,
         isAuthenticated: false,
         isLoading: false,
       });
+      throw error;
     }
   },
 
-  logout: () => {
+  logout() {
     localStorage.removeItem("accessToken");
-    set({ user: null, isAuthenticated: false });
+    setState({ user: null, isAuthenticated: false, isLoading: false });
   },
-}));
+};
+
+export const useAuthStore = () => {
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  return {
+    ...snapshot,
+    ...actions,
+  };
+};

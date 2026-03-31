@@ -9,6 +9,7 @@ router.patch("/:id/status", protectedRoute, quizController.setStatus);
 router.patch("/:id/info", protectedRoute, quizController.changeQuizInfo);
 router.patch("/:id/settings", protectedRoute, quizController.changeQuizSettings);
 router.get("/myquiz", protectedRoute, quizController.getListQuizByUserId);
+router.get("/:id/preview", protectedRoute, quizController.getQuizPreview);
 router.delete("/:id", protectedRoute, quizController.deleteQuiz)
 router.get("/:id", getIdFromToken, quizController.getQuiz);
 
