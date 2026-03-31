@@ -1,6 +1,7 @@
 import * as quizRepository from '../repositories/quizRepository.js';
 import * as questionRepository from '../repositories/questionRepository.js';
 import * as answerRepository from '../repositories/answerRepository.js';
+import * as attemptRepository from '../repositories/attemptRepository.js';
 import { findById } from '../repositories/userRepository.js';
 import AppError from '../errors/AppError.js';
 
@@ -61,6 +62,24 @@ export const getQuizPreview = async (id, user) => {
   return {
     quiz,
     questions: questionsWithAnswers,
+  };
+};
+
+export const getLeaderboard = async (id, user) => {
+  const quiz = await quizRepository.getQuizById(id);
+
+  checkQuizExistAndOwner(quiz, user);
+
+  const leaderboard = await attemptRepository.getLeaderboardByQuizId(id);
+
+  return {
+    quiz: {
+      id: quiz.id,
+      title: quiz.title,
+      status: quiz.status,
+      gradingScale: quiz.grading_scale,
+    },
+    data: leaderboard,
   };
 };
 
