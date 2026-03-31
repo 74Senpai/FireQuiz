@@ -12,6 +12,9 @@ export const getQuizLeaderboard = (id) =>
 export const getQuizQuestionAnalytics = (id) =>
   axios.get(`/quiz/${id}/question-analytics`).then((res) => res.data);
 
+export const getQuizResultsDashboard = (id) =>
+  axios.get(`/quiz/${id}/results-dashboard`).then((res) => res.data);
+
 export const exportQuizResultsExcel = (id) =>
   axios.get(`/quiz/${id}/export/excel`, { responseType: "blob" });
 
