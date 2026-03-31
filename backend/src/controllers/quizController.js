@@ -1,5 +1,6 @@
 import { asyncHandler } from '../untils/asyncHandler.js';
 import * as quizService from '../services/quizService.js';
+import * as quizReportService from '../services/quizReportService.js';
 import AppError from '../errors/AppError.js';
 
 export const createQuiz = asyncHandler(async (req, res) => {
@@ -47,6 +48,36 @@ export const getQuestionAnalytics = asyncHandler(async (req, res) => {
   const analytics = await quizService.getQuestionAnalytics(id, user);
 
   return res.status(200).json(analytics);
+});
+
+export const exportQuizResultsExcel = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const user = req.user;
+
+  const report = await quizReportService.buildExcelReport(id, user);
+
+  res.setHeader("Content-Type", report.contentType);
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${report.fileName}"`,
+  );
+
+  return res.status(200).send(report.buffer);
+});
+
+export const exportQuizResultsPdf = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const user = req.user;
+
+  const report = await quizReportService.buildPdfReport(id, user);
+
+  res.setHeader("Content-Type", report.contentType);
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${report.fileName}"`,
+  );
+
+  return res.status(200).send(report.buffer);
 });
 
 export const setStatus = asyncHandler(async (req, res) => {

@@ -122,3 +122,81 @@ export const getQuestionAnalyticsByQuizId = async (quizId) => {
   const [rows] = await pool.execute(sql, [quizId, quizId]);
   return rows;
 };
+
+export const getResultReportByQuizId = async (quizId) => {
+  const sql = `
+    WITH finished_attempts AS (
+      SELECT
+        qa.id,
+        qa.user_id,
+        qa.quiz_id,
+        qa.score,
+        qa.started_at,
+        qa.finished_at,
+        TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at) AS duration_seconds
+      FROM quiz_attempts qa
+      WHERE qa.quiz_id = ?
+        AND qa.finished_at IS NOT NULL
+    ),
+    attempt_question_eval AS (
+      SELECT
+        aq.quiz_attempt_id,
+        aq.id AS attempt_question_id,
+        COUNT(DISTINCT CASE WHEN ao.is_correct = 1 THEN ao.id END) AS total_correct_options,
+        COUNT(DISTINCT CASE WHEN aa.id IS NOT NULL AND ao.is_correct = 1 THEN ao.id END) AS selected_correct_options,
+        COUNT(DISTINCT CASE WHEN aa.id IS NOT NULL AND ao.is_correct = 0 THEN ao.id END) AS selected_incorrect_options
+      FROM attempt_questions aq
+      INNER JOIN finished_attempts fa ON fa.id = aq.quiz_attempt_id
+      LEFT JOIN attempt_options ao ON ao.attempt_question_id = aq.id
+      LEFT JOIN attempt_answers aa ON aa.attempt_option_id = ao.id
+      GROUP BY aq.quiz_attempt_id, aq.id
+    ),
+    attempt_summary AS (
+      SELECT
+        aqe.quiz_attempt_id,
+        SUM(
+          CASE
+            WHEN aqe.total_correct_options > 0
+              AND aqe.selected_incorrect_options = 0
+              AND aqe.selected_correct_options = aqe.total_correct_options
+            THEN 1
+            ELSE 0
+          END
+        ) AS correct_count,
+        SUM(
+          CASE
+            WHEN aqe.total_correct_options > 0
+              AND aqe.selected_incorrect_options = 0
+              AND aqe.selected_correct_options = aqe.total_correct_options
+            THEN 0
+            ELSE 1
+          END
+        ) AS incorrect_count
+      FROM attempt_question_eval aqe
+      GROUP BY aqe.quiz_attempt_id
+    )
+    SELECT
+      fa.id AS attempt_id,
+      fa.user_id,
+      u.full_name,
+      u.email,
+      fa.score,
+      fa.started_at,
+      fa.finished_at,
+      fa.duration_seconds,
+      COALESCE(ats.correct_count, 0) AS correct_count,
+      COALESCE(ats.incorrect_count, 0) AS incorrect_count
+    FROM finished_attempts fa
+    INNER JOIN users u ON u.id = fa.user_id
+    LEFT JOIN attempt_summary ats ON ats.quiz_attempt_id = fa.id
+    WHERE u.is_active = 1
+    ORDER BY
+      fa.score DESC,
+      fa.duration_seconds ASC,
+      fa.finished_at ASC,
+      fa.id ASC;
+  `;
+
+  const [rows] = await pool.execute(sql, [quizId]);
+  return rows;
+};

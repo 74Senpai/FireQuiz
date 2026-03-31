@@ -12,6 +12,8 @@ router.get("/myquiz", protectedRoute, quizController.getListQuizByUserId);
 router.get("/:id/preview", protectedRoute, quizController.getQuizPreview);
 router.get("/:id/leaderboard", protectedRoute, quizController.getLeaderboard);
 router.get("/:id/question-analytics", protectedRoute, quizController.getQuestionAnalytics);
+router.get("/:id/export/excel", protectedRoute, quizController.exportQuizResultsExcel);
+router.get("/:id/export/pdf", protectedRoute, quizController.exportQuizResultsPdf);
 router.delete("/:id", protectedRoute, quizController.deleteQuiz)
 router.get("/:id", getIdFromToken, quizController.getQuiz);
 

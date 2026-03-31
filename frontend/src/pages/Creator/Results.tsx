@@ -16,6 +16,8 @@ export function Results() {
   const navigate = useNavigate();
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [selectedQuizId, setSelectedQuizId] = useState("");
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   useEffect(() => {
     const fetchQuizzes = async () => {
@@ -34,6 +36,51 @@ export function Results() {
 
     fetchQuizzes();
   }, []);
+
+  const downloadFile = (blob: Blob, fileName: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleExportExcel = async () => {
+    if (!selectedQuizId) return;
+
+    setIsExportingExcel(true);
+    try {
+      const response = await quizService.exportQuizResultsExcel(selectedQuizId);
+      downloadFile(
+        response.data,
+        `quiz-${selectedQuizId}-results.xlsx`,
+      );
+    } catch (error) {
+      console.error("Khong the xuat bao cao Excel:", error);
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (!selectedQuizId) return;
+
+    setIsExportingPdf(true);
+    try {
+      const response = await quizService.exportQuizResultsPdf(selectedQuizId);
+      downloadFile(
+        response.data,
+        `quiz-${selectedQuizId}-results.pdf`,
+      );
+    } catch (error) {
+      console.error("Khong the xuat bao cao PDF:", error);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -69,8 +116,23 @@ export function Results() {
           >
             Xem bang xep hang
           </Button>
-          <Button className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg">
-            <FileSpreadsheet className="h-4 w-4" /> Xuat tat ca ra Excel
+          <Button
+            type="button"
+            disabled={!selectedQuizId || isExportingPdf}
+            onClick={handleExportPdf}
+            className="gap-2 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 shadow-lg"
+          >
+            <Download className="h-4 w-4" />
+            {isExportingPdf ? "Dang xuat PDF" : "Tai bao cao PDF"}
+          </Button>
+          <Button
+            type="button"
+            disabled={!selectedQuizId || isExportingExcel}
+            onClick={handleExportExcel}
+            className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            {isExportingExcel ? "Dang xuat Excel" : "Tai bao cao Excel"}
           </Button>
         </div>
       </div>
