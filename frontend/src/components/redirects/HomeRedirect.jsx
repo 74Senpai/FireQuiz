@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { useAuthStore } from "./authStore";
+import { useAuthStore } from "../../stores/authStore";
 
 const HomeRedirect = () => {
   const { isAuthenticated } = useAuthStore();

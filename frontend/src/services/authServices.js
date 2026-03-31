@@ -1,12 +1,12 @@
 import axiosInstance from "../api/axios.js";
 
 export const login = async (data) => {
-  const res = await axios.post("/auth/login", data);
+  const res = await axiosInstance.post("/auth/login", data);
   return res.data;
 };
 
 export const getProfile = async () => {
-  const res = await axiosInstance.get("/auth/me");
+  const res = await axiosInstance.get("/user/me");
   return res.data;
 };
 
@@ -15,19 +15,21 @@ export const logout = async () => {
 };
 
 export const register = async (data) => {
-  const res = await axios.post("/auth/register", data);
+  const res = await axiosInstance.post("/auth/register", data);
   return res.data;
 };
 
-export const forgotPassword = (email) =>{
-  axios.post("/auth/forgot-password", { email });
+export const forgotPassword = async (email) => {
+  const res = await axiosInstance.post("/auth/forgot-password", { email });
+  return res.data;
 };
 
 export const verifyOTP = async (data) => {
-  const res = await axios.post("/auth/verify-otp", data);
-  return res;
+  const res = await axiosInstance.post("/auth/verify-otp", data);
+  return res.data;
 };
 
-export const resetPassword = (data) => {
-  axios.post("/auth/reset-password", data);
+export const resetPassword = async (data) => {
+  const res = await axiosInstance.post("/auth/reset-password", data);
+  return res.data;
 };
