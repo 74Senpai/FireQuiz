@@ -14,6 +14,23 @@ export const findByEmail = async (email) => {
   return row[0] || null;
 }
 
+export const findActiveUsersByIds = async (ids) => {
+  if (!ids.length) {
+    return [];
+  }
+
+  const placeholders = ids.map(() => '?').join(', ');
+  const sql = `
+    SELECT *
+    FROM users
+    WHERE is_active = 1
+      AND id IN (${placeholders});
+  `;
+
+  const [rows] = await pool.execute(sql, ids);
+  return rows;
+}
+
 export const create = async (data) => {
   const {username, hashedPassword, fullName, email} = data;
   const sql = "INSERT INTO users(password_hash, full_name, email) VALUES (?, ?, ?);";
