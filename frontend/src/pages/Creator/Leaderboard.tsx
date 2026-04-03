@@ -1,3 +1,4 @@
+import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -141,6 +142,10 @@ export function Leaderboard() {
     return `${Number(score).toFixed(2)}/${scale}`;
   };
 
+  const handleQuizChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams({ quizId: event.currentTarget.value });
+  };
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -167,9 +172,7 @@ export function Leaderboard() {
         <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
           <select
             value={selectedQuizId}
-            onChange={(event) =>
-              setSearchParams({ quizId: event.target.value })
-            }
+            onChange={handleQuizChange}
             className="h-10 min-w-72 rounded-lg border border-white/10 bg-slate-900 px-3 text-sm text-white outline-none focus:ring-2 focus:ring-amber-400"
           >
             <option value="">Chon quiz de xem bang xep hang</option>
