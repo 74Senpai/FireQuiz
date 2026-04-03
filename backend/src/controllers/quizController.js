@@ -3,6 +3,16 @@ import * as quizService from '../services/quizService.js';
 import * as quizReportService from '../services/quizReportService.js';
 import AppError from '../errors/AppError.js';
 
+const sendReport = (res, report) => {
+  res.setHeader("Content-Type", report.contentType);
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${report.fileName}"`,
+  );
+
+  return res.status(200).send(report.buffer);
+};
+
 export const createQuiz = asyncHandler(async (req, res) => {
   const data = req.body;
   const user = req.user;
@@ -65,13 +75,7 @@ export const exportQuizResultsExcel = asyncHandler(async (req, res) => {
 
   const report = await quizReportService.buildExcelReport(id, user);
 
-  res.setHeader("Content-Type", report.contentType);
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename="${report.fileName}"`,
-  );
-
-  return res.status(200).send(report.buffer);
+  return sendReport(res, report);
 });
 
 export const exportQuizResultsPdf = asyncHandler(async (req, res) => {
@@ -80,13 +84,7 @@ export const exportQuizResultsPdf = asyncHandler(async (req, res) => {
 
   const report = await quizReportService.buildPdfReport(id, user);
 
-  res.setHeader("Content-Type", report.contentType);
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename="${report.fileName}"`,
-  );
-
-  return res.status(200).send(report.buffer);
+  return sendReport(res, report);
 });
 
 export const setStatus = asyncHandler(async (req, res) => {
