@@ -27,8 +27,6 @@ app.use(express.json());
 app.use(cookieParser());
 
 
-app.use(express.json());
-app.use(cookieParser());
 
 async function startServer() {
   try {
