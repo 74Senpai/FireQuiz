@@ -1,8 +1,83 @@
 import ExcelJS from 'exceljs';
+import fs from 'fs';
+import path from 'path';
 import PDFDocument from 'pdfkit';
+import { fileURLToPath } from 'url';
 import * as quizRepository from '../repositories/quizRepository.js';
 import * as attemptAggregationService from '../services/attemptAggregationService.js';
 import AppError from '../errors/AppError.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const PDF_FONT_REGULAR = 'report-regular';
+const PDF_FONT_BOLD = 'report-bold';
+
+const resolveExistingFontPath = (candidates) => {
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+
+    const resolvedPath = path.resolve(candidate);
+
+    if (fs.existsSync(resolvedPath)) {
+      return resolvedPath;
+    }
+  }
+
+  return null;
+};
+
+const getPdfFontPaths = () => {
+  const regularFontPath = resolveExistingFontPath([
+    process.env.PDF_FONT_REGULAR_PATH,
+    path.join(__dirname, '../assets/fonts/NotoSans-Regular.ttf'),
+    path.join(__dirname, '../assets/fonts/Roboto-Regular.ttf'),
+    'C:/Windows/Fonts/arial.ttf',
+    'C:/Windows/Fonts/segoeui.ttf',
+    'C:/Windows/Fonts/tahoma.ttf',
+    '/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf',
+    '/usr/share/fonts/truetype/roboto/unhinted/RobotoTTF/Roboto-Regular.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    '/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf',
+    '/System/Library/Fonts/Supplemental/Arial.ttf',
+    '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
+  ]);
+
+  const boldFontPath = resolveExistingFontPath([
+    process.env.PDF_FONT_BOLD_PATH,
+    path.join(__dirname, '../assets/fonts/NotoSans-Bold.ttf'),
+    path.join(__dirname, '../assets/fonts/Roboto-Bold.ttf'),
+    'C:/Windows/Fonts/arialbd.ttf',
+    'C:/Windows/Fonts/segoeuib.ttf',
+    'C:/Windows/Fonts/tahomabd.ttf',
+    '/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf',
+    '/usr/share/fonts/truetype/roboto/unhinted/RobotoTTF/Roboto-Bold.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+    '/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf',
+    '/System/Library/Fonts/Supplemental/Arial Bold.ttf',
+  ]);
+
+  if (!regularFontPath || !boldFontPath) {
+    throw new AppError(
+      'Khong tim thay font Unicode cho xuat PDF. Hay cau hinh PDF_FONT_REGULAR_PATH va PDF_FONT_BOLD_PATH.',
+      500,
+    );
+  }
+
+  return {
+    regularFontPath,
+    boldFontPath,
+  };
+};
+
+const registerPdfFonts = (doc) => {
+  const { regularFontPath, boldFontPath } = getPdfFontPaths();
+
+  doc.registerFont(PDF_FONT_REGULAR, regularFontPath);
+  doc.registerFont(PDF_FONT_BOLD, boldFontPath);
+  doc.font(PDF_FONT_REGULAR);
+};
 
 const checkQuizExistAndOwner = (quiz, user) => {
   if (!quiz) {
@@ -136,11 +211,17 @@ export const buildPdfReport = async (quizId, user) => {
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    doc.fontSize(18).text(`Bao cao ket qua - ${quiz.title}`, {
+    registerPdfFonts(doc);
+
+    doc.font(PDF_FONT_BOLD).fontSize(18).text(`Bao cao ket qua - ${quiz.title}`, {
       align: "center",
     });
     doc.moveDown();
-    doc.fontSize(10).fillColor("#4B5563").text(`Tong so bai nop: ${rows.length}`);
+    doc
+      .font(PDF_FONT_REGULAR)
+      .fontSize(10)
+      .fillColor("#4B5563")
+      .text(`Tong so bai nop: ${rows.length}`);
     doc.moveDown();
 
     rows.forEach((row, index) => {
@@ -149,14 +230,17 @@ export const buildPdfReport = async (quizId, user) => {
       }
 
       doc
+        .font(PDF_FONT_BOLD)
         .fillColor("#111827")
         .fontSize(12)
         .text(`#${index + 1} ${row.full_name}`, { continued: true })
+        .font(PDF_FONT_REGULAR)
         .fontSize(10)
         .fillColor("#6B7280")
         .text(`  (${row.email})`);
 
       doc
+        .font(PDF_FONT_REGULAR)
         .fillColor("#111827")
         .fontSize(10)
         .text(
