@@ -16,3 +16,17 @@ export const getAnswersByQuestionId = async (questionId) => {
   );
   return rows;
 };
+
+export const getAnswersByQuestionIds = async (questionIds) => {
+  if (!questionIds.length) {
+    return [];
+  }
+
+  const placeholders = questionIds.map(() => '?').join(', ');
+  const [rows] = await pool.query(
+    `SELECT * FROM answers WHERE question_id IN (${placeholders}) ORDER BY question_id, id`,
+    questionIds,
+  );
+
+  return rows;
+};

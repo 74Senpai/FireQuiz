@@ -6,7 +6,7 @@ export const useAuthStore = create((set) => ({
   isAuthenticated: false,
   isLoading: true,
 
-   login: async (data) => {
+  login: async (data) => {
     try {
       const res = await authService.login(data);
       
@@ -28,7 +28,6 @@ export const useAuthStore = create((set) => ({
   fetchUser: async () => {
     try {
       const data = await authService.getProfile();
-
       set({
         user: {
           full_name: data.fullName,
@@ -38,17 +37,27 @@ export const useAuthStore = create((set) => ({
         isAuthenticated: true,
         isLoading: false,
       });
-    } catch {
+      return data;
+    } catch (error) {
+      localStorage.removeItem("accessToken");
       set({
         user: null,
         isAuthenticated: false,
         isLoading: false,
       });
+      throw error;
     }
   },
 
-  logout: () => {
-    localStorage.removeItem("accessToken");
-    set({ user: null, isAuthenticated: false });
+  logout: async () => {
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      localStorage.removeItem("accessToken");
+      set({ user: null, isAuthenticated: false, isLoading: false });
+    }
   },
 }));
+

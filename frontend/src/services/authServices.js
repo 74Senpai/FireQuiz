@@ -6,7 +6,7 @@ export const login = async (data) => {
 };
 
 export const getProfile = async () => {
-  const res = await axiosInstance.get("/auth/me");
+  const res = await axiosInstance.get("/user/me");
   return res.data;
 };
 
@@ -19,15 +19,15 @@ export const register = async (data) => {
   return res.data;
 };
 
-export const forgotPassword = (email) =>{
-  axiosInstance.post("/auth/forgot-password", { email });
+export const forgotPassword = (email) => {
+  return axiosInstance.post("/auth/forgot-password", { email });
 };
 
 export const verifyOTP = async (data) => {
   const res = await axiosInstance.post("/auth/verify-otp", data);
-  return res;
+  return res.data;
 };
 
 export const resetPassword = (data) => {
-  axiosInstance.post("/auth/reset-password", data);
+  return axiosInstance.post("/auth/reset-password", data);
 };
