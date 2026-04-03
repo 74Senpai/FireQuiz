@@ -1,25 +1,33 @@
+import { create } from "zustand";
+import * as authService from "../services/authServices.js";
+
 export const useAuthStore = create((set) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
 
-  login: async (data) => {
-    const res = await authService.login(data);
-
-    // lưu token
-    localStorage.setItem("accessToken", res.accessToken);
-
-    // set state
-    set({
-      user: res.user,
-      isAuthenticated: true,
-      isLoading: false,
-    });
+   login: async (data) => {
+    try {
+      const res = await authService.login(data);
+      
+      if (res && res.accessToken) {
+        localStorage.setItem("accessToken", res.accessToken);
+        set({
+          user: res.user,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+        return res;
+      }
+    } catch (error) {
+      set({ user: null, isAuthenticated: false, isLoading: false });
+      throw error; 
+    }
   },
 
   fetchUser: async () => {
     try {
-      const data = await authService.getMe();
+      const data = await authService.getProfile();
 
       set({
         user: {
