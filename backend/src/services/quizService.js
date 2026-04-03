@@ -5,6 +5,16 @@ import * as attemptAggregationService from '../services/attemptAggregationServic
 import { findById } from '../repositories/userRepository.js';
 import AppError from '../errors/AppError.js';
 
+const buildAnswersByQuestionIdMap = (answers) =>
+  answers.reduce((acc, answer) => {
+    if (!acc.has(answer.question_id)) {
+      acc.set(answer.question_id, []);
+    }
+
+    acc.get(answer.question_id).push(answer);
+    return acc;
+  }, new Map());
+
 export const createQuiz = async (user, data) => {
   const {
     title,
@@ -49,15 +59,14 @@ export const getQuizPreview = async (id, user) => {
   checkQuizExistAndOwner(quiz, user);
 
   const questions = await questionRepository.getListQuestionByQuizId(id);
-  const questionsWithAnswers = await Promise.all(
-    questions.map(async (question) => {
-      const answers = await answerRepository.getAnswersByQuestionId(question.id);
-      return {
-        ...question,
-        answers,
-      };
-    }),
+  const answers = await answerRepository.getAnswersByQuestionIds(
+    questions.map((question) => question.id),
   );
+  const answersByQuestionId = buildAnswersByQuestionIdMap(answers);
+  const questionsWithAnswers = questions.map((question) => ({
+    ...question,
+    answers: answersByQuestionId.get(question.id) || [],
+  }));
 
   return {
     quiz,

@@ -3,6 +3,16 @@ import * as answerRepository from '../repositories/answerRepository.js'; // Impo
 import { getQuizById } from '../repositories/quizRepository.js';
 import AppError from '../errors/AppError.js';
 
+const buildAnswersByQuestionIdMap = (answers) =>
+  answers.reduce((acc, answer) => {
+    if (!acc.has(answer.question_id)) {
+      acc.set(answer.question_id, []);
+    }
+
+    acc.get(answer.question_id).push(answer);
+    return acc;
+  }, new Map());
+
 export const createQuestion = async (user, data) => {
   const { content, type, quizId, answers } = data; // Nhận thêm answers
   
@@ -51,9 +61,13 @@ export const getListQuestionByQuizId = async (quizId, user) => {
   const questions = await questionRepository.getListQuestionByQuizId(quizId);
 
   // Với mỗi câu hỏi, lấy thêm các đáp án của nó
-  const questionsWithAnswers = await Promise.all(questions.map(async (q) => {
-    const answers = await answerRepository.getAnswersByQuestionId(q.id);
-    return { ...q, answers };
+  const answers = await answerRepository.getAnswersByQuestionIds(
+    questions.map((question) => question.id),
+  );
+  const answersByQuestionId = buildAnswersByQuestionIdMap(answers);
+  const questionsWithAnswers = questions.map((question) => ({
+    ...question,
+    answers: answersByQuestionId.get(question.id) || [],
   }));
 
   return questionsWithAnswers;
