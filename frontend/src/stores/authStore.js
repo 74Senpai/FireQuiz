@@ -6,7 +6,7 @@ export const useAuthStore = create((set) => ({
   isAuthenticated: false,
   isLoading: true,
 
-   login: async (data) => {
+  login: async (data) => {
     try {
       const res = await authService.login(data);
       
@@ -28,11 +28,7 @@ export const useAuthStore = create((set) => ({
   fetchUser: async () => {
     try {
       const data = await authService.getProfile();
-
-    try {
-      const data = await authService.getProfile();
-
-      setState({
+      set({
         user: {
           full_name: data.fullName,
           email: data.email,
@@ -41,11 +37,10 @@ export const useAuthStore = create((set) => ({
         isAuthenticated: true,
         isLoading: false,
       });
-
       return data;
     } catch (error) {
       localStorage.removeItem("accessToken");
-      setState({
+      set({
         user: null,
         isAuthenticated: false,
         isLoading: false,
@@ -54,17 +49,15 @@ export const useAuthStore = create((set) => ({
     }
   },
 
-  logout() {
-    localStorage.removeItem("accessToken");
-    setState({ user: null, isAuthenticated: false, isLoading: false });
+  logout: async () => {
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      localStorage.removeItem("accessToken");
+      set({ user: null, isAuthenticated: false, isLoading: false });
+    }
   },
-};
+}));
 
-export const useAuthStore = () => {
-  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-
-  return {
-    ...snapshot,
-    ...actions,
-  };
-};

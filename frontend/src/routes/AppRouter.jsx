@@ -49,7 +49,6 @@ export default function AppRouter() {
           <Route path="leaderboard" element={<Leaderboard />} />
           <Route path="question-analytics" element={<QuestionAnalytics />} />
           <Route path="history" element={<History />} />
-          <Route path="profile" element={<Profile />} />
           <Route path="quiz/:id/take" element={<TakeQuiz />} />
           <Route path="quiz/:id/review" element={<ReviewQuiz />} />
         </Route>
