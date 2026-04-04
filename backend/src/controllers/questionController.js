@@ -5,13 +5,20 @@ import { asyncHandler } from '../untils/asyncHandler.js';
 export const createQuestion = asyncHandler(async (req, res) => {
   const user = req.user;
   const { content, type, quizId, answers } = req.body;
-  if (!content || !type || !quizId || !answers) {
-    throw new AppError("Không được thiếu content, type, quizId, answers", 400);
+
+  if (!content || !type || !quizId) {
+    throw new AppError('Không được thiếu content, type, quizId', 400);
   }
 
-  const id = await questionService.createQuestion(user, { content, type, quizId, answers});
-  return res.status(201).json({questionId: id});
+  // TEXT không cần answers, các loại khác bắt buộc
+  if (type !== 'TEXT' && (!answers || answers.length === 0)) {
+    throw new AppError('Câu hỏi trắc nghiệm phải có đáp án', 400);
+  }
+
+  const id = await questionService.createQuestion(user, { content, type, quizId, answers: answers || [] });
+  return res.status(201).json({ questionId: id });
 });
+
 
 export const changeType = asyncHandler(async (req, res) => {
   const questionId = req.params.id;

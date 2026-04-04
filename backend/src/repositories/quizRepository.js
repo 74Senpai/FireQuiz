@@ -100,3 +100,16 @@ export const hardDelete = async (id) => {
   const sql = "DELETE FROM quizzes WHERE id = ? AND status != 'DELETED';";
   await pool.execute(sql, [id]);
 };
+
+export const setQuizCode = async (id, code) => {
+  // code = null để xóa mã PIN
+  const sql = "UPDATE quizzes SET quiz_code = ? WHERE id = ?;";
+  await pool.execute(sql, [code ?? null, id]);
+};
+
+export const findByQuizCode = async (code) => {
+  const sql = "SELECT id FROM quizzes WHERE quiz_code = ? AND status != 'DELETED' LIMIT 1;";
+  const [rows] = await pool.execute(sql, [code]);
+  return rows[0] || null;
+};
+
