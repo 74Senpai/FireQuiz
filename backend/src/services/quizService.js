@@ -8,7 +8,7 @@ import AppError from '../errors/AppError.js';
 const PIN_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const PIN_LENGTH = 6;
 const PIN_MAX_RETRIES = 5;
-const crypto = require('crypto');
+import crypto from 'crypto';
 
 
 const buildAnswersByQuestionIdMap = (answers) =>
