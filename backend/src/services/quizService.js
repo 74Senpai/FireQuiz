@@ -105,33 +105,7 @@ export const deleteQuiz = async (id, user) => {
   }
 }
 
-export const joinQuiz = async (code) => {
-  // Chú thích (BE): Lấy quiz dựa trên mã PIN (code)
-  const quiz = await quizRepository.getQuizByCode(code);
 
-  // Chú thích (BE): Xử lý lỗi "Sai PIN" nếu không tìm thấy quiz
-  if (!quiz) {
-    throw new AppError("Sai PIN", 404);
-  }
-
-  // Chú thích (BE): Xử lý lỗi "Quiz đã đóng" dựa vào status
-  if (quiz.status === 'CLOSED') {
-    throw new AppError("Quiz đã đóng", 403);
-  }
-
-  // Chú thích (BE): Xử lý lỗi "Quiz đã đóng" dựa vào thời gian kết thúc (available_until)
-  const now = new Date();
-  if (quiz.available_until && new Date(quiz.available_until) < now) {
-    throw new AppError("Quiz đã đóng", 403);
-  }
-
-  // Chú thích (BE): Xử lý lỗi "Quiz không công khai" nếu status không phải PUBLIC
-  if (quiz.status !== 'PUBLIC') {
-    throw new AppError("Quiz không công khai", 403);
-  }
-
-  return quiz;
-};
 
 export const getPublicQuizzes = async () => {
   return await quizRepository.getPublicQuizzes();

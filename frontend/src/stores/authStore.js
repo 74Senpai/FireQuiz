@@ -1,3 +1,6 @@
+import { create } from "zustand";
+import * as authService from "../services/authServices";
+
 export const useAuthStore = create((set) => ({
   user: null,
   isAuthenticated: false,
@@ -19,7 +22,7 @@ export const useAuthStore = create((set) => ({
 
   fetchUser: async () => {
     try {
-      const data = await authService.getMe();
+      const data = await authService.getProfile();
 
       set({
         user: {

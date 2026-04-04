@@ -1,6 +1,124 @@
 import * as attemptRepository from '../repositories/attemptRepository.js';
 import * as quizRepository from '../repositories/quizRepository.js';
 import AppError from '../errors/AppError.js';
+import pool from '../db/db.js';
+
+const shuffleArray = (array) => {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+};
+
+const generateAttemptSnapshot = async (quizId, userId, quizTitle) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // 1. Phân tích câu hỏi và đáp án
+    const rows = await attemptRepository.getQuestionsAndAnswersByQuizId(conn, quizId);
+    
+    // Group
+    const questionsMap = new Map();
+    for (const row of rows) {
+      if (!row.question_id) continue;
+      
+      if (!questionsMap.has(row.question_id)) {
+        questionsMap.set(row.question_id, {
+          content: row.question_content,
+          type: row.question_type,
+          answers: []
+        });
+      }
+      
+      if (row.answer_id) {
+        questionsMap.get(row.question_id).answers.push({
+          content: row.answer_content,
+          is_correct: row.answer_is_correct
+        });
+      }
+    }
+
+    const groupedQuestions = Array.from(questionsMap.values());
+    shuffleArray(groupedQuestions);
+
+    // 2. Insert quiz_attempts
+    const attemptId = await attemptRepository.createQuizAttempt(conn, userId, quizId, quizTitle);
+
+    if (groupedQuestions.length === 0) {
+      await conn.commit();
+      return { attemptId, questions: [] };
+    }
+
+    // 3. Bulk insert attempt_questions
+    const attemptQuestionsPayload = groupedQuestions.map(q => [attemptId, q.content, q.type]);
+    const aqResult = await attemptRepository.bulkInsertAttemptQuestions(conn, attemptQuestionsPayload);
+    
+    let currentAqId = aqResult.insertId;
+    const attemptOptionsPayload = [];
+    const questionsData = [];
+
+    // Gán ID cho câu hỏi và chuẩn bị bulk insert options
+    for (const q of groupedQuestions) {
+      const aqId = currentAqId++;
+      
+      shuffleArray(q.answers);
+      
+      q.aqId = aqId;
+      q.optionsCount = q.answers.length;
+
+      for (const a of q.answers) {
+        attemptOptionsPayload.push([aqId, a.content, a.is_correct]);
+      }
+    }
+
+    if (attemptOptionsPayload.length > 0) {
+      // 4. Bulk insert attempt_options
+      const aoResult = await attemptRepository.bulkInsertAttemptOptions(conn, attemptOptionsPayload);
+      let currentAoId = aoResult.insertId;
+
+      // 5. Gán ID cho options và format chuẩn trả về client
+      for (const q of groupedQuestions) {
+        const optionsData = [];
+        for (let i = 0; i < q.optionsCount; i++) {
+          const optId = currentAoId++;
+          optionsData.push({
+            id: optId,
+            text: q.answers[i].content
+          });
+        }
+        questionsData.push({
+          id: q.aqId,
+          text: q.content,
+          type: q.type,
+          options: optionsData
+        });
+      }
+    } else {
+      // Nếu không có options nào
+      for (const q of groupedQuestions) {
+        questionsData.push({
+          id: q.aqId,
+          text: q.content,
+          type: q.type,
+          options: []
+        });
+      }
+    }
+
+    await conn.commit();
+    return {
+      attemptId,
+      questions: questionsData
+    };
+
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+};
 
 /**
  * Đồng bộ đáp án tạm thời khi người dùng chọn một option.
@@ -13,7 +131,7 @@ import AppError from '../errors/AppError.js';
  */
 export const submitAnswer = async (attemptId, userId, attemptQuestionId, attemptOptionId) => {
   // Chú thích (BE): Kiểm tra attempt có tồn tại không
-  const attempt = await attemptRepository.getAttemptById(attemptId);
+  const attempt = await attemptRepository.getQuizAttemptById(attemptId);
   if (!attempt) {
     throw new AppError('Không tìm thấy bài làm', 404);
   }
@@ -28,8 +146,33 @@ export const submitAnswer = async (attemptId, userId, attemptQuestionId, attempt
     throw new AppError('Bài đã nộp, không thể thay đổi đáp án', 400);
   }
 
-  // Chú thích (BE): Lưu đáp án tạm thời (upsert)
-  await attemptRepository.upsertAnswer(attemptId, attemptQuestionId, attemptOptionId);
+  // Chú thích (BE): Kiểm tra thời gian
+  const quiz = await quizRepository.getQuizById(attempt.quiz_id);
+  if (quiz && quiz.time_limit_seconds) {
+    const now = new Date();
+    const startedAt = new Date(attempt.started_at);
+    const elapsedSeconds = Math.floor((now.getTime() - startedAt.getTime()) / 1000);
+    // Cho phép trễ 5 giây so với network (buffer delay)
+    if (elapsedSeconds > quiz.time_limit_seconds + 5) {
+      throw new AppError('Đã hết thời gian làm bài, không thể lưu thêm đáp án', 400);
+    }
+  }
+
+  // Chú thích (BE): Lưu đáp án tạm thời (áp dụng transaction)
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    await attemptRepository.deleteAttemptAnswers(conn, attemptQuestionId);
+    await attemptRepository.insertAttemptAnswer(conn, attemptOptionId);
+
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
 };
 
 export const startAttempt = async (quizId, userId) => {
@@ -38,32 +181,49 @@ export const startAttempt = async (quizId, userId) => {
     throw new AppError('Quiz không tồn tại', 404);
   }
 
+  const now = new Date();
+  const isBeforeOpen = quiz.available_from && new Date(quiz.available_from) > now;
+  const isAfterClose = quiz.available_until && new Date(quiz.available_until) < now;
+
+  const hasSchedule = quiz.available_from || quiz.available_until;
+  const isDateValid = !isBeforeOpen && !isAfterClose;
+
+  // Lazy state update dựa trên cài đặt lịch thời gian
+  if (hasSchedule) {
+    if (isDateValid && quiz.status !== 'PUBLIC' && quiz.status !== 'DELETED') {
+      await quizRepository.setStatus(quizId, 'PUBLIC');
+      quiz.status = 'PUBLIC';
+    } else if (!isDateValid && quiz.status === 'PUBLIC') {
+      await quizRepository.setStatus(quizId, 'PRIVATE');
+      quiz.status = 'PRIVATE';
+    }
+  }
+
+  // Ném lỗi ưu tiên báo về thời gian trước
+  if (isBeforeOpen) {
+    throw new AppError('Quiz chưa mở', 403);
+  }
+  if (isAfterClose) {
+    throw new AppError('Quiz đã đóng', 403);
+  }
   if (quiz.status !== 'PUBLIC') {
     throw new AppError('Quiz không công khai', 403);
   }
 
-  const now = new Date();
-  if (quiz.available_from && new Date(quiz.available_from) > now) {
-    throw new AppError('Quiz chưa mở', 403);
-  }
-  if (quiz.available_until && new Date(quiz.available_until) < now) {
-    throw new AppError('Quiz đã đóng', 403);
-  }
-
   // Chú thích (BE): Kiểm tra xem có bài làm nào đang dang dở không (chưa nộp)
   const activeAttempt = await attemptRepository.getActiveAttempt(quizId, userId);
-  
+
   if (activeAttempt) {
     // Nếu có, tiếp tục bài làm cũ (tránh mất kết quả tự động lưu khi rớt mạng)
     const attemptData = await attemptRepository.getAttemptSnapshot(activeAttempt.id);
-    
+
     // Tính toán thời gian còn lại (nếu có giới hạn thời gian)
     let remainingSeconds = quiz.time_limit_seconds;
     if (remainingSeconds) {
       const elapsedSeconds = Math.floor((now - new Date(activeAttempt.started_at)) / 1000);
       remainingSeconds = Math.max(0, quiz.time_limit_seconds - elapsedSeconds);
     }
-    
+
     return {
       quizTitle: activeAttempt.quiz_title,
       timeLimitSeconds: remainingSeconds,
@@ -71,20 +231,84 @@ export const startAttempt = async (quizId, userId) => {
     };
   }
 
-  // Chú thích (BE): Nếu không có bài dang dở, kiểm tra số lần làm bài tối đa
+  // Chú thích (BE): Nếu không có bài dang dở, kiểm tra số lượt làm bài tối đa (dùng chung cho bộ quiz)
   if (quiz.max_attempts) {
-    const attemptsCount = await attemptRepository.countUserAttempts(quizId, userId);
-    if (attemptsCount >= quiz.max_attempts) {
-      throw new AppError('Bạn đã vượt quá số lần làm bài cho phép', 403);
+    const totalAttempts = await attemptRepository.countTotalAttempts(quizId);
+    if (totalAttempts >= quiz.max_attempts) {
+      throw new AppError('Đã hết số lượt tham gia giới hạn của bài trắc nghiệm này', 403);
     }
   }
 
-  const attemptData = await attemptRepository.generateAttemptSnapshot(quizId, userId, quiz.title);
-  
+  const attemptData = await generateAttemptSnapshot(quizId, userId, quiz.title);
+
   // Trả về dữ liệu để hiển thị trang làm bài
   return {
     quizTitle: quiz.title,
     timeLimitSeconds: quiz.time_limit_seconds,
     ...attemptData
   };
+};
+
+export const finishAttempt = async (attemptId, userId) => {
+  const attempt = await attemptRepository.getQuizAttemptById(attemptId);
+  if (!attempt) {
+    throw new AppError('Không tìm thấy bài làm', 404);
+  }
+
+  if (attempt.user_id !== userId) {
+    throw new AppError('Bạn không có quyền thực hiện hành động này', 403);
+  }
+
+  if (attempt.finished_at !== null) {
+    // Đã nộp rồi thì không báo lỗi crash, chỉ trả về để FE biết
+    return { message: 'Bài đã được nộp trước đó' };
+  }
+
+  const quiz = await quizRepository.getQuizById(attempt.quiz_id);
+  const scoreData = await attemptRepository.getAttemptScoreData(attemptId);
+
+  let finalScore = 0;
+  if (scoreData.total > 0) {
+    const gradingScale = quiz.grading_scale || 10;
+    finalScore = (scoreData.correct / scoreData.total) * gradingScale;
+  }
+
+  // Làm tròn 2 chữ số thập phân
+  finalScore = Math.round(finalScore * 100) / 100;
+
+  await attemptRepository.markAttemptFinished(attemptId, finalScore);
+
+  return {
+    message: 'Nộp bài thành công',
+    score: finalScore,
+    correct: scoreData.correct,
+    total: scoreData.total
+  };
+};
+
+export const recordTabViolation = async (attemptId, userId) => {
+  const attempt = await attemptRepository.getQuizAttemptById(attemptId);
+  if (!attempt) {
+    throw new AppError('Không tìm thấy bài làm', 404);
+  }
+
+  if (attempt.user_id !== userId) {
+    throw new AppError('Bạn không có quyền thực hiện hành động này', 403);
+  }
+
+  // Chú thích (BE): Tăng số lần vi phạm
+  await attemptRepository.incrementTabViolation(attemptId);
+};
+
+export const joinQuizByCode = async (code, userId) => {
+  const quiz = await quizRepository.getQuizByCode(code);
+  if (!quiz) {
+    throw new AppError("Sai PIN", 404);
+  }
+  
+  // Tái sử dụng logic gọi startAttempt để xác thực toàn diện (time, status, max_attempts) 
+  // và tạo luôn snapshot/active attempt để đảm bảo tuân thủ "tạo bài làm ngay lúc bấm join".
+  await startAttempt(quiz.id, userId);
+
+  return quiz;
 };
