@@ -8,6 +8,7 @@ import AppError from '../errors/AppError.js';
 const PIN_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const PIN_LENGTH = 6;
 const PIN_MAX_RETRIES = 5;
+const crypto = require('crypto');
 
 
 const buildAnswersByQuestionIdMap = (answers) =>
@@ -212,14 +213,16 @@ export const deleteQuiz = async (id, user) => {
   }
 };
 
+
 /**
  * Sinh mã PIN ngẫu nhiên 6 ký tự (A-Z, 0-9)
  * Nếu quiz đã có mã, trả về mã hiện tại (idempotent)
  */
-const generateRandomPin = () => {
+const generateRandomPin = (length = PIN_LENGTH) => {
   let pin = '';
-  for (let i = 0; i < PIN_LENGTH; i++) {
-    pin += PIN_CHARS[Math.floor(Math.random() * PIN_CHARS.length)];
+  const bytes = crypto.randomBytes(length);
+  for (let i = 0; i < length; i++) {
+    pin += PIN_CHARS[bytes[i] % PIN_CHARS.length];
   }
   return pin;
 };
