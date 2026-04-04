@@ -1,7 +1,7 @@
 import axiosInstance from "../api/axios.js";
 
 export const login = async (data) => {
-  const res = await axios.post("/auth/login", data);
+  const res = await axiosInstance.post("/auth/login", data);
   return res.data;
 };
 
@@ -15,19 +15,19 @@ export const logout = async () => {
 };
 
 export const register = async (data) => {
-  const res = await axios.post("/auth/register", data);
+  const res = await axiosInstance.post("/auth/register", data);
   return res.data;
 };
 
 export const forgotPassword = (email) =>{
-  axios.post("/auth/forgot-password", { email });
+  return axiosInstance.post("/auth/forgot-password", { email });
 };
 
 export const verifyOTP = async (data) => {
-  const res = await axios.post("/auth/verify-otp", data);
+  const res = await axiosInstance.post("/auth/verify-otp", data);
   return res;
 };
 
 export const resetPassword = (data) => {
-  axios.post("/auth/reset-password", data);
+  return axiosInstance.post("/auth/reset-password", data);
 };
