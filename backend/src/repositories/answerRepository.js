@@ -17,6 +17,14 @@ export const getAnswersByQuestionId = async (questionId) => {
   return rows;
 };
 
+export const deleteAnswersByQuestionId = async (questionId) => {
+  const [result] = await pool.query(
+    'DELETE FROM answers WHERE question_id = ?',
+    [questionId]
+  );
+  return result.affectedRows;
+};
+
 export const getAnswersByQuestionIds = async (questionIds) => {
   if (!questionIds.length) {
     return [];
