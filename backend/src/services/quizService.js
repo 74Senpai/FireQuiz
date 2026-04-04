@@ -5,6 +5,12 @@ import * as attemptAggregationService from '../services/attemptAggregationServic
 import { findById } from '../repositories/userRepository.js';
 import AppError from '../errors/AppError.js';
 
+const PIN_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+const PIN_LENGTH = 6;
+const PIN_MAX_RETRIES = 5;
+import crypto from 'crypto';
+
+
 const buildAnswersByQuestionIdMap = (answers) =>
   answers.reduce((acc, answer) => {
     if (!acc.has(answer.question_id)) {
@@ -205,4 +211,54 @@ export const deleteQuiz = async (id, user) => {
       throw new AppError("Xóa bộ câu hỏi thất bại", 404);
     }
   }
-}
+};
+
+
+/**
+ * Sinh mã PIN ngẫu nhiên 6 ký tự (A-Z, 0-9)
+ * Nếu quiz đã có mã, trả về mã hiện tại (idempotent)
+ */
+const generateRandomPin = (length = PIN_LENGTH) => {
+  let pin = '';
+  const bytes = crypto.randomBytes(length);
+  for (let i = 0; i < length; i++) {
+    pin += PIN_CHARS[bytes[i] % PIN_CHARS.length];
+  }
+  return pin;
+};
+
+export const generatePin = async (id, user) => {
+  const quiz = await quizRepository.getQuizById(id);
+  checkQuizExistAndOwner(quiz, user);
+
+  // Idempotent: trả về mã hiện tại nếu đã có
+  if (quiz.quiz_code) {
+    return { pin: quiz.quiz_code };
+  }
+
+  // Sinh mã mới, kiểm tra trùng lặp
+  let pin = null;
+  for (let attempt = 0; attempt < PIN_MAX_RETRIES; attempt++) {
+    const candidate = generateRandomPin();
+    const existing = await quizRepository.findByQuizCode(candidate);
+    if (!existing) {
+      pin = candidate;
+      break;
+    }
+  }
+
+  if (!pin) {
+    throw new AppError('Không thể sinh mã PIN duy nhất, vui lòng thử lại', 500);
+  }
+
+  await quizRepository.setQuizCode(id, pin);
+  return { pin };
+};
+
+export const removePin = async (id, user) => {
+  const quiz = await quizRepository.getQuizById(id);
+  checkQuizExistAndOwner(quiz, user);
+
+  await quizRepository.setQuizCode(id, null);
+};
+
