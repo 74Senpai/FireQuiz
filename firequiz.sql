@@ -55,6 +55,7 @@ CREATE TABLE quiz_attempts (
     quiz_id INT NOT NULL,
     quiz_title VARCHAR(255) NOT NULL,
     score DECIMAL(5, 2),
+    tab_violations INT NOT NULL DEFAULT 0,
     started_at DATETIME NOT NULL,
     finished_at DATETIME,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

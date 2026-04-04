@@ -1,6 +1,7 @@
 import { asyncHandler } from '../untils/asyncHandler.js';
 import * as quizService from '../services/quizService.js';
 import * as quizReportService from '../services/quizReportService.js';
+import * as attemptService from '../services/attemptService.js';
 import AppError from '../errors/AppError.js';
 
 const sendReport = (res, report) => {
@@ -147,7 +148,8 @@ export const deleteQuiz = asyncHandler(async (req, res) => {
 // Chú thích (BE): Controller xử lý API cho chức năng tham gia Quiz bằng mã PIN
 export const joinQuiz = asyncHandler(async (req, res) => {
   const code = req.params.code;
-  const quiz = await quizService.joinQuiz(code);
+  const user = req.user;
+  const quiz = await attemptService.joinQuizByCode(code, user.id);
   
   return res.status(200).json(quiz);
 });

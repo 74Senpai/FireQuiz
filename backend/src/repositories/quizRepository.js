@@ -109,7 +109,13 @@ export const hardDelete = async (id) => {
 };
 
 export const getPublicQuizzes = async () => {
-  const sql = "SELECT * FROM quizzes WHERE status = 'PUBLIC' AND (available_until IS NULL OR available_until > NOW()) ORDER BY created_at DESC;";
+  const sql = `
+    SELECT * FROM quizzes 
+    WHERE status = 'PUBLIC' 
+      AND (available_from IS NULL OR available_from <= NOW())
+      AND (available_until IS NULL OR available_until > NOW()) 
+    ORDER BY created_at DESC;
+  `;
   const [rows] = await pool.execute(sql);
   return rows;
 };
