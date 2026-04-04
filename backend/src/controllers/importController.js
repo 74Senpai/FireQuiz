@@ -37,7 +37,7 @@ export const importQuestionsFromExcel = asyncHandler(async (req, res) => {
   // Kiểm tra quiz tồn tại và owner
   const quiz = await getQuizById(quizId);
   if (!quiz) throw new AppError('Quiz không tồn tại', 404);
-  if (quiz.creator_id != user.id) {
+  if (quiz.creator_id !== user.id) {
     throw new AppError('Bạn không có quyền import câu hỏi vào quiz này', 403);
   }
 
