@@ -3,7 +3,7 @@ import * as attemptService from '../services/attemptService.js';
 import AppError from '../errors/AppError.js';
 
 /**
- * PATCH /api/attempts/:id/submit
+ * PATCH /api/attempts/:id/answer
  * Body: { attemptQuestionId: number, attemptOptionId: number }
  *
  * Chú thích (BE): Controller đồng bộ đáp án tạm thời khi người dùng chọn một đáp án.
@@ -16,7 +16,10 @@ export const submitAnswer = asyncHandler(async (req, res) => {
 
   // Chú thích (BE): Validate input
   if (!attemptQuestionId || !attemptOptionId) {
-    throw new AppError('Thiếu attemptQuestionId hoặc attemptOptionId', 400);
+    // Chú thích (BE): Nên để Frontend xử lý và không hiển thị lỗi của API này. 
+    // Vì request được trigger tự động khi người dùng chọn đáp án (onChange), 
+    // nên việc hiển thị lỗi sẽ không mang lại giá trị cho UX.
+    return res.status(400).json({ message: 'Thiếu attemptQuestionId hoặc attemptOptionId' });
   }
 
   await attemptService.submitAnswer(
@@ -35,6 +38,33 @@ export const startAttempt = asyncHandler(async (req, res) => {
   const user = req.user;
 
   const result = await attemptService.startAttempt(quizId, user.id);
-  
+
   return res.status(200).json(result);
+});
+
+/**
+ * PATCH /api/attempts/:id/submit
+ * Chú thích (BE): Controller nộp bài chính thức, khóa bài và chấm toán điểm.
+ * Gọi khi hết giờ hoặc user chủ động nộp.
+ */
+export const completeAttempt = asyncHandler(async (req, res) => {
+  const attemptId = Number(req.params.id);
+  const user = req.user;
+
+  const result = await attemptService.finishAttempt(attemptId, user.id);
+
+  return res.status(200).json(result);
+});
+
+/**
+ * PATCH /api/attempts/:id/violation
+ * Chú thích (BE): Controller ghi nhận vi phạm chuyển tab.
+ */
+export const reportViolation = asyncHandler(async (req, res) => {
+  const attemptId = Number(req.params.id);
+  const user = req.user;
+
+  await attemptService.recordTabViolation(attemptId, user.id);
+
+  return res.status(200).json({ message: 'Đã báo cáo vi phạm thành công' });
 });
