@@ -1,6 +1,7 @@
 import * as questionRepository from '../repositories/questionRepository.js';
 import * as answerRepository from '../repositories/answerRepository.js';
 import { getQuizById } from '../repositories/quizRepository.js';
+import pool from '../db/db.js';
 import AppError from '../errors/AppError.js';
 
 const ALLOWED_TYPES = ['ANANSWER', 'MULTI_ANSWERS', 'TRUE_FALSE', 'TEXT'];
@@ -54,14 +55,14 @@ const validateAnswers = (type, answers) => {
 /**
  * Lưu danh sách đáp án vào DB theo questionId
  */
-const saveAnswers = async (questionId, answers) => {
+const saveAnswers = async (questionId, answers, tx = pool) => {
   if (!answers || answers.length === 0) return;
   const promises = answers.map(ans =>
     answerRepository.createAnswer({
       content: ans.content,
       isCorrect: ans.isCorrect,
       questionId,
-    })
+    }, tx)
   );
   await Promise.all(promises);
 };
@@ -79,11 +80,19 @@ export const createQuestion = async (user, data) => {
   if (!quiz) throw new AppError('Quiz không tồn tại', 404);
   if (quiz.creator_id != user.id) throw new AppError('Bạn không có quyền thêm câu hỏi vào quiz này', 403);
 
-  const questionId = await questionRepository.create({ content, type, quizId });
-
-  await saveAnswers(questionId, answers);
-
-  return questionId;
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const questionId = await questionRepository.create({ content, type, quizId }, conn);
+    await saveAnswers(questionId, answers, conn);
+    await conn.commit();
+    return questionId;
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
+  }
 };
 
 export const getListQuestionByQuizId = async (quizId, user) => {
@@ -133,20 +142,45 @@ export const updateQuestion = async (questionId, userId, data) => {
     validateAnswers(type, answers);
   }
 
-  // Cập nhật content và type
-  if (content) await questionRepository.changeContent(questionId, content);
-  if (type) await questionRepository.changeType(questionId, type);
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
 
-  // Replace toàn bộ đáp án cũ nếu có answers mới
-  if (answers !== undefined) {
-    await answerRepository.deleteAnswersByQuestionId(questionId);
-    await saveAnswers(questionId, answers);
+    // Cập nhật content và type
+    if (content) await questionRepository.changeContent(questionId, content, conn);
+    if (type) await questionRepository.changeType(questionId, type, conn);
+
+    // Replace toàn bộ đáp án cũ nếu có answers mới
+    if (answers !== undefined) {
+      await answerRepository.deleteAnswersByQuestionId(questionId, conn);
+      await saveAnswers(questionId, answers, conn);
+    }
+
+    await conn.commit();
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
   }
 };
 
 export const deleteQuestion = async (questionId, userId) => {
   await checkQuestionExistAndOwner(questionId, userId);
-  await questionRepository.deleteQuestionById(questionId);
+  
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    // Xóa đáp án trước (đề phòng không có cascade delete trong DB)
+    await answerRepository.deleteAnswersByQuestionId(questionId, conn);
+    await questionRepository.deleteQuestionById(questionId, conn);
+    await conn.commit();
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
+  }
 };
 
 const checkQuizAccess = (quiz, user) => {

@@ -1,7 +1,7 @@
 import pool from '../db/db.js';
 
-export const createAnswer = async ({ content, isCorrect, questionId }) => {
-  const [result] = await pool.query(
+export const createAnswer = async ({ content, isCorrect, questionId }, tx = pool) => {
+  const [result] = await tx.query(
     'INSERT INTO answers (content, is_correct, question_id) VALUES (?, ?, ?)',
     [content, isCorrect, questionId]
   );
@@ -17,8 +17,8 @@ export const getAnswersByQuestionId = async (questionId) => {
   return rows;
 };
 
-export const deleteAnswersByQuestionId = async (questionId) => {
-  const [result] = await pool.query(
+export const deleteAnswersByQuestionId = async (questionId, tx = pool) => {
+  const [result] = await tx.query(
     'DELETE FROM answers WHERE question_id = ?',
     [questionId]
   );
