@@ -10,8 +10,8 @@ import {
   Clock, Settings, Calendar, ShieldAlert, ChevronLeft, Loader2,
   Globe, Lock, Hash, Copy, Check, RefreshCw, Trash2,
 } from "lucide-react";
-import axios from "axios";
 import { cn } from "@/lib/utils";
+import * as quizServices from "@/services/quizServices";
 
 // ─── Status helpers ───────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -48,18 +48,14 @@ export function QuizEditor() {
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
-  const token = localStorage.getItem("accessToken");
-  const authHeader = { Authorization: `Bearer ${token}` };
-
   // ── Load dữ liệu Quiz khi edit ─────────────────────────────────────────────
   useEffect(() => {
     if (!isEditMode || !id) return;
     const fetchQuizDetail = async () => {
       setIsLoadingData(true);
       try {
-        const res = await axios.get(`${API_URL}/quiz/${id}`, { headers: authHeader });
-        const quiz = res.data;
+        const res = await quizServices.getQuizDetails(id);
+        const quiz = res.data || res;
         if (quiz) {
           setTitle(quiz.title || "");
           setDescription(quiz.description || "");
@@ -112,17 +108,18 @@ export function QuizEditor() {
 
       if (isEditMode) {
         await Promise.all([
-          axios.patch(`${API_URL}/quiz/${id}/info`, infoPayload, { headers: authHeader }),
-          axios.patch(`${API_URL}/quiz/${id}/settings`, settingsPayload, { headers: authHeader }),
-          axios.patch(`${API_URL}/quiz/${id}/status`, { status: newStatus }, { headers: authHeader }),
+          quizServices.updateQuizInfo(id!, infoPayload),
+          quizServices.updateQuizSettings(id!, settingsPayload),
+          quizServices.updateQuizStatus(id!, newStatus),
         ]);
         setQuizStatus(newStatus);
         alert("Cập nhật bài thi thành công!");
       } else {
         const createPayload = { ...infoPayload, ...settingsPayload, status: newStatus };
-        const res = await axios.post(`${API_URL}/quiz`, createPayload, { headers: authHeader });
+        const res = await quizServices.createQuiz(createPayload);
         alert("Tạo bài thi mới thành công!");
-        navigate(`/dashboard/quiz/${res.data.quizId}/edit`);
+        const quizId = res.quizId || res.data?.quizId;
+        navigate(`/dashboard/quiz/${quizId}/edit`);
         return;
       }
     } catch (error: any) {
@@ -137,7 +134,7 @@ export function QuizEditor() {
     if (!isEditMode || newStatus === quizStatus) return;
     setIsStatusUpdating(true);
     try {
-      await axios.patch(`${API_URL}/quiz/${id}/status`, { status: newStatus }, { headers: authHeader });
+      await quizServices.updateQuizStatus(id!, newStatus);
       setQuizStatus(newStatus);
     } catch (err: any) {
       alert(err.response?.data?.message || "Không thể đổi trạng thái");
@@ -150,8 +147,8 @@ export function QuizEditor() {
   const handleGeneratePin = async () => {
     setIsPinLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/quiz/${id}/generate-pin`, {}, { headers: authHeader });
-      setQuizPin(res.data.pin);
+      const res = await quizServices.generatePin(id!);
+      setQuizPin(res.pin || res.quizCode || res.data?.pin || res.data?.quizCode);
     } catch (err: any) {
       alert(err.response?.data?.message || "Không thể tạo mã PIN");
     } finally {
@@ -164,7 +161,7 @@ export function QuizEditor() {
     if (!confirm("Xóa mã PIN? Người dùng đang có mã sẽ không thể dùng mã này nữa.")) return;
     setIsPinLoading(true);
     try {
-      await axios.delete(`${API_URL}/quiz/${id}/pin`, { headers: authHeader });
+      await quizServices.removePin(id!);
       setQuizPin(null);
     } catch (err: any) {
       alert(err.response?.data?.message || "Không thể xóa mã PIN");
@@ -366,7 +363,7 @@ export function QuizEditor() {
                       </div>
                       <p className="text-xs text-slate-500 mt-2">
                         {quizStatus === "PUBLIC"
-                          ? "Quiz hiện đang công khai — ai cũng có thể tìm thấy."
+                           ? "Quiz hiện đang công khai — ai cũng có thể tìm thấy."
                           : quizStatus === "PRIVATE"
                           ? "Quiz đang ở chế độ riêng tư."
                           : "Quiz đang là bản nháp, chưa hiển thị."
