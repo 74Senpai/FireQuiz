@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from "react";
 import * as XLSX from "xlsx";
-import axios from "axios";
+import * as quizServices from "@/services/quizServices";
+
 import {
   Upload,
   FileSpreadsheet,
@@ -104,9 +105,6 @@ export function ImportExcelModal({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const API_URL = API_URL || "http://localhost:8080/api";
-  const token = localStorage.getItem("accessToken");
-
   const validRows = parsedRows.filter((r) => r.valid);
   const invalidRows = parsedRows.filter((r) => !r.valid);
 
@@ -149,14 +147,8 @@ export function ImportExcelModal({
   // ── Download template ───────────────────────────────────────────────────────
   const handleDownloadTemplate = async () => {
     try {
-      const res = await axios.get(
-        `${API_URL}/quiz/${quizId}/import-excel/template`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          responseType: "blob",
-        },
-      );
-      const url = URL.createObjectURL(res.data);
+      const res = await quizServices.getImportTemplate(quizId);
+      const url = URL.createObjectURL(res.data || res);
       const a = document.createElement("a");
       a.href = url;
       a.download = "firequiz_question_template.xlsx";
@@ -176,18 +168,9 @@ export function ImportExcelModal({
       const formData = new FormData();
       formData.append("file", rawFile);
 
-      const res = await axios.post(
-        `${API_URL}/quiz/${quizId}/import-excel`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        },
-      );
+      const res = await quizServices.importQuestionsFromExcel(quizId, formData);
 
-      alert(res.data.message);
+      alert(res.message || "Import thành công");
       onSuccess();
     } catch (err: any) {
       alert(err.response?.data?.message || "Import thất bại");
@@ -195,6 +178,7 @@ export function ImportExcelModal({
       setIsImporting(false);
     }
   };
+
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   return (
