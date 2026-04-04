@@ -23,6 +23,8 @@ export function TakeQuiz() {
   // Chú thích (FE): State lưu đáp án đã chọn: key = attempt_questions.id, value = attempt_options.id
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [syncStatus, setSyncStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  // Chú thích (FE): State để khoá giao diện trong lúc đang submit khóa bài
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
@@ -84,9 +86,61 @@ export function TakeQuiz() {
     navigate("/dashboard/history");
     if (!quizId) return;
     navigate(`/dashboard/quiz/${quizId}/review`);
+  // Chú thích (FE): Lắng nghe sự kiện chuyển tab/ẩn ứng dụng để chống gian lận
+  useEffect(() => {
+    if (loading || errorMsg || !attemptId || isSubmitting) return;
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === "hidden") {
+        alert("CẢNH BÁO: Bạn vừa chuyển sang một tab hoặc cửa sổ khác! Hành động này đã được hệ thống ghi nhận.");
+        try {
+          const token = localStorage.getItem("accessToken");
+          await axios.patch(
+            `${API_URL}/api/attempts/${attemptId}/violation`,
+            {},
+            {
+              headers: { Authorization: `Bearer ${token}` },
+              withCredentials: true
+            }
+          );
+        } catch (err) {
+          console.error("Lỗi khi báo cáo vi phạm:", err);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [loading, errorMsg, attemptId, isSubmitting]);
+
+  // Chú thích (FE): Gọi API PATCH /api/attempts/:id/submit để nộp bài
+  const handleSubmit = async () => {
+    if (!quizId || !attemptId || isSubmitting) return;
+    
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      await axios.patch(
+        `${API_URL}/api/attempts/${attemptId}/submit`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true
+        }
+      );
+      // Chú thích (FE): Nộp thành công, tiến hành navigate sang kết quả
+      navigate(`/dashboard/quiz/${quizId}/review`);
+    } catch (err) {
+      console.error("Lỗi khi nộp bài:", err);
+      // Chú thích (FE): Trong trường hợp hết thời gian mà lưu nháp thất bại, ta vẫn cho pass qua review
+      navigate(`/dashboard/quiz/${quizId}/review`);
+    }
   };
 
-  // Chú thích (FE): Gọi API PATCH /api/attempts/:attemptId/submit để đồng bộ đáp án tạm thời xuống DB
+  // Chú thích (FE): Gọi API PATCH /api/attempts/:attemptId/answer để đồng bộ đáp án tạm thời xuống DB
   // Dùng useCallback để tránh recreate function mỗi render
   const syncAnswerToServer = useCallback(async (
     questionId: number,
@@ -97,7 +151,7 @@ export function TakeQuiz() {
     try {
       const token = localStorage.getItem("accessToken");
       await axios.patch(
-        `${API_URL}/api/attempts/${attemptId}/submit`,
+        `${API_URL}/api/attempts/${attemptId}/answer`,
         { attemptQuestionId: questionId, attemptOptionId: optionId },
         { 
           headers: { Authorization: `Bearer ${token}` },
@@ -108,16 +162,16 @@ export function TakeQuiz() {
       setSyncStatus("saved");
       setTimeout(() => setSyncStatus("idle"), 1500);
     } catch (err) {
-      // Chú thích (FE): Sync thất bại – hiển thị lỗi nhưng KHÔNG chặn user làm tiếp
-      // Đáp án vẫn lưu trong state local, đảm bảo UX mượt
+      // Chú thích (FE): Sync thất bại – ẩn lỗi API khỏi UI để không ảnh hưởng UX
+      // Đáp án vẫn lưu trong state local, Frontend chỉ log lại hoặc có thể implement retry sau
       console.warn("Sync answer thất bại:", err);
-      setSyncStatus("error");
-      setTimeout(() => setSyncStatus("idle"), 2000);
+      setSyncStatus("idle");
     }
   }, [attemptId]);
 
   // Chú thích (FE): Handler khi người dùng chọn đáp án
   const handleAnswerSelect = (questionId: number, optionId: number) => {
+    if (isSubmitting) return; // Khoá lại không cho đổi khi đang nộp
     // Cập nhật state local ngay lập tức (optimistic UI)
     setSelectedAnswers(prev => ({ ...prev, [questionId]: optionId }));
     // Đồng bộ xuống DB (không chặn UI)
@@ -219,9 +273,10 @@ export function TakeQuiz() {
                     name={`q${currentQ.id}`}
                     value={opt.id}
                     checked={isSelected}
+                    disabled={isSubmitting}
                     // Chú thích (FE): onChange chỉ chạy 1 lần khi chọn đáp án (nhờ label bọc ngoài bao gồm cả click native)
                     onChange={() => handleAnswerSelect(currentQ.id, opt.id)}
-                    className="w-5 h-5 text-indigo-400 border-white/30 focus:ring-indigo-400"
+                    className="w-5 h-5 text-indigo-400 border-white/30 focus:ring-indigo-400 disabled:opacity-50"
                   />
                   <span className={`font-medium transition-colors duration-300 ${isSelected ? "text-white" : "text-slate-100 group-hover:text-slate-50"
                     }`}>
@@ -247,9 +302,11 @@ export function TakeQuiz() {
         {currentQuestion === questions.length - 1 ? (
           <Button
             onClick={handleSubmit}
+            disabled={isSubmitting}
             className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 gap-2 shadow-lg"
           >
-            <AlertTriangle className="w-4 h-4" /> Nộp bài
+            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertTriangle className="w-4 h-4" />} 
+            {isSubmitting ? "Đang nộp..." : "Nộp bài"}
           </Button>
         ) : (
           <Button
