@@ -97,8 +97,8 @@ export const parseExcelBuffer = async (buffer) => {
   // Đọc header từ Row 1
   const headerRow = sheet.getRow(1);
   const headers = [];
-  headerRow.eachCell({ includeEmpty: false }, (cell) => {
-    headers.push(cell.value?.toString().trim().toLowerCase());
+  headerRow.eachCell({ includeEmpty: true }, (cell) => {
+    headers.push(cell.value?.toString().trim().toLowerCase() || null);
   });
 
   const valid = [];
