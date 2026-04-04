@@ -153,24 +153,36 @@ export const upsertAnswer = async (attemptId, attemptQuestionId, attemptOptionId
     }
 
     // Chú thích (BE): Insert đáp án mới vào attempt_answers
+export const deleteAttemptAnswers = async (conn, attemptQuestionId) => {
+  // Chú thích (BE): Xoá đáp án cũ của câu hỏi này trong attempt
+  // Tìm tất cả option_id thuộc câu hỏi đó rồi xoá trong attempt_answers
+  const [options] = await conn.execute(
+    `SELECT id FROM attempt_options WHERE attempt_question_id = ?`,
+    [attemptQuestionId]
+  );
+  if (options.length > 0) {
+    const optionIds = options.map(o => o.id);
+    // Chú thích (BE): Dùng placeholders động để xoá tất cả đáp án cũ
+    const placeholders = optionIds.map(() => '?').join(',');
     await conn.execute(
-      `INSERT INTO attempt_answers (attempt_option_id) VALUES (?)`,
-      [attemptOptionId]
+      `DELETE FROM attempt_answers WHERE attempt_option_id IN (${placeholders})`,
+      optionIds
     );
-
-    await conn.commit();
-  } catch (err) {
-    await conn.rollback();
-    throw err;
-  } finally {
-    conn.release();
   }
 };
 
+export const insertAttemptAnswer = async (conn, attemptOptionId) => {
+  // Chú thích (BE): Insert đáp án mới vào attempt_answers
+  await conn.execute(
+    `INSERT INTO attempt_answers (attempt_option_id) VALUES (?)`,
+    [attemptOptionId]
+  );
+};
+
 /**
- * Kiểm tra attempt có thuộc về user và chưa finished_at chưa.
+ * Lấy thông tin bài làm theo ID
  */
-export const getAttemptById = async (attemptId) => {
+export const getQuizAttemptById = async (attemptId) => {
   const [rows] = await pool.execute(
     `SELECT * FROM quiz_attempts WHERE id = ?`,
     [attemptId]
@@ -178,79 +190,50 @@ export const getAttemptById = async (attemptId) => {
   return rows[0] || null;
 };
 
-export const countUserAttempts = async (quizId, userId) => {
+export const countTotalAttempts = async (quizId) => {
   const [rows] = await pool.execute(
-    `SELECT COUNT(*) as count FROM quiz_attempts WHERE user_id = ? AND quiz_id = ?`,
-    [userId, quizId]
+    `SELECT COUNT(*) as count FROM quiz_attempts WHERE quiz_id = ?`,
+    [quizId]
   );
   return rows[0].count;
 };
 
-export const generateAttemptSnapshot = async (quizId, userId, quizTitle) => {
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
+export const createQuizAttempt = async (conn, userId, quizId, quizTitle) => {
+  const [result] = await conn.execute(
+    `INSERT INTO quiz_attempts (user_id, quiz_id, quiz_title, started_at) VALUES (?, ?, ?, NOW())`,
+    [userId, quizId, quizTitle]
+  );
+  return result.insertId;
+};
 
-    // 1. Insert quiz_attempts
-    const [attemptResult] = await conn.execute(
-      `INSERT INTO quiz_attempts (user_id, quiz_id, quiz_title, started_at) VALUES (?, ?, ?, NOW())`,
-      [userId, quizId, quizTitle]
-    );
-    const attemptId = attemptResult.insertId;
+export const getQuestionsAndAnswersByQuizId = async (conn, quizId) => {
+  const [rows] = await conn.execute(
+    `SELECT q.id as question_id, q.content as question_content, q.type as question_type,
+            a.id as answer_id, a.content as answer_content, a.is_correct as answer_is_correct
+     FROM questions q
+     LEFT JOIN answers a ON q.id = a.question_id
+     WHERE q.quiz_id = ?`,
+    [quizId]
+  );
+  return rows;
+};
 
-    // 2. Lấy questions từ db
-    const [questions] = await conn.execute(
-      `SELECT id, content, type FROM questions WHERE quiz_id = ?`,
-      [quizId]
-    );
+export const bulkInsertAttemptQuestions = async (conn, questionsData) => {
+  if (questionsData.length === 0) return null;
+  const [result] = await conn.query(
+    `INSERT INTO attempt_questions (quiz_attempt_id, content, type) VALUES ?`,
+    [questionsData]
+  );
+  return result;
+};
 
-    const questionsData = [];
-
-    // 3. Với mỗi question, lấy answers và insert vào attempt_questions/options
-    for (const q of questions) {
-      const [aqResult] = await conn.execute(
-        `INSERT INTO attempt_questions (quiz_attempt_id, content, type) VALUES (?, ?, ?)`,
-        [attemptId, q.content, q.type]
-      );
-      const aqId = aqResult.insertId;
-
-      const [answers] = await conn.execute(
-        `SELECT id, content, is_correct FROM answers WHERE question_id = ?`,
-        [q.id]
-      );
-
-      const optionsData = [];
-      for (const a of answers) {
-        const [aoResult] = await conn.execute(
-          `INSERT INTO attempt_options (attempt_question_id, content, is_correct) VALUES (?, ?, ?)`,
-          [aqId, a.content, a.is_correct]
-        );
-        // Chú thích (BE): Không trả về is_correct cho Client để tránh lộ đáp án
-        optionsData.push({
-          id: aoResult.insertId,
-          text: a.content,
-        });
-      }
-
-      questionsData.push({
-        id: aqId,
-        text: q.content,
-        type: q.type,
-        options: optionsData
-      });
-    }
-
-    await conn.commit();
-    return {
-      attemptId,
-      questions: questionsData
-    };
-  } catch (err) {
-    await conn.rollback();
-    throw err;
-  } finally {
-    conn.release();
-  }
+export const bulkInsertAttemptOptions = async (conn, optionsData) => {
+  if (optionsData.length === 0) return null;
+  const [result] = await conn.query(
+    `INSERT INTO attempt_options (attempt_question_id, content, is_correct) VALUES ?`,
+    [optionsData]
+  );
+  return result;
 };
 
 /**
