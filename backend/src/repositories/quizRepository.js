@@ -113,3 +113,54 @@ export const findByQuizCode = async (code) => {
   return rows[0] || null;
 };
 
+/** Khung giờ mở — dùng trong WHERE (repository chỉ biểu diễn dữ liệu). */
+const SQL_OPEN_WINDOW = `
+  (available_from IS NULL OR available_from <= NOW())
+  AND (available_until IS NULL OR available_until >= NOW())
+`;
+
+const SQL_HAS_SCHEDULE = `NOT (available_from IS NULL AND available_until IS NULL)`;
+
+export const updatePromoteToPublicBySchedule = async (conn) => {
+  await conn.execute(`
+    UPDATE quizzes
+    SET status = 'PUBLIC'
+    WHERE status != 'PUBLIC'
+      AND status != 'DELETED'
+      AND (${SQL_HAS_SCHEDULE})
+      AND (${SQL_OPEN_WINDOW})
+  `);
+};
+
+export const updateDemotePublicPastAvailableUntil = async (conn) => {
+  await conn.execute(`
+    UPDATE quizzes
+    SET status = 'PRIVATE'
+    WHERE status = 'PUBLIC'
+      AND available_until IS NOT NULL
+      AND available_until < NOW()
+  `);
+};
+
+export const countPublicOpenQuizzes = async (conn) => {
+  const [countRows] = await conn.execute(
+    `SELECT COUNT(*) AS total FROM quizzes
+     WHERE status = 'PUBLIC'
+       AND (${SQL_OPEN_WINDOW})`,
+  );
+  const total = countRows[0]?.total ?? 0;
+  return Number(total) || 0;
+};
+
+export const findPublicOpenQuizzes = async (conn, { limit, offset }) => {
+  const [rows] = await conn.execute(
+    `SELECT * FROM quizzes
+     WHERE status = 'PUBLIC'
+       AND (${SQL_OPEN_WINDOW})
+     ORDER BY id DESC
+     LIMIT ? OFFSET ?`,
+    [limit, offset],
+  );
+  return rows;
+};
+
