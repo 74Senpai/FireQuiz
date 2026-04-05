@@ -1,7 +1,18 @@
 import { asyncHandler } from '../untils/asyncHandler.js';
 import * as quizService from '../services/quizService.js';
+import * as quizReportService from '../services/quizReportService.js';
 import * as attemptService from '../services/attemptService.js';
 import AppError from '../errors/AppError.js';
+
+const sendReport = (res, report) => {
+  res.setHeader("Content-Type", report.contentType);
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${report.fileName}"`,
+  );
+
+  return res.status(200).send(report.buffer);
+};
 
 export const createQuiz = asyncHandler(async (req, res) => {
   const data = req.body;
@@ -21,6 +32,60 @@ export const getQuiz = asyncHandler(async (req, res) => {
   }
 
   return res.status(200).json(quiz);
+});
+
+export const getQuizPreview = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const user = req.user;
+
+  const preview = await quizService.getQuizPreview(id, user);
+
+  return res.status(200).json(preview);
+});
+
+export const getLeaderboard = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const user = req.user;
+
+  const leaderboard = await quizService.getLeaderboard(id, user);
+
+  return res.status(200).json(leaderboard);
+});
+
+export const getQuestionAnalytics = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const user = req.user;
+
+  const analytics = await quizService.getQuestionAnalytics(id, user);
+
+  return res.status(200).json(analytics);
+});
+
+export const getResultsDashboard = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const user = req.user;
+
+  const dashboard = await quizService.getResultsDashboard(id, user);
+
+  return res.status(200).json(dashboard);
+});
+
+export const exportQuizResultsExcel = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const user = req.user;
+
+  const report = await quizReportService.buildExcelReport(id, user);
+
+  return sendReport(res, report);
+});
+
+export const exportQuizResultsPdf = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const user = req.user;
+
+  const report = await quizReportService.buildPdfReport(id, user);
+
+  return sendReport(res, report);
 });
 
 export const setStatus = asyncHandler(async (req, res) => {

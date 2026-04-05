@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import * as authService from "../services/authServices";
+import * as authService from "../services/authServices.js";
 
 export const useAuthStore = create((set) => ({
   user: null,
@@ -7,23 +7,27 @@ export const useAuthStore = create((set) => ({
   isLoading: true,
 
   login: async (data) => {
-    const res = await authService.login(data);
-
-    // lưu token
-    localStorage.setItem("accessToken", res.accessToken);
-
-    // set state
-    set({
-      user: res.user,
-      isAuthenticated: true,
-      isLoading: false,
-    });
+    try {
+      const res = await authService.login(data);
+      
+      if (res && res.accessToken) {
+        localStorage.setItem("accessToken", res.accessToken);
+        set({
+          user: res.user,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+        return res;
+      }
+    } catch (error) {
+      set({ user: null, isAuthenticated: false, isLoading: false });
+      throw error; 
+    }
   },
 
   fetchUser: async () => {
     try {
       const data = await authService.getProfile();
-
       set({
         user: {
           full_name: data.fullName,
@@ -33,17 +37,27 @@ export const useAuthStore = create((set) => ({
         isAuthenticated: true,
         isLoading: false,
       });
-    } catch {
+      return data;
+    } catch (error) {
+      localStorage.removeItem("accessToken");
       set({
         user: null,
         isAuthenticated: false,
         isLoading: false,
       });
+      throw error;
     }
   },
 
-  logout: () => {
-    localStorage.removeItem("accessToken");
-    set({ user: null, isAuthenticated: false });
+  logout: async () => {
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      localStorage.removeItem("accessToken");
+      set({ user: null, isAuthenticated: false, isLoading: false });
+    }
   },
 }));
+

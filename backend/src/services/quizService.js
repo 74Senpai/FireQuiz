@@ -1,6 +1,19 @@
 import * as quizRepository from '../repositories/quizRepository.js';
+import * as questionRepository from '../repositories/questionRepository.js';
+import * as answerRepository from '../repositories/answerRepository.js';
+import * as attemptAggregationService from '../services/attemptAggregationService.js';
 import { findById } from '../repositories/userRepository.js';
 import AppError from '../errors/AppError.js';
+
+const buildAnswersByQuestionIdMap = (answers) =>
+  answers.reduce((acc, answer) => {
+    if (!acc.has(answer.question_id)) {
+      acc.set(answer.question_id, []);
+    }
+
+    acc.get(answer.question_id).push(answer);
+    return acc;
+  }, new Map());
 
 export const createQuiz = async (user, data) => {
   const {
@@ -38,6 +51,95 @@ export const getQuiz = async (id, user) => {
   }
 
   return quiz;
+};
+
+export const getQuizPreview = async (id, user) => {
+  const quiz = await quizRepository.getQuizById(id);
+
+  checkQuizExistAndOwner(quiz, user);
+
+  const questions = await questionRepository.getListQuestionByQuizId(id);
+  const answers = await answerRepository.getAnswersByQuestionIds(
+    questions.map((question) => question.id),
+  );
+  const answersByQuestionId = buildAnswersByQuestionIdMap(answers);
+  const questionsWithAnswers = questions.map((question) => ({
+    ...question,
+    answers: answersByQuestionId.get(question.id) || [],
+  }));
+
+  return {
+    quiz,
+    questions: questionsWithAnswers,
+  };
+};
+
+export const getLeaderboard = async (id, user) => {
+  const quiz = await quizRepository.getQuizById(id);
+
+  checkQuizExistAndOwner(quiz, user);
+
+  const leaderboard = await attemptAggregationService.getLeaderboardDataByQuizId(id);
+
+  return {
+    quiz: {
+      id: quiz.id,
+      title: quiz.title,
+      status: quiz.status,
+      gradingScale: quiz.grading_scale,
+    },
+    data: leaderboard,
+  };
+};
+
+export const getQuestionAnalytics = async (id, user) => {
+  const quiz = await quizRepository.getQuizById(id);
+
+  checkQuizExistAndOwner(quiz, user);
+
+  const analytics = await attemptAggregationService.getQuestionAnalyticsDataByQuizId(id);
+  const totalAttempts = analytics[0]?.total_attempts || 0;
+
+  return {
+    quiz: {
+      id: quiz.id,
+      title: quiz.title,
+      status: quiz.status,
+      gradingScale: quiz.grading_scale,
+    },
+    summary: {
+      totalAttempts,
+      totalQuestions: analytics.length,
+    },
+    data: analytics,
+  };
+};
+
+export const getResultsDashboard = async (id, user) => {
+  const quiz = await quizRepository.getQuizById(id);
+
+  checkQuizExistAndOwner(quiz, user);
+
+  const dashboard = await attemptAggregationService.getResultsDashboardDataByQuizId(id);
+
+  return {
+    quiz: {
+      id: quiz.id,
+      title: quiz.title,
+      status: quiz.status,
+      gradingScale: quiz.grading_scale,
+    },
+    summary: {
+      totalParticipants: dashboard.length,
+      submittedCount: dashboard.filter(
+        (item) => item.submission_status === "SUBMITTED",
+      ).length,
+      inProgressCount: dashboard.filter(
+        (item) => item.submission_status === "IN_PROGRESS",
+      ).length,
+    },
+    data: dashboard,
+  };
 };
 
 const checkQuizExistAndOwner = (quiz, user) => {

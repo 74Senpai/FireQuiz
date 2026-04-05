@@ -12,16 +12,37 @@ import { CreatorDashboard } from "../pages/Creator/Dashboard";
 import { QuizEditor } from "../pages/Creator/QuizEditor";
 import { QuestionBank } from "../pages/Creator/QuestionBank";
 import { Results } from "../pages/Creator/Results";
+import { Leaderboard } from "../pages/Creator/Leaderboard";
+import { QuestionAnalytics } from "../pages/Creator/QuestionAnalytics";
 import { TakerDashboard } from "../pages/Taker/Dashboard";
 import { TakeQuiz } from "../pages/Taker/TakeQuiz";
 import { ReviewQuiz } from "../pages/Taker/ReviewQuiz";
 import { History } from "../pages/Taker/History";
+import { Profile } from "../pages/Profile";
 
 import ProtectedRoute from "./ProtectedRouter";
 import PublicRoute from "./PublicRouter";
-import HomeRedirect from "../components/redirects/HomeRedirect";
+import HomeRedirect from "@/components/redirects/HomeRedirect";
+
+import { useEffect } from "react";
+import { useAuthStore } from "../stores/authStore";
 
 export default function AppRouter() {
+  const { fetchUser } = useAuthStore();
+
+  useEffect(() => {
+    // Chỉ gọi fetchUser nếu có token trong localStorage
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      fetchUser().catch(() => {
+        // Lỗi xác thực đã được store xử lý (xóa token, reset state)
+      });
+    } else {
+      // Nếu không có token, tắt trạng thái loading để tránh treo màn hình
+      useAuthStore.setState({ isLoading: false });
+    }
+  }, [fetchUser]);
+
   return (
     <Routes>
       <Route path="/" element={<HomeRedirect />} />
@@ -42,6 +63,9 @@ export default function AppRouter() {
           <Route path="quiz/:id/edit" element={<QuizEditor />} />
           <Route path="question-bank" element={<QuestionBank />} />
           <Route path="results" element={<Results />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="leaderboard" element={<Leaderboard />} />
+          <Route path="question-analytics" element={<QuestionAnalytics />} />
           <Route path="history" element={<History />} />
           <Route path="quiz/:id/take" element={<TakeQuiz />} />
           <Route path="quiz/:id/review" element={<ReviewQuiz />} />

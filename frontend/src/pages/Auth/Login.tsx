@@ -90,7 +90,7 @@ export function Login() {
               <label className="text-sm font-semibold text-slate-700" htmlFor="password">
                 Mật khẩu
               </label>
-              <Link to="/forgot-password" disable className="text-xs text-indigo-600 hover:text-indigo-700 hover:underline transition-colors duration-200">
+              <Link to="/forgot-password" className="text-xs text-indigo-600 hover:text-indigo-700 hover:underline transition-colors duration-200">
                 Quên mật khẩu?
               </Link>
             </div>
