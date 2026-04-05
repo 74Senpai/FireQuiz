@@ -10,6 +10,7 @@ const router = express.Router();
 
 // Route không có :id — phải đứng TRƯỚC
 router.get('/myquiz', protectedRoute, quizController.getListQuizByUserId);
+router.get('/public/open', quizController.listPublicOpenQuizzes);
 router.post('/', protectedRoute, quizController.createQuiz);
 
 // Routes có :id — CRUD
