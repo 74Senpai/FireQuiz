@@ -11,92 +11,25 @@ import {
   Flame,
   Globe,
 } from "lucide-react";
+import { useAuthStore } from "@/stores/authStore";
 import { cn } from "@/lib/utils";
-import axios from "axios";
-
-// Khai báo kiểu dữ liệu cho User
-interface UserInfo {
-  full_name: string;
-  email: string;
-  role: string;
-}
 
 export function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [user, setUser] = useState<UserInfo | null>(null);
-
-  const API_URL = process.env.API_URL || "http://localhost:8080/api";
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const token = localStorage.getItem("accessToken");
-
-        // Nếu không có token, đẩy về trang login ngay
-        if (!token) {
-          navigate("/login");
-          return;
-        }
-
-        const response = await axios.get(`${API_URL}/user/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`, // Gửi token lên để qua cổng middleware
-          },
-        });
-
-        setUser({
-          full_name: response.data.fullName,
-          email: response.data.email,
-          role: response.data.role,
-        });
-      } catch (error: any) {
-        console.error("Lỗi lấy thông tin user:", error);
-        // Nếu token hết hạn hoặc không hợp lệ (401, 403), đẩy về login
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          localStorage.removeItem("accessToken");
-          navigate("/login");
-        }
-      }
-    };
-
-    fetchUserData();
-  }, [navigate, API_URL]);
+  const { user, logout } = useAuthStore();
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      try {
-        const API_URL = process.env.API_URL || "http://localhost:8080/api";
-        const token = localStorage.getItem("accessToken");
-
-        // Gọi API Logout
-        await axios.post(
-          `${API_URL}/auth/logout`,
-          {}, // Body trống
-          {
-            headers: {
-              Authorization: `Bearer ${token}`, // Gửi access token nếu cần thiết cho middleware
-            },
-            withCredentials: true, // RẤT QUAN TRỌNG: Để gửi kèm Refresh Token nằm trong Cookie
-          },
-        );
-      } catch (error) {
-        console.error("Lỗi khi gọi API logout:", error);
-        // Ngay cả khi API lỗi, chúng ta vẫn nên tiếp tục xóa token ở máy khách
-      } finally {
-        // 1. Xóa Access Token khỏi localStorage
-        localStorage.removeItem("accessToken");
-
-        // 2. Chuyển hướng về trang Login
-        navigate("/login");
-      }
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Lỗi khi đăng xuất:", error);
     } finally {
       setIsLoggingOut(false);
-      localStorage.removeItem("accessToken");
-      navigate("/login");
     }
   };
 
