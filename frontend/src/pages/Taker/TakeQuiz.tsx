@@ -250,6 +250,7 @@ export function TakeQuiz() {
           <h3 className="text-2xl font-semibold text-slate-100 leading-relaxed">
             {currentQ.text}
           </h3>
+
           <div className="space-y-3">
             {currentQ.options.map((opt) => {
               // Chú thích (FE): Kiểm tra option này có đang được chọn không
@@ -294,6 +295,7 @@ export function TakeQuiz() {
         >
           Trước
         </Button>
+
         {currentQuestion === questions.length - 1 ? (
           <Button
             onClick={handleSubmit}
