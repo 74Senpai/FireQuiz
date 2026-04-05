@@ -1,20 +1,36 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { User, Lock, Trash2, Save, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuthStore } from "@/stores/authStore";
+import { useNavigate } from "react-router-dom";
 
 export function Profile() {
+  const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState<"info" | "security" | "danger">("info");
   const [isLoading, setIsLoading] = useState(false);
 
   // Form states
   const [formData, setFormData] = useState({
-    fullName: "Nguyễn Văn A",
-    email: "nguyenvana@example.com",
-    role: "Giáo viên",
-    bio: "Giáo viên dạy Toán với 10 năm kinh nghiệm."
+    fullName: user?.full_name || "",
+    email: user?.email || "",
+    role: user?.role || "",
+    bio: "Giáo viên dạy Toán với 10 năm kinh nghiệm." // Giữ tạm bio vì store hiện chưa quản lý bio
   });
+
+  // Đồng bộ lại formData khi user từ store thay đổi (nếu có)
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: user.full_name,
+        email: user.email,
+        role: user.role
+      }));
+    }
+  }, [user]);
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -52,8 +68,9 @@ export function Profile() {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       setIsLoading(false);
       alert("Tài khoản của bạn đã được xóa.");
-      // In a real app, redirect to login page here or clear auth context
-      window.location.href = "/login";
+      // Clear store and redirect
+      await logout();
+      navigate("/login");
     }
   };
 
