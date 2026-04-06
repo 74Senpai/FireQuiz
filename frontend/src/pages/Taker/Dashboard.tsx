@@ -3,8 +3,8 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { History as HistoryIcon, ArrowRight } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Clock, Play, History as HistoryIcon, ArrowRight } from "lucide-react";
 import { PublicOpenQuizzesPanel } from "@/components/ui/PublicOpenQuizzesPanel";
 
 export function TakerDashboard() {
@@ -59,9 +59,6 @@ export function TakerDashboard() {
     fetchQuizzes();
   }, []);
 
-  const completedQuizzes = [
-    { id: 3, title: "Final Exam - Physics", score: "8.5/10", date: "2026-02-28" },
-  ];
 
   return (
     <div className="space-y-8">

@@ -1,4 +1,4 @@
-import { asyncHandler } from '../untils/asyncHandler.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 import * as validator from '../validators/validator.js';
 import AppError from '../errors/AppError.js';
 import jwt from 'jsonwebtoken';

@@ -1,5 +1,5 @@
 import * as authService from '../services/authService.js';
-import { asyncHandler } from '../untils/asyncHandler.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 import AppError from '../errors/AppError.js';
 
 export const signUp = asyncHandler(async (req, res) => {

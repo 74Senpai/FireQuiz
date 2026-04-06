@@ -1,4 +1,4 @@
-import { asyncHandler } from '../untils/asyncHandler.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 import * as attemptService from '../services/attemptService.js';
 
 /** GET /api/attempt/my?page=&pageSize= */
