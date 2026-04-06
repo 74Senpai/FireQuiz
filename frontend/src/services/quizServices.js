@@ -13,6 +13,12 @@ export const getMyQuizzes = () =>
   axios.get("/quiz/myquiz").then((res) => res.data);
 
 /**
+ * Join Quiz bằng mã PIN
+ */
+export const joinQuizByCode = (quizCode) =>
+  axios.get(`/quiz/join/${quizCode}`).then((res) => res.data);
+
+/**
  * Tạo Quiz mới
  */
 export const createQuiz = (data) =>

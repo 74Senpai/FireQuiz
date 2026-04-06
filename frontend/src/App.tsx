@@ -4,18 +4,11 @@ import AppRouter from "./routes/AppRouter";
 import { useAuthStore } from "./stores/authStore";
 
 export default function App() {
-  const { fetchUser } = useAuthStore();
+  const { initAuth } = useAuthStore();
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      fetchUser().catch(() => {
-        useAuthStore.setState({ isLoading: false });
-      });
-    } else {
-      useAuthStore.setState({ isLoading: false });
-    }
-  }, [fetchUser]);
+    initAuth();
+  }, [initAuth]);
 
   return (
     <BrowserRouter>

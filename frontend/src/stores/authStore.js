@@ -59,5 +59,28 @@ export const useAuthStore = create((set) => ({
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
+
+  initAuth: async () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      set({ isLoading: false, isAuthenticated: false, user: null });
+      return;
+    }
+    try {
+      const data = await authService.getProfile();
+      set({
+        user: {
+          full_name: data.fullName,
+          email: data.email,
+          role: data.role,
+        },
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      localStorage.removeItem("accessToken");
+      set({ user: null, isAuthenticated: false, isLoading: false });
+    }
+  },
 }));
 

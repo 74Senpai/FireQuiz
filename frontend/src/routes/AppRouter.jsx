@@ -24,25 +24,7 @@ import { PublicExplore } from "../pages/PublicExplore";
 import ProtectedRoute from "./ProtectedRouter";
 import PublicRoute from "./PublicRouter";
 import HomeRedirect from "@/components/redirects/HomeRedirect";
-import { useEffect } from "react";
-import { useAuthStore } from "../stores/authStore";
-
 export default function AppRouter() {
-  const { fetchUser } = useAuthStore();
-
-  useEffect(() => {
-    // Chỉ gọi fetchUser nếu có token trong localStorage
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      fetchUser().catch(() => {
-        // Lỗi xác thực đã được store xử lý (xóa token, reset state)
-      });
-    } else {
-      // Nếu không có token, tắt trạng thái loading để tránh treo màn hình
-      useAuthStore.setState({ isLoading: false });
-    }
-  }, [fetchUser]);
-
   return (
     <Routes>
       <Route path="/" element={<HomeRedirect />} />
