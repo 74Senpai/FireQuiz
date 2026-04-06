@@ -165,8 +165,7 @@ export const findPublicOpenQuizzes = async (conn, { limit, offset }) => {
      WHERE status = 'PUBLIC'
        AND (${SQL_OPEN_WINDOW})
      ORDER BY id DESC
-     LIMIT ? OFFSET ?`,
-    [limit, offset],
+     LIMIT ${Number(limit)} OFFSET ${Number(offset)}`
   );
   return rows;
 };
