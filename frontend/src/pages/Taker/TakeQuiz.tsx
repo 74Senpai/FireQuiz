@@ -1,11 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
-
-const API_URL = (import.meta as any).env?.VITE_API_URL || "http://localhost:8080";
+import * as attemptServices from "@/services/attemptServices";
 
 export function TakeQuiz() {
   const navigate = useNavigate();
@@ -33,12 +31,7 @@ export function TakeQuiz() {
     if (!quizId) return;
     const loadQuizData = async () => {
       try {
-        const token = localStorage.getItem("accessToken");
-        const res = await axios.post(`${API_URL}/api/attempts/start/${quizId}`, {}, {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true
-        });
-        const data = res.data;
+        const data = await attemptServices.startAttempt(quizId!);
         setAttemptId(data.attemptId);
         setQuestions(data.questions);
         setQuizTitle(data.quizTitle);
@@ -89,15 +82,7 @@ export function TakeQuiz() {
       if (document.visibilityState === "hidden") {
         alert("CẢNH BÁO: Bạn vừa chuyển sang một tab hoặc cửa sổ khác! Hành động này đã được hệ thống ghi nhận.");
         try {
-          const token = localStorage.getItem("accessToken");
-          await axios.patch(
-            `${API_URL}/api/attempts/${attemptId}/violation`,
-            {},
-            {
-              headers: { Authorization: `Bearer ${token}` },
-              withCredentials: true
-            }
-          );
+          await attemptServices.reportAttemptViolation(attemptId);
         } catch (err) {
           console.error("Lỗi khi báo cáo vi phạm:", err);
         }
@@ -117,15 +102,7 @@ export function TakeQuiz() {
     
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem("accessToken");
-      await axios.patch(
-        `${API_URL}/api/attempts/${attemptId}/submit`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true
-        }
-      );
+      await attemptServices.submitAttempt(attemptId);
       // Chú thích (FE): Nộp thành công, tiến hành navigate sang kết quả
       navigate(`/dashboard/quiz/${quizId}/review`);
     } catch (err) {
@@ -144,15 +121,7 @@ export function TakeQuiz() {
     if (!attemptId) return;
     setSyncStatus("saving");
     try {
-      const token = localStorage.getItem("accessToken");
-      await axios.patch(
-        `${API_URL}/api/attempts/${attemptId}/answer`,
-        { attemptQuestionId: questionId, attemptOptionId: optionId },
-        { 
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true 
-        }
-      );
+      await attemptServices.syncAttemptAnswer(attemptId, questionId, optionId);
       // Chú thích (FE): Sync thành công – hiển thị icon tick rồi reset sau 1.5s
       setSyncStatus("saved");
       setTimeout(() => setSyncStatus("idle"), 1500);

@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import axios from "axios";
+import * as quizServices from "@/services/quizServices";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,10 +19,8 @@ export function TakerDashboard() {
     setLoading(true);
     setErrorMsg("");
     try {
-      const apiUrl = (import.meta as any).env?.VITE_API_URL || "http://localhost:8080";
-      const configUrl = typeof process !== 'undefined' && process.env.API_URL ? process.env.API_URL : apiUrl;
-      const res = await axios.get(`${configUrl}/api/quiz/join/${quizCode}`, { withCredentials: true });
-      navigate(`/dashboard/quiz/${res.data.id}/take`);
+      const data = await quizServices.joinQuizByCode(quizCode);
+      navigate(`/dashboard/quiz/${data.id}/take`);
     } catch (err: any) {
       // Chú thích (FE): Xử lý hiển thị thông báo lỗi trả về từ Backend
       // Sẽ nhận được trực tiếp các lỗi: "Sai PIN", "Quiz đã đóng", "Quiz không công khai" ở đây
@@ -42,14 +40,8 @@ export function TakerDashboard() {
   useEffect(() => {
     const fetchQuizzes = async () => {
       try {
-        const apiUrl = (import.meta as any).env?.VITE_API_URL || "http://localhost:8080";
-        const configUrl = typeof process !== 'undefined' && process.env.API_URL ? process.env.API_URL : apiUrl;
-        const token = localStorage.getItem("accessToken");
-        const res = await axios.get(`${configUrl}/api/quiz/public`, {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true
-        });
-        setAvailableQuizzes(res.data.data);
+        const data = await quizServices.getPublicOpenQuizzes();
+        setAvailableQuizzes(data.data || data);
       } catch (err) {
         console.error("Lỗi lấy danh sách quiz công khai:", err);
       } finally {
