@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import * as XLSX from "xlsx";
 import * as quizServices from "@/services/quizServices";
 
@@ -180,9 +181,8 @@ export function ImportExcelModal({
   };
 
 
-  // ─── Render ──────────────────────────────────────────────────────────────────
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -190,7 +190,7 @@ export function ImportExcelModal({
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-3xl max-h-[90vh] flex flex-col bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-3xl max-h-[90vh] flex flex-col bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-3">
@@ -198,7 +198,7 @@ export function ImportExcelModal({
               <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
             </div>
             <div>
-              <h2 className="text-white font-semibold">
+              <h2 className="text-white font-semibold flex items-center gap-2">
                 Import câu hỏi từ Excel
               </h2>
               <p className="text-xs text-slate-400">
@@ -210,17 +210,17 @@ export function ImportExcelModal({
           </div>
           <button
             onClick={onClose}
-            className="text-slate-500 hover:text-white transition-colors"
+            className="text-slate-500 hover:text-white transition-colors p-1"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
           {/* ── Step 1: Upload ── */}
           {step === "upload" && (
-            <div className="space-y-5">
+            <div className="space-y-6">
               {/* Download mẫu */}
               <div className="flex items-center justify-between p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20">
                 <div>
@@ -234,7 +234,7 @@ export function ImportExcelModal({
                 <Button
                   variant="outline"
                   onClick={handleDownloadTemplate}
-                  className="border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 shrink-0"
+                  className="border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 shrink-0 bg-transparent"
                 >
                   <Download className="w-4 h-4 mr-2" /> Tải file mẫu
                 </Button>
@@ -250,33 +250,33 @@ export function ImportExcelModal({
                 onDrop={handleDrop}
                 onClick={() => inputRef.current?.click()}
                 className={cn(
-                  "border-2 border-dashed rounded-xl py-16 flex flex-col items-center justify-center gap-4 cursor-pointer transition-all",
+                  "border-2 border-dashed rounded-xl py-12 flex flex-col items-center justify-center gap-4 cursor-pointer transition-all",
                   isDragging
-                    ? "border-indigo-500 bg-indigo-500/10"
+                    ? "border-indigo-500 bg-indigo-500/10 scale-[1.02]"
                     : "border-white/10 hover:border-indigo-400/40 hover:bg-white/[0.02]",
                 )}
               >
                 <div
                   className={cn(
-                    "w-14 h-14 rounded-2xl flex items-center justify-center transition-colors",
+                    "w-16 h-16 rounded-full flex items-center justify-center transition-colors shadow-inner",
                     isDragging ? "bg-indigo-600/30" : "bg-white/5",
                   )}
                 >
                   <Upload
                     className={cn(
-                      "w-7 h-7",
+                      "w-8 h-8",
                       isDragging ? "text-indigo-400" : "text-slate-400",
                     )}
                   />
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-slate-300">
+                  <p className="text-base font-medium text-slate-200">
                     {isDragging
                       ? "Thả file vào đây"
-                      : "Kéo thả hoặc nhấn để chọn file"}
+                      : "Kéo thả hoặc nhấn để tải file chọn máy tính"}
                   </p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Chỉ chấp nhận file .xlsx, tối đa 5MB
+                  <p className="text-sm text-slate-500 mt-1">
+                    Chỉ chấp nhận file .xlsx, tối đa 5MB.
                   </p>
                 </div>
                 <input
@@ -289,45 +289,31 @@ export function ImportExcelModal({
               </div>
 
               {/* Cấu trúc Excel */}
-              <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-2">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  Cấu trúc file Excel
+              <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-3">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  Cấu trúc file Excel tham khảo
                 </p>
-                <div className="overflow-x-auto">
-                  <table className="text-xs text-slate-400 w-full">
-                    <thead>
-                      <tr className="text-indigo-400">
-                        {[
-                          "question",
-                          "type",
-                          "correct_options",
-                          "option1",
-                          "option2",
-                          "...",
-                          "option10",
-                        ].map((h) => (
-                          <th
-                            key={h}
-                            className="px-2 py-1 text-left font-mono border-b border-white/5"
-                          >
+                <div className="overflow-x-auto rounded-lg border border-white/5">
+                  <table className="text-xs text-slate-300 w-full min-w-[600px] text-left border-collapse">
+                    <thead className="bg-slate-800/80">
+                      <tr>
+                        {["question", "type", "correct_options", "option1", "option2", "...", "option10"].map((h) => (
+                          <th key={h} className="px-3 py-2 font-mono text-indigo-300 border border-white/5">
                             {h}
                           </th>
                         ))}
                       </tr>
                     </thead>
-                    <tbody>
-                      <tr>
-                        <td className="px-2 py-1 text-slate-300">
-                          Nội dung câu hỏi
-                        </td>
-                        <td className="px-2 py-1 font-mono">ANANSWER…</td>
-                        <td className="px-2 py-1 font-mono">1 hoặc 1,3</td>
-                        <td className="px-2 py-1">Đáp án 1</td>
-                        <td className="px-2 py-1">Đáp án 2</td>
-                        <td className="px-2 py-1 text-slate-600">…</td>
-                        <td className="px-2 py-1 text-slate-600 italic">
-                          bỏ trống
-                        </td>
+                    <tbody className="bg-white/5">
+                      <tr className="hover:bg-white/10 transition-colors">
+                        <td className="px-3 py-2 border border-white/5">Nội dung câu hỏi</td>
+                        <td className="px-3 py-2 font-mono border border-white/5 text-amber-200">ANANSWER</td>
+                        <td className="px-3 py-2 font-mono border border-white/5 text-emerald-300">1 hoặc 1,3</td>
+                        <td className="px-3 py-2 border border-white/5">Đáp án 1</td>
+                        <td className="px-3 py-2 border border-white/5">Đáp án 2</td>
+                        <td className="px-3 py-2 text-slate-600 border border-white/5">…</td>
+                        <td className="px-3 py-2 text-slate-600 italic border border-white/5">bỏ trống</td>
                       </tr>
                     </tbody>
                   </table>
@@ -340,22 +326,22 @@ export function ImportExcelModal({
           {step === "preview" && (
             <div className="space-y-4">
               {/* Summary */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-xl bg-white/5 border border-white/10 p-3 text-center">
-                  <p className="text-2xl font-bold text-white">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="rounded-xl bg-white/5 border border-white/10 p-4 text-center">
+                  <p className="text-3xl font-bold text-white mb-1">
                     {parsedRows.length}
                   </p>
-                  <p className="text-xs text-slate-400 mt-0.5">Tổng dòng</p>
+                  <p className="text-xs text-slate-400">Tổng số dòng trích xuất</p>
                 </div>
-                <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-center">
-                  <p className="text-2xl font-bold text-emerald-400">
+                <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-center">
+                  <p className="text-3xl font-bold text-emerald-400 mb-1">
                     {validRows.length}
                   </p>
-                  <p className="text-xs text-emerald-400/70 mt-0.5">Hợp lệ</p>
+                  <p className="text-xs text-emerald-400/70">Số câu hợp lệ có thể import</p>
                 </div>
                 <div
                   className={cn(
-                    "rounded-xl p-3 text-center border",
+                    "rounded-xl p-4 text-center border",
                     invalidRows.length > 0
                       ? "bg-rose-500/10 border-rose-500/20"
                       : "bg-white/5 border-white/10",
@@ -363,48 +349,44 @@ export function ImportExcelModal({
                 >
                   <p
                     className={cn(
-                      "text-2xl font-bold",
-                      invalidRows.length > 0
-                        ? "text-rose-400"
-                        : "text-slate-400",
+                      "text-3xl font-bold mb-1",
+                      invalidRows.length > 0 ? "text-rose-400" : "text-slate-400",
                     )}
                   >
                     {invalidRows.length}
                   </p>
                   <p
                     className={cn(
-                      "text-xs mt-0.5",
-                      invalidRows.length > 0
-                        ? "text-rose-400/70"
-                        : "text-slate-500",
+                      "text-xs",
+                      invalidRows.length > 0 ? "text-rose-400/70" : "text-slate-500",
                     )}
                   >
-                    Lỗi
+                    Bị lỗi cấu trúc (bỏ qua)
                   </p>
                 </div>
               </div>
 
+              {invalidRows.length > 0 && (
+                <div className="flex items-start gap-2 text-xs text-amber-400 bg-amber-500/10 px-4 py-3 rounded-xl border border-amber-500/20 leading-relaxed shadow-inner">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>
+                    Hệ thống bỏ qua <strong>{invalidRows.length}</strong> câu hỏi chứa lỗi dữ liệu để quá trình import an toàn.{" "}
+                    Chỉ tiến hành Import <strong>{validRows.length}</strong> câu hợp lệ.
+                  </span>
+                </div>
+              )}
+
               {/* Bảng preview */}
-              <div className="rounded-xl border border-white/10 overflow-hidden">
-                <div className="overflow-x-auto max-h-[380px] overflow-y-auto">
-                  <table className="w-full text-xs text-left">
-                    <thead className="sticky top-0 bg-slate-800 border-b border-white/10">
+              <div className="rounded-xl border border-white/10 overflow-hidden shadow-inner bg-slate-800/30">
+                <div className="overflow-x-auto max-h-[350px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
+                  <table className="w-full text-xs text-left min-w-[700px] border-collapse">
+                    <thead className="sticky top-0 bg-slate-800 border-b border-white/10 z-10 shadow-sm">
                       <tr>
-                        <th className="px-3 py-2 text-slate-400 font-semibold">
-                          #
-                        </th>
-                        <th className="px-3 py-2 text-slate-400 font-semibold">
-                          Nội dung
-                        </th>
-                        <th className="px-3 py-2 text-slate-400 font-semibold">
-                          Loại
-                        </th>
-                        <th className="px-3 py-2 text-slate-400 font-semibold">
-                          Options
-                        </th>
-                        <th className="px-3 py-2 text-slate-400 font-semibold">
-                          Trạng thái
-                        </th>
+                        <th className="px-4 py-3 text-slate-400 font-semibold w-[60px]">#</th>
+                        <th className="px-4 py-3 text-slate-400 font-semibold">Nội dung</th>
+                        <th className="px-4 py-3 text-slate-400 font-semibold">Loại</th>
+                        <th className="px-4 py-3 text-slate-400 font-semibold">Lựa chọn</th>
+                        <th className="px-4 py-3 text-slate-400 font-semibold w-[150px]">Trạng thái</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -413,28 +395,21 @@ export function ImportExcelModal({
                           key={i}
                           className={cn(
                             "transition-colors",
-                            row.valid
-                              ? "hover:bg-white/[0.03]"
-                              : "bg-rose-500/5",
+                            row.valid ? "hover:bg-white/5" : "bg-rose-500/5 hover:bg-rose-500/10",
                           )}
                         >
-                          <td className="px-3 py-2 text-slate-500 font-mono">
+                          <td className="px-4 py-3 text-slate-500 font-mono">
                             {i + 2}
                           </td>
-                          <td
-                            className="px-3 py-2 text-slate-200 max-w-[200px] truncate"
-                            title={row.question}
-                          >
-                            {row.question || (
-                              <span className="text-slate-600 italic">
-                                trống
-                              </span>
-                            )}
+                          <td className="px-4 py-3 text-slate-200">
+                            <div className="max-w-[250px] truncate" title={row.question}>
+                              {row.question || <span className="text-slate-600 italic">trống</span>}
+                            </div>
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="px-4 py-3">
                             <span
                               className={cn(
-                                "px-1.5 py-0.5 rounded text-[10px] font-mono border",
+                                "px-2 py-1 rounded text-[10px] font-mono border",
                                 ALLOWED_TYPES.includes(row.type)
                                   ? "border-indigo-500/30 text-indigo-300 bg-indigo-500/10"
                                   : "border-rose-500/30 text-rose-400 bg-rose-500/10",
@@ -443,27 +418,28 @@ export function ImportExcelModal({
                               {row.type || "?"}
                             </span>
                           </td>
-                          <td className="px-3 py-2 text-slate-400">
+                          <td className="px-4 py-3 text-slate-400">
                             {row.type === "TEXT" ? (
                               <span className="italic text-slate-600">—</span>
                             ) : (
-                              `${row.options.length} options`
+                              <span className="bg-white/5 px-2 py-0.5 rounded-full text-xs">
+                                {row.options.length} item
+                              </span>
                             )}
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="px-4 py-3">
                             {row.valid ? (
-                              <span className="flex items-center gap-1 text-emerald-400">
-                                <CheckCircle2 className="w-3.5 h-3.5" /> OK
+                              <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
+                                <CheckCircle2 className="w-4 h-4" /> Hợp lệ
                               </span>
                             ) : (
                               <span
-                                className="flex items-center gap-1 text-rose-400 cursor-help"
+                                className="flex items-center gap-1.5 text-rose-400 cursor-help font-medium max-w-[150px] truncate"
                                 title={row.errors.join(" | ")}
                               >
-                                <XCircle className="w-3.5 h-3.5 shrink-0" />
-                                {row.errors[0]}
-                                {row.errors.length > 1 &&
-                                  ` (+${row.errors.length - 1})`}
+                                <XCircle className="w-4 h-4 shrink-0" />
+                                <span className="truncate">{row.errors[0]}</span>
+                                {row.errors.length > 1 && ` (+${row.errors.length - 1})`}
                               </span>
                             )}
                           </td>
@@ -473,17 +449,6 @@ export function ImportExcelModal({
                   </table>
                 </div>
               </div>
-
-              {invalidRows.length > 0 && (
-                <div className="flex items-start gap-2 text-xs text-amber-400 bg-amber-500/10 px-3 py-2.5 rounded-lg border border-amber-500/20">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>
-                    {invalidRows.length} dòng lỗi sẽ bị bỏ qua. Chỉ{" "}
-                    <strong>{validRows.length}</strong> câu hợp lệ sẽ được
-                    import.
-                  </span>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -493,28 +458,34 @@ export function ImportExcelModal({
           <div className="flex items-center gap-2">
             {step === "preview" && (
               <button
-                onClick={() => setStep("upload")}
-                className="flex items-center gap-1 text-sm text-slate-400 hover:text-white transition-colors"
+                onClick={() => {
+                  setStep("upload");
+                  setParsedRows([]);
+                  setRawFile(null);
+                  setFileName(null);
+                  if (inputRef.current) inputRef.current.value = "";
+                }}
+                className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 rounded-lg border border-transparent hover:border-white/10 transition-all"
               >
-                <ArrowLeft className="w-4 h-4" /> Quay lại
+                <ArrowLeft className="w-4 h-4" /> Quay lại chọn thư mục mới
               </button>
             )}
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex items-center gap-4">
             <Button
               variant="ghost"
               onClick={onClose}
               className="text-slate-400 hover:text-white"
             >
-              Hủy
+              Hủy bỏ thao tác
             </Button>
 
             {step === "preview" && (
               <Button
                 onClick={handleConfirmImport}
                 disabled={isImporting || validRows.length === 0}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 min-w-[180px]"
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg px-6 py-2 text-sm font-semibold rounded-lg text-white"
               >
                 {isImporting ? (
                   <>
@@ -523,8 +494,7 @@ export function ImportExcelModal({
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-4 h-4 mr-2" /> Xác nhận Import (
-                    {validRows.length} câu)
+                    <CheckCircle2 className="w-4 h-4 mr-2" /> Hoàn thành thêm {validRows.length} câu
                   </>
                 )}
               </Button>
@@ -532,6 +502,7 @@ export function ImportExcelModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -1,4 +1,4 @@
-import { asyncHandler } from '../untils/asyncHandler.js'
+import { asyncHandler } from '../utils/asyncHandler.js'
 
 export const getMyInfo = asyncHandler(async (req, res) => {
   console.log(req.user);

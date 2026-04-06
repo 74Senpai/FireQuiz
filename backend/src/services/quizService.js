@@ -310,3 +310,9 @@ export const removePin = async (id, user) => {
   await quizRepository.setQuizCode(id, null);
 };
 
+
+
+
+export const getPublicQuizzes = async () => {
+  return await quizRepository.getPublicQuizzes();
+};

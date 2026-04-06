@@ -4,8 +4,8 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import AppError from "../errors/AppError.js";
 import * as sessionRepository from "../repositories/sessionRepository.js";
-import { generateOTP, verifyOTP } from "../untils/otpManager.js";
-import { sendOTPEmail } from "../untils/mailService.js";
+import { generateOTP, verifyOTP } from "../utils/otpManager.js";
+import { sendOTPEmail } from "../utils/mailService.js";
 import dotenv from "dotenv";
 dotenv.config();
 

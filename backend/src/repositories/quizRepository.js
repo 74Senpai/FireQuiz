@@ -38,6 +38,13 @@ export const getQuizById = async (id) => {
   return quiz[0] || null;
 }
 
+// Chú thích (BE): Hàm lấy Quiz bằng mã PIN (code) phục vụ chức năng tham gia Quiz
+export const getQuizByCode = async (code) => {
+  const sql = "SELECT * FROM quizzes WHERE quiz_code = ? AND status != 'DELETED';";
+  const [quiz] = await pool.execute(sql, [code]);
+  return quiz[0] || null;
+}
+
 export const setStatus = async (id, status) => {
   const sql = "UPDATE quizzes SET status = ? WHERE id = ?;";
   await pool.execute(sql, [status, id]);
@@ -158,9 +165,19 @@ export const findPublicOpenQuizzes = async (conn, { limit, offset }) => {
      WHERE status = 'PUBLIC'
        AND (${SQL_OPEN_WINDOW})
      ORDER BY id DESC
-     LIMIT ? OFFSET ?`,
-    [limit, offset],
+     LIMIT ${Number(limit)} OFFSET ${Number(offset)}`
   );
   return rows;
 };
 
+export const getPublicQuizzes = async () => {
+  const sql = `
+    SELECT * FROM quizzes 
+    WHERE status = 'PUBLIC' 
+      AND (available_from IS NULL OR available_from <= NOW())
+      AND (available_until IS NULL OR available_until > NOW()) 
+    ORDER BY created_at DESC;
+  `;
+  const [rows] = await pool.execute(sql);
+  return rows;
+};

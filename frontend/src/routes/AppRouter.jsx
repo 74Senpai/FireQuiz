@@ -24,7 +24,6 @@ import { PublicExplore } from "../pages/PublicExplore";
 import ProtectedRoute from "./ProtectedRouter";
 import PublicRoute from "./PublicRouter";
 import HomeRedirect from "@/components/redirects/HomeRedirect";
-
 export default function AppRouter() {
   return (
     <Routes>
