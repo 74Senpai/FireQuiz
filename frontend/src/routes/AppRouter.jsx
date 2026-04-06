@@ -24,10 +24,6 @@ import { PublicExplore } from "../pages/PublicExplore";
 import ProtectedRoute from "./ProtectedRouter";
 import PublicRoute from "./PublicRouter";
 import HomeRedirect from "@/components/redirects/HomeRedirect";
-
-import ProtectedRoute from "./ProtectedRouter";
-import PublicRoute from "./PublicRouter";
-import HomeRedirect from "../components/redirects/HomeRedirect";
 import { useEffect } from "react";
 import { useAuthStore } from "../stores/authStore";
 
