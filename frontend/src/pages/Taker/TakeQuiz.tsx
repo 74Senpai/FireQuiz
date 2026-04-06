@@ -81,11 +81,6 @@ export function TakeQuiz() {
     return () => clearInterval(timer);
   }, [loading, errorMsg, questions.length]);
 
-  const handleSubmit = () => {
-    // Logic tự động nộp bài ở đây
-    navigate("/dashboard/history");
-    if (!quizId) return;
-    navigate(`/dashboard/quiz/${quizId}/review`);
   // Chú thích (FE): Lắng nghe sự kiện chuyển tab/ẩn ứng dụng để chống gian lận
   useEffect(() => {
     if (loading || errorMsg || !attemptId || isSubmitting) return;
@@ -138,11 +133,6 @@ export function TakeQuiz() {
       // Chú thích (FE): Trong trường hợp hết thời gian mà lưu nháp thất bại, ta vẫn cho pass qua review
       navigate(`/dashboard/quiz/${quizId}/review`);
     }
-  };
-
-  // Chú thích (FE): Gọi API PATCH /api/attempts/:attemptId/answer để đồng bộ đáp án tạm thời xuống DB
-    if (!quizId) return;
-    navigate(`/dashboard/quiz/${quizId}/review`);
   };
 
   // Chú thích (FE): Gọi API PATCH /api/attempts/:attemptId/answer để đồng bộ đáp án tạm thời xuống DB
@@ -260,6 +250,7 @@ export function TakeQuiz() {
           <h3 className="text-2xl font-semibold text-slate-100 leading-relaxed">
             {currentQ.text}
           </h3>
+
           <div className="space-y-3">
             {currentQ.options.map((opt) => {
               // Chú thích (FE): Kiểm tra option này có đang được chọn không
@@ -304,6 +295,7 @@ export function TakeQuiz() {
         >
           Trước
         </Button>
+
         {currentQuestion === questions.length - 1 ? (
           <Button
             onClick={handleSubmit}
