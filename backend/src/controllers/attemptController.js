@@ -37,22 +37,34 @@ import AppError from '../errors/AppError.js';
  */
 export const submitAnswer = asyncHandler(async (req, res) => {
   const attemptId = Number(req.params.id);
-  const { attemptQuestionId, attemptOptionId } = req.body;
+  const { attemptQuestionId, attemptOptionId, attemptOptionIds, textAnswer } = req.body;
   const user = req.user;
 
+  // Hỗ trợ cả attemptOptionId (cũ) và attemptOptionIds (mới)
+  const finalOptionIds = attemptOptionIds || (attemptOptionId ? [attemptOptionId] : []);
+
   // Chú thích (BE): Validate input
-  if (!attemptQuestionId || !attemptOptionId) {
-    // Chú thích (BE): Nên để Frontend xử lý và không hiển thị lỗi của API này. 
-    // Vì request được trigger tự động khi người dùng chọn đáp án (onChange), 
-    // nên việc hiển thị lỗi sẽ không mang lại giá trị cho UX.
-    return res.status(400).json({ message: 'Thiếu attemptQuestionId hoặc attemptOptionId' });
+  if (!attemptQuestionId || (!Array.isArray(finalOptionIds) || finalOptionIds.length === 0)) {
+    // Nếu rỗng, vẫn cho phép xóa đáp án (unselect)
+    if (attemptQuestionId) {
+       await attemptService.submitAnswer(
+        attemptId,
+        user.id,
+        Number(attemptQuestionId),
+        [],
+        textAnswer
+      );
+      return res.status(204).send();
+    }
+    return res.status(400).json({ message: 'Thiếu attemptQuestionId hoặc đáp án' });
   }
 
   await attemptService.submitAnswer(
     attemptId,
     user.id,
     Number(attemptQuestionId),
-    Number(attemptOptionId)
+    finalOptionIds,
+    textAnswer
   );
 
   // Chú thích (BE): Trả 204 No Content – đồng bộ thành công, không cần trả data

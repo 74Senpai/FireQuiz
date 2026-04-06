@@ -104,7 +104,7 @@ CREATE TABLE attempt_questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     quiz_attempt_id INT NOT NULL,
     content VARCHAR(255) NOT NULL,
-    type VARCHAR(10) NOT NULL,
+    type VARCHAR(20) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_attempt_questions_quiz_attempts FOREIGN KEY (quiz_attempt_id) REFERENCES quiz_attempts (id)
 );

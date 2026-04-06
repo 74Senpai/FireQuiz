@@ -19,12 +19,25 @@ export const deleteAttemptAnswers = async (conn, attemptQuestionId) => {
 };
 
 /**
- * Lưu đáp án tạm thời mới
+ * Lưu đáp án tạm thời mới (đơn lẻ)
  */
-export const insertAttemptAnswer = async (conn, attemptOptionId) => {
+export const insertAttemptAnswer = async (conn, attemptOptionId, textAnswer = null) => {
   await conn.execute(
-    `INSERT INTO attempt_answers (attempt_option_id) VALUES (?)`,
-    [attemptOptionId]
+    `INSERT INTO attempt_answers (attempt_option_id, text_answer) VALUES (?, ?)`,
+    [attemptOptionId, textAnswer]
+  );
+};
+
+/**
+ * Lưu đáp án tạm thời mới (hàng loạt)
+ */
+export const bulkInsertAttemptAnswers = async (conn, attemptAnswers) => {
+  if (attemptAnswers.length === 0) return;
+  // attemptAnswers should be an array of objects: { attemptOptionId, textAnswer }
+  const values = attemptAnswers.map(a => [a.attemptOptionId, a.textAnswer || null]);
+  await conn.query(
+    `INSERT INTO attempt_answers (attempt_option_id, text_answer) VALUES ?`,
+    [values]
   );
 };
 
@@ -129,7 +142,7 @@ export const getAttemptSnapshot = async (attemptId) => {
     );
 
     const [answers] = await pool.execute(
-      `SELECT attempt_option_id FROM attempt_answers 
+      `SELECT attempt_option_id, text_answer FROM attempt_answers 
        WHERE attempt_option_id IN (SELECT id FROM attempt_options WHERE attempt_question_id = ?)`,
       [q.id]
     );
@@ -139,14 +152,16 @@ export const getAttemptSnapshot = async (attemptId) => {
       text: o.content
     }));
 
-    const selectedOptionId = answers.length > 0 ? answers[0].attempt_option_id : null;
+    const selectedOptionIds = answers.map(a => a.attempt_option_id);
+    const textAnswer = answers.length > 0 ? answers[0].text_answer : null;
 
     questionsData.push({
       id: q.id,
       text: q.content,
       type: q.type,
       options: optionsData,
-      selectedOptionId: selectedOptionId
+      selectedOptionIds: selectedOptionIds,
+      textAnswer: textAnswer
     });
   }
 
