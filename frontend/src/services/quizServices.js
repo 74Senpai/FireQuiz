@@ -1,6 +1,12 @@
 import axios from "@/api/axios";
 
 /**
+ * Quiz PUBLIC đang trong khung giờ mở (có phân trang, có thể gọi không cần đăng nhập)
+ */
+export const getPublicOpenQuizzes = (params = {}) =>
+  axios.get("/quiz/public/open", { params }).then((res) => res.data);
+
+/**
  * Lấy danh sách quiz của bản thân
  */
 export const getMyQuizzes = () =>

@@ -29,7 +29,7 @@ export function TakeQuiz() {
 
   const handleSubmit = () => {
     // Logic tự động nộp bài ở đây
-    navigate("/dashboard/quiz/1/review");
+    navigate("/dashboard/history");
   };
 
   const questions = [

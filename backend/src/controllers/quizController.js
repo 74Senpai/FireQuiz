@@ -102,6 +102,12 @@ export const getListQuizByUserId = asyncHandler(async (req, res) => {
   return res.status(200).json({ data: quizzes });
 });
 
+/** GET ?page=&pageSize= — không cần đăng nhập; cập nhật trạng thái theo lịch rồi trả về quiz PUBLIC đang mở. */
+export const listPublicOpenQuizzes = asyncHandler(async (req, res) => {
+  const result = await quizService.listPublicOpenQuizzes(req.query);
+  return res.status(200).json(result);
+});
+
 export const deleteQuiz = asyncHandler(async (req, res) => {
   const id = req.params.id;
   const user = req.user;
