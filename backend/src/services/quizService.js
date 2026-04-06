@@ -1,3 +1,4 @@
+import pool from '../db/db.js';
 import * as quizRepository from '../repositories/quizRepository.js';
 import * as questionRepository from '../repositories/questionRepository.js';
 import * as answerRepository from '../repositories/answerRepository.js';
@@ -195,6 +196,53 @@ export const changeQuizSettings = async(id, user, settings) => {
 export const getListQuizByUserId = async (user) => {
   const quizzes = await quizRepository.getListQuizByUserId(user.id);
   return quizzes;
+};
+
+/**
+ * Danh sách quiz PUBLIC đang trong giờ mở.
+ * Nghiệp vụ: mở theo lịch (non-PUBLIC trong cửa sổ → PUBLIC), đóng khi quá available_until,
+ * rồi đếm + phân trang — toàn bộ trong một transaction.
+ */
+export const listPublicOpenQuizzes = async (query) => {
+  const page = Math.max(1, parseInt(String(query.page), 10) || 1);
+  const rawSize = parseInt(String(query.pageSize), 10);
+  const pageSize = Number.isFinite(rawSize)
+    ? Math.min(100, Math.max(1, rawSize))
+    : 10;
+
+  const offset = (page - 1) * pageSize;
+  const conn = await pool.getConnection();
+
+  let rows;
+  let total;
+  try {
+    await conn.beginTransaction();
+    await quizRepository.updatePromoteToPublicBySchedule(conn);
+    await quizRepository.updateDemotePublicPastAvailableUntil(conn);
+    total = await quizRepository.countPublicOpenQuizzes(conn);
+    rows = await quizRepository.findPublicOpenQuizzes(conn, {
+      limit: pageSize,
+      offset,
+    });
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+
+  const data = rows.map(({ quiz_code: _omit, ...rest }) => rest);
+
+  return {
+    data,
+    pagination: {
+      page,
+      pageSize,
+      totalItems: total,
+      totalPages: total === 0 ? 0 : Math.ceil(total / pageSize),
+    },
+  };
 };
 
 export const deleteQuiz = async (id, user) => {

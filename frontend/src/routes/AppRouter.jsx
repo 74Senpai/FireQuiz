@@ -19,6 +19,7 @@ import { TakeQuiz } from "../pages/Taker/TakeQuiz";
 import { ReviewQuiz } from "../pages/Taker/ReviewQuiz";
 import { History } from "../pages/Taker/History";
 import { Profile } from "../pages/Profile";
+import { PublicExplore } from "../pages/PublicExplore";
 
 import ProtectedRoute from "./ProtectedRouter";
 import PublicRoute from "./PublicRouter";
@@ -28,6 +29,7 @@ export default function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<HomeRedirect />} />
+      <Route path="/explore" element={<PublicExplore />} />
 
       <Route element={<PublicRoute />}>
         <Route element={<AuthLayout />}>
@@ -50,7 +52,7 @@ export default function AppRouter() {
           <Route path="question-analytics" element={<QuestionAnalytics />} />
           <Route path="history" element={<History />} />
           <Route path="quiz/:id/take" element={<TakeQuiz />} />
-          <Route path="quiz/:id/review" element={<ReviewQuiz />} />
+          <Route path="attempt/:attemptId/review" element={<ReviewQuiz />} />
         </Route>
       </Route>
     </Routes>

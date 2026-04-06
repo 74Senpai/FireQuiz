@@ -1,12 +1,19 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuthStore } from "../../stores/authStore";
 
+function safePostLoginRedirect(raw: string | null): string | null {
+  if (!raw || !raw.startsWith("/dashboard")) return null;
+  if (raw.includes("//") || raw.includes(":")) return null;
+  return raw;
+}
+
 export function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = React.useState(false);
 
   // Form state
@@ -42,7 +49,8 @@ export function Login() {
     try {
       await login({ email, password });
 
-      navigate("/dashboard");
+      const next = safePostLoginRedirect(searchParams.get("redirect"));
+      navigate(next ?? "/dashboard");
     } catch (error) {
       const message =
         error.response?.data?.message ||
@@ -120,11 +128,21 @@ export function Login() {
               "Đăng nhập"
             )}
           </Button>
-          <div className="text-center text-sm text-slate-600 animate-slide-up animate-delay-400">
-            Chưa có tài khoản?{" "}
-            <Link to="/register" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline transition-colors duration-200">
-              Tạo tài khoản
-            </Link>
+          <div className="text-center text-sm text-slate-600 space-y-2 animate-slide-up animate-delay-400">
+            <div>
+              <Link
+                to="/explore"
+                className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline transition-colors duration-200"
+              >
+                Xem quiz công khai đang mở
+              </Link>
+            </div>
+            <div>
+              Chưa có tài khoản?{" "}
+              <Link to="/register" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline transition-colors duration-200">
+                Tạo tài khoản
+              </Link>
+            </div>
           </div>
         </CardFooter>
       </Card>

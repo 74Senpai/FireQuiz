@@ -95,6 +95,7 @@ export const getAttemptOptionsByQuestionIds = async (questionIds) => {
     SELECT
       ao.id,
       ao.attempt_question_id,
+      ao.content,
       ao.is_correct
     FROM attempt_options ao
     WHERE ao.attempt_question_id IN (${placeholders});
@@ -113,11 +114,73 @@ export const getAttemptAnswersByOptionIds = async (optionIds) => {
   const sql = `
     SELECT
       aa.id,
-      aa.attempt_option_id
+      aa.attempt_option_id,
+      aa.text_answer
     FROM attempt_answers aa
     WHERE aa.attempt_option_id IN (${placeholders});
   `;
 
   const [rows] = await pool.execute(sql, optionIds);
   return rows;
+};
+
+export const countQuizAttemptsByUserId = async (userId) => {
+  const sql = `
+    SELECT COUNT(*) AS total
+    FROM quiz_attempts
+    WHERE user_id = ?;
+  `;
+  const [rows] = await pool.execute(sql, [userId]);
+  const total = rows[0]?.total ?? 0;
+  return Number(total) || 0;
+};
+
+export const listQuizAttemptsByUserIdPaginated = async (userId, limit, offset) => {
+  const sql = `
+    SELECT
+      qa.id,
+      qa.user_id,
+      qa.quiz_id,
+      qa.quiz_title,
+      qa.score,
+      qa.started_at,
+      qa.finished_at,
+      qa.created_at,
+      qa.updated_at,
+      CASE
+        WHEN qa.finished_at IS NULL THEN NULL
+        ELSE TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at)
+      END AS duration_seconds
+    FROM quiz_attempts qa
+    WHERE qa.user_id = ?
+    ORDER BY qa.started_at DESC, qa.id DESC
+    LIMIT ? OFFSET ?;
+  `;
+  const [rows] = await pool.execute(sql, [userId, limit, offset]);
+  return rows;
+};
+
+/** Một lần thi thuộc về user (không lọc DELETED quiz — attempt vẫn hợp lệ). */
+export const getQuizAttemptByIdAndUserId = async (attemptId, userId) => {
+  const sql = `
+    SELECT
+      qa.id,
+      qa.user_id,
+      qa.quiz_id,
+      qa.quiz_title,
+      qa.score,
+      qa.started_at,
+      qa.finished_at,
+      qa.created_at,
+      qa.updated_at,
+      CASE
+        WHEN qa.finished_at IS NULL THEN NULL
+        ELSE TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at)
+      END AS duration_seconds
+    FROM quiz_attempts qa
+    WHERE qa.id = ? AND qa.user_id = ?
+    LIMIT 1;
+  `;
+  const [rows] = await pool.execute(sql, [attemptId, userId]);
+  return rows[0] || null;
 };
