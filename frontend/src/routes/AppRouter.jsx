@@ -52,7 +52,7 @@ export default function AppRouter() {
           <Route path="question-analytics" element={<QuestionAnalytics />} />
           <Route path="history" element={<History />} />
           <Route path="quiz/:id/take" element={<TakeQuiz />} />
-          <Route path="quiz/:id/review" element={<ReviewQuiz />} />
+          <Route path="attempt/:attemptId/review" element={<ReviewQuiz />} />
         </Route>
       </Route>
     </Routes>
