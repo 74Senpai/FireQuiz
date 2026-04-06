@@ -1,94 +1,162 @@
 import pool from '../db/db.js';
 
-const buildPlaceholders = (values) => values.map(() => '?').join(', ');
+export const deleteAttemptAnswers = async (conn, attemptQuestionId) => {
+  // Chú thích (BE): Xoá đáp án cũ của câu hỏi này trong attempt
+  // Tìm tất cả option_id thuộc câu hỏi đó rồi xoá trong attempt_answers
+  const [options] = await conn.execute(
+    `SELECT id FROM attempt_options WHERE attempt_question_id = ?`,
+    [attemptQuestionId]
+  );
+  if (options.length > 0) {
+    const optionIds = options.map(o => o.id);
+    // Chú thích (BE): Dùng placeholders động để xoá tất cả đáp án cũ
+    const placeholders = optionIds.map(() => '?').join(',');
+    await conn.execute(
+      `DELETE FROM attempt_answers WHERE attempt_option_id IN (${placeholders})`,
+      optionIds
+    );
+  }
+};
 
-export const getFinishedAttemptsByQuizId = async (quizId) => {
-  const sql = `
-    SELECT
-      qa.id,
-      qa.user_id,
-      qa.quiz_id,
-      qa.score,
-      qa.started_at,
-      qa.finished_at,
-      TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at) AS duration_seconds
-    FROM quiz_attempts qa
-    WHERE qa.quiz_id = ?
-      AND qa.finished_at IS NOT NULL;
-  `;
+export const insertAttemptAnswer = async (conn, attemptOptionId) => {
+  // Chú thích (BE): Insert đáp án mới vào attempt_answers
+  await conn.execute(
+    `INSERT INTO attempt_answers (attempt_option_id) VALUES (?)`,
+    [attemptOptionId]
+  );
+};
 
-  const [rows] = await pool.execute(sql, [quizId]);
+/**
+ * Lấy thông tin bài làm theo ID
+ */
+export const getQuizAttemptById = async (attemptId) => {
+  const [rows] = await pool.execute(
+    `SELECT * FROM quiz_attempts WHERE id = ?`,
+    [attemptId]
+  );
+  return rows[0] || null;
+};
+
+export const countTotalAttempts = async (quizId) => {
+  const [rows] = await pool.execute(
+    `SELECT COUNT(*) as count FROM quiz_attempts WHERE quiz_id = ?`,
+    [quizId]
+  );
+  return rows[0].count;
+};
+
+export const createQuizAttempt = async (conn, userId, quizId, quizTitle) => {
+  const [result] = await conn.execute(
+    `INSERT INTO quiz_attempts (user_id, quiz_id, quiz_title, started_at) VALUES (?, ?, ?, NOW())`,
+    [userId, quizId, quizTitle]
+  );
+  return result.insertId;
+};
+
+export const getQuestionsAndAnswersByQuizId = async (conn, quizId) => {
+  const [rows] = await conn.execute(
+    `SELECT q.id as question_id, q.content as question_content, q.type as question_type,
+            a.id as answer_id, a.content as answer_content, a.is_correct as answer_is_correct
+     FROM questions q
+     LEFT JOIN answers a ON q.id = a.question_id
+     WHERE q.quiz_id = ?`,
+    [quizId]
+  );
   return rows;
 };
 
-export const getLatestAttemptsByQuizId = async (quizId) => {
-  const sql = `
-    WITH ranked_attempts AS (
-      SELECT
-        qa.id,
-        qa.user_id,
-        qa.quiz_id,
-        qa.score,
-        qa.started_at,
-        qa.finished_at,
-        CASE
-          WHEN qa.finished_at IS NULL THEN NULL
-          ELSE TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at)
-        END AS duration_seconds,
-        ROW_NUMBER() OVER (
-          PARTITION BY qa.user_id
-          ORDER BY qa.created_at DESC, qa.id DESC
-        ) AS rn
-      FROM quiz_attempts qa
-      WHERE qa.quiz_id = ?
-    )
-    SELECT *
-    FROM ranked_attempts
-    WHERE rn = 1;
-  `;
-
-  const [rows] = await pool.execute(sql, [quizId]);
-  return rows;
+export const bulkInsertAttemptQuestions = async (conn, questionsData) => {
+  if (questionsData.length === 0) return null;
+  const [result] = await conn.query(
+    `INSERT INTO attempt_questions (quiz_attempt_id, content, type) VALUES ?`,
+    [questionsData]
+  );
+  return result;
 };
 
-export const getUserAttemptCountsByQuizId = async (quizId) => {
-  const sql = `
-    SELECT
-      qa.user_id,
-      COUNT(*) AS total_attempts
-    FROM quiz_attempts qa
-    WHERE qa.quiz_id = ?
-    GROUP BY qa.user_id;
-  `;
-
-  const [rows] = await pool.execute(sql, [quizId]);
-  return rows;
+export const bulkInsertAttemptOptions = async (conn, optionsData) => {
+  if (optionsData.length === 0) return null;
+  const [result] = await conn.query(
+    `INSERT INTO attempt_options (attempt_question_id, content, is_correct) VALUES ?`,
+    [optionsData]
+  );
+  return result;
 };
 
-export const getAttemptQuestionsByAttemptIds = async (attemptIds) => {
-  if (!attemptIds.length) {
-    return [];
+/**
+ * Lấy bài làm đang diễn ra (chưa nộp) của user
+ */
+export const getActiveAttempt = async (quizId, userId) => {
+  const [rows] = await pool.execute(
+    `SELECT * FROM quiz_attempts WHERE user_id = ? AND quiz_id = ? AND finished_at IS NULL ORDER BY started_at DESC LIMIT 1`,
+    [userId, quizId]
+  );
+  return rows[0] || null;
+};
+
+/**
+ * Láy toàn bộ dữ liệu snapshot của bài làm dang dở bao gồm đáp án đã chọn
+ */
+export const getAttemptSnapshot = async (attemptId) => {
+  const [questions] = await pool.execute(
+    `SELECT id, content, type FROM attempt_questions WHERE quiz_attempt_id = ?`,
+    [attemptId]
+  );
+
+  const questionsData = [];
+
+  for (const q of questions) {
+    const [options] = await pool.execute(
+      `SELECT id, content FROM attempt_options WHERE attempt_question_id = ?`,
+      [q.id]
+    );
+
+    // Chú thích (BE): Truy vấn xem câu hỏi này đã có đáp án được chọn chưa (auto-saved)
+    const [answers] = await pool.execute(
+      `SELECT attempt_option_id FROM attempt_answers 
+       WHERE attempt_option_id IN (SELECT id FROM attempt_options WHERE attempt_question_id = ?)`,
+      [q.id]
+    );
+
+    const optionsData = options.map(o => ({
+      id: o.id,
+      text: o.content
+    }));
+
+    const selectedOptionId = answers.length > 0 ? answers[0].attempt_option_id : null;
+
+    questionsData.push({
+      id: q.id,
+      text: q.content,
+      type: q.type,
+      options: optionsData,
+      selectedOptionId: selectedOptionId
+    });
   }
 
-  const placeholders = buildPlaceholders(attemptIds);
-  const sql = `
-    SELECT
-      aq.id,
-      aq.quiz_attempt_id,
-      aq.content,
-      aq.type
-    FROM attempt_questions aq
-    WHERE aq.quiz_attempt_id IN (${placeholders});
-  `;
-
-  const [rows] = await pool.execute(sql, attemptIds);
-  return rows;
+  return {
+    attemptId,
+    questions: questionsData
+  };
 };
 
-export const getAttemptOptionsByQuestionIds = async (questionIds) => {
-  if (!questionIds.length) {
-    return [];
-  }
+/**
+ * Lấy số lượng câu hỏi và số câu trả lời đúng của bài làm
+ */
+export const getAttemptScoreData = async (attemptId) => {
+  const [totalRows] = await pool.execute(
+    `SELECT COUNT(*) as total FROM attempt_questions WHERE quiz_attempt_id = ?`,
+    [attemptId]
+  );
+  
+  const [correctRows] = await pool.execute(
+    `SELECT COUNT(*) as correct
+     FROM attempt_answers aa
+     JOIN attempt_options ao ON aa.attempt_option_id = ao.id
+     JOIN attempt_questions aq ON ao.attempt_question_id = aq.id
+     WHERE aq.quiz_attempt_id = ? AND ao.is_correct = 1`,
+    [attemptId]
+  );
 
   const placeholders = buildPlaceholders(questionIds);
   const sql = `
