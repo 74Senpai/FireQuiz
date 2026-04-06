@@ -1,4 +1,6 @@
 import * as attemptRepository from '../repositories/attemptRepository.js';
+import * as quizRepository from '../repositories/quizRepository.js';
+import pool from '../db/db.js';
 import AppError from '../errors/AppError.js';
 
 const buildOptionsByQuestionId = (options) => {
@@ -9,6 +11,13 @@ const buildOptionsByQuestionId = (options) => {
     acc.get(option.attempt_question_id).push(option);
     return acc;
   }, new Map());
+};
+
+const shuffleArray = (array) => {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
 };
 
 /**
@@ -94,16 +103,6 @@ export const getMyAttemptReviewDetail = async (user, attemptIdParam) => {
   });
 
   return { attempt, questions };
-};
-import * as quizRepository from '../repositories/quizRepository.js';
-import AppError from '../errors/AppError.js';
-import pool from '../db/db.js';
-
-const shuffleArray = (array) => {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
 };
 
 const generateAttemptSnapshot = async (quizId, userId, quizTitle) => {
@@ -218,43 +217,31 @@ const generateAttemptSnapshot = async (quizId, userId, quizTitle) => {
 
 /**
  * Đồng bộ đáp án tạm thời khi người dùng chọn một option.
- * Chú thích (BE): Kiểm tra attempt hợp lệ và thuộc về user trước khi lưu.
- *
- * @param {number} attemptId         - ID của quiz_attempt
- * @param {number} userId            - ID của user đang làm bài
- * @param {number} attemptQuestionId - ID của attempt_questions
- * @param {number} attemptOptionId   - ID của attempt_options được chọn
  */
 export const submitAnswer = async (attemptId, userId, attemptQuestionId, attemptOptionId) => {
-  // Chú thích (BE): Kiểm tra attempt có tồn tại không
   const attempt = await attemptRepository.getQuizAttemptById(attemptId);
   if (!attempt) {
     throw new AppError('Không tìm thấy bài làm', 404);
   }
 
-  // Chú thích (BE): Kiểm tra attempt có thuộc về user không
   if (attempt.user_id !== userId) {
     throw new AppError('Bạn không có quyền thực hiện hành động này', 403);
   }
 
-  // Chú thích (BE): Kiểm tra bài chưa nộp (finished_at là null)
   if (attempt.finished_at !== null) {
     throw new AppError('Bài đã nộp, không thể thay đổi đáp án', 400);
   }
 
-  // Chú thích (BE): Kiểm tra thời gian
   const quiz = await quizRepository.getQuizById(attempt.quiz_id);
   if (quiz && quiz.time_limit_seconds) {
     const now = new Date();
     const startedAt = new Date(attempt.started_at);
     const elapsedSeconds = Math.floor((now.getTime() - startedAt.getTime()) / 1000);
-    // Cho phép trễ 5 giây so với network (buffer delay)
     if (elapsedSeconds > quiz.time_limit_seconds + 5) {
       throw new AppError('Đã hết thời gian làm bài, không thể lưu thêm đáp án', 400);
     }
   }
 
-  // Chú thích (BE): Lưu đáp án tạm thời (áp dụng transaction)
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -284,7 +271,6 @@ export const startAttempt = async (quizId, userId) => {
   const hasSchedule = quiz.available_from || quiz.available_until;
   const isDateValid = !isBeforeOpen && !isAfterClose;
 
-  // Lazy state update dựa trên cài đặt lịch thời gian
   if (hasSchedule) {
     if (isDateValid && quiz.status !== 'PUBLIC' && quiz.status !== 'DELETED') {
       await quizRepository.setStatus(quizId, 'PUBLIC');
@@ -295,7 +281,6 @@ export const startAttempt = async (quizId, userId) => {
     }
   }
 
-  // Ném lỗi ưu tiên báo về thời gian trước
   if (isBeforeOpen) {
     throw new AppError('Quiz chưa mở', 403);
   }
@@ -306,14 +291,10 @@ export const startAttempt = async (quizId, userId) => {
     throw new AppError('Quiz không công khai', 403);
   }
 
-  // Chú thích (BE): Kiểm tra xem có bài làm nào đang dang dở không (chưa nộp)
   const activeAttempt = await attemptRepository.getActiveAttempt(quizId, userId);
 
   if (activeAttempt) {
-    // Nếu có, tiếp tục bài làm cũ (tránh mất kết quả tự động lưu khi rớt mạng)
     const attemptData = await attemptRepository.getAttemptSnapshot(activeAttempt.id);
-
-    // Tính toán thời gian còn lại (nếu có giới hạn thời gian)
     let remainingSeconds = quiz.time_limit_seconds;
     if (remainingSeconds) {
       const elapsedSeconds = Math.floor((now - new Date(activeAttempt.started_at)) / 1000);
@@ -327,7 +308,6 @@ export const startAttempt = async (quizId, userId) => {
     };
   }
 
-  // Chú thích (BE): Nếu không có bài dang dở, kiểm tra số lượt làm bài tối đa (dùng chung cho bộ quiz)
   if (quiz.max_attempts) {
     const totalAttempts = await attemptRepository.countTotalAttempts(quizId);
     if (totalAttempts >= quiz.max_attempts) {
@@ -337,7 +317,6 @@ export const startAttempt = async (quizId, userId) => {
 
   const attemptData = await generateAttemptSnapshot(quizId, userId, quiz.title);
 
-  // Trả về dữ liệu để hiển thị trang làm bài
   return {
     quizTitle: quiz.title,
     timeLimitSeconds: quiz.time_limit_seconds,
@@ -356,7 +335,6 @@ export const finishAttempt = async (attemptId, userId) => {
   }
 
   if (attempt.finished_at !== null) {
-    // Đã nộp rồi thì không báo lỗi crash, chỉ trả về để FE biết
     return { message: 'Bài đã được nộp trước đó' };
   }
 
@@ -369,7 +347,6 @@ export const finishAttempt = async (attemptId, userId) => {
     finalScore = (scoreData.correct / scoreData.total) * gradingScale;
   }
 
-  // Làm tròn 2 chữ số thập phân
   finalScore = Math.round(finalScore * 100) / 100;
 
   await attemptRepository.markAttemptFinished(attemptId, finalScore);
@@ -392,7 +369,6 @@ export const recordTabViolation = async (attemptId, userId) => {
     throw new AppError('Bạn không có quyền thực hiện hành động này', 403);
   }
 
-  // Chú thích (BE): Tăng số lần vi phạm
   await attemptRepository.incrementTabViolation(attemptId);
 };
 
@@ -402,8 +378,6 @@ export const joinQuizByCode = async (code, userId) => {
     throw new AppError("Sai PIN", 404);
   }
   
-  // Tái sử dụng logic gọi startAttempt để xác thực toàn diện (time, status, max_attempts) 
-  // và tạo luôn snapshot/active attempt để đảm bảo tuân thủ "tạo bài làm ngay lúc bấm join".
   await startAttempt(quiz.id, userId);
 
   return quiz;

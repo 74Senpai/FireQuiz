@@ -14,7 +14,7 @@ import { protectedRoute } from './middlewares/authMiddleware.js';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
-const originURL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const originURL = process.env.FRONT_END_URL || 'http://localhost:3000';
 
 // 2. Cấu hình CORS
 app.use(cors({

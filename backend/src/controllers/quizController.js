@@ -1,4 +1,4 @@
-import { asyncHandler } from '../untils/asyncHandler.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 import * as quizService from '../services/quizService.js';
 import * as quizReportService from '../services/quizReportService.js';
 import * as attemptService from '../services/attemptService.js';

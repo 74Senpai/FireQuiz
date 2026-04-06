@@ -1,12 +1,11 @@
 import express from 'express';
 import * as attemptController from '../controllers/attemptController.js';
-
-
-router.get('/my', attemptController.listMyAttempts);
-router.get('/:id/review', attemptController.getAttemptReview);
 import { protectedRoute } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
+
+router.get('/my', attemptController.listMyAttempts);
+router.get('/:id/review', attemptController.getAttemptReview);
 
 router.post('/start/:quizId', protectedRoute, attemptController.startAttempt);
 

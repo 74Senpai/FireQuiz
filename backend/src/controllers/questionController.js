@@ -1,6 +1,6 @@
 import * as questionService from '../services/questionService.js';
 import AppError from '../errors/AppError.js';
-import { asyncHandler } from '../untils/asyncHandler.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const createQuestion = asyncHandler(async (req, res) => {
   const user = req.user;
