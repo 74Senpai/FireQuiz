@@ -13,7 +13,7 @@ const skip = () => {
 
 const requestLogger = morgan(
   ':method :url :status :res[content-length] - :response-time ms',
-  { stream }
+  { stream, skip }
 );
 
 export default requestLogger;
