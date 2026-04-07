@@ -1,4 +1,5 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
+import logger from '../utils/logger.js';
 import * as validator from '../validators/validator.js';
 import AppError from '../errors/AppError.js';
 import jwt from 'jsonwebtoken';
@@ -46,17 +47,17 @@ export const protectedRoute = asyncHandler(async (req, res, next) => {
     throw new AppError("Access token hết hạn hoặc không đúng", 403);
   }
 
-  console.log("info: in authMiddleware:49 decodedUser.userId = " + decodedUser.userId);
+  logger.debug(`authMiddleware.js - decodedUser.userId = ${decodedUser.userId}`);
   const user = await userService.getUserById(decodedUser.userId);
 
   if (!user) {
     throw new AppError("Người dùng không tồn tại", 404);
   }
 
-  console.log(`info: in authMiddleware:56 user.id = ${user.id}`);
+  logger.debug(`authMiddleware.js - user.id = ${user.id}`);
 
   req.user = user;
-  console.log(`info: in authMiddleware:57 req.user = ${req.user.id}`);
+  logger.debug(`authMiddleware.js - req.user = ${req.user.id}`);
 
   next();
 });

@@ -1,4 +1,5 @@
 import * as userRepository from '../repositories/userRepository.js';
+import logger from '../utils/logger.js';
 
 export const getUserById = async (id) => {
   const user = await userRepository.findById(id);
@@ -7,8 +8,8 @@ export const getUserById = async (id) => {
     return null;
   }
 
-  console.log(
-    `info: in userService.js:6 id: ${user.id}, role: ${user.role}, fullName: ${user.full_name}`,
+  logger.info(
+    `userService.js - id: ${user.id}, role: ${user.role}, fullName: ${user.full_name}`,
   );
 
   return {

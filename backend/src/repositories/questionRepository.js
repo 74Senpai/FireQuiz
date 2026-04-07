@@ -1,9 +1,10 @@
 import pool from '../db/db.js';
+import logger from '../utils/logger.js';
 
 export const create = async (data, tx = pool) => {
   const { content, type, quizId } = data;
  
-  console.log(`info: in questionRepository.js:6 content: ${content}, type: ${type}, quizId: ${quizId}`);
+  logger.info(`questionRepository.js - Creating question - content: ${content}, type: ${type}, quizId: ${quizId}`);
   const sql = "INSERT INTO questions(content, type, quiz_id) VALUES (?, ?, ?);";
   const [row] = await tx.execute(sql, [content, type, quizId]);
   return row.insertId;
