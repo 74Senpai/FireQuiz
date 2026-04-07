@@ -1,9 +1,15 @@
 import winston from 'winston';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const logDir = path.join(__dirname, '../../logs');
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
+}
 
 const logFormat = winston.format.printf(({ level, message, timestamp, stack }) => {
   return `${timestamp} [${level.toUpperCase()}]: ${stack || message}`;
@@ -24,11 +30,11 @@ const logger = winston.createLogger({
     // - Write all logs with importance level of `info` or less to `combined.log`
     //
     new winston.transports.File({ 
-      filename: path.join(__dirname, '../../logs/error.log'), 
+      filename: path.join(logDir, 'error.log'), 
       level: 'error' 
     }),
     new winston.transports.File({ 
-      filename: path.join(__dirname, '../../logs/combined.log') 
+      filename: path.join(logDir, 'combined.log') 
     }),
   ],
 });
