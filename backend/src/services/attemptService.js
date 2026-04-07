@@ -216,9 +216,9 @@ const generateAttemptSnapshot = async (quizId, userId, quizTitle) => {
 };
 
 /**
- * Đồng bộ đáp án tạm thời khi người dùng chọn một option.
+ * Đồng bộ đáp án tạm thời khi người dùng chọn một hoặc nhiều option.
  */
-export const submitAnswer = async (attemptId, userId, attemptQuestionId, attemptOptionId) => {
+export const submitAnswer = async (attemptId, userId, attemptQuestionId, attemptOptionIds, textAnswer = null) => {
   const attempt = await attemptRepository.getQuizAttemptById(attemptId);
   if (!attempt) {
     throw new AppError('Không tìm thấy bài làm', 404);
@@ -247,7 +247,17 @@ export const submitAnswer = async (attemptId, userId, attemptQuestionId, attempt
     await conn.beginTransaction();
 
     await attemptRepository.deleteAttemptAnswers(conn, attemptQuestionId);
-    await attemptRepository.insertAttemptAnswer(conn, attemptOptionId);
+    
+    // Đảm bảo attemptOptionIds là array
+    const ids = Array.isArray(attemptOptionIds) ? attemptOptionIds : [attemptOptionIds];
+    
+    if (ids.length > 0) {
+      const answersPayload = ids.map((id, index) => ({
+        attemptOptionId: id,
+        textAnswer: index === 0 ? textAnswer : null
+      }));
+      await attemptRepository.bulkInsertAttemptAnswers(conn, answersPayload);
+    }
 
     await conn.commit();
   } catch (err) {

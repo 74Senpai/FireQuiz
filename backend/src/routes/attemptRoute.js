@@ -4,8 +4,8 @@ import { protectedRoute } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-router.get('/my', attemptController.listMyAttempts);
-router.get('/:id/review', attemptController.getAttemptReview);
+router.get('/my', protectedRoute, attemptController.listMyAttempts);
+router.get('/:id/review', protectedRoute, attemptController.getAttemptReview);
 
 router.post('/start/:quizId', protectedRoute, attemptController.startAttempt);
 

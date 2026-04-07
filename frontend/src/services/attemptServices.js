@@ -20,6 +20,12 @@ export const reportAttemptViolation = (attemptId) =>
 export const submitAttempt = (attemptId) =>
   axios.patch(`/attempt/${attemptId}/submit`).then((res) => res.data);
 
-/** Đồng bộ đáp án */
-export const syncAttemptAnswer = (attemptId, attemptQuestionId, attemptOptionId) =>
-  axios.patch(`/attempt/${attemptId}/answer`, { attemptQuestionId, attemptOptionId }).then((res) => res.data);
+/** Đồng bộ đáp án (hỗ trợ cả mảng cho Multiple Choice và chuỗi cho Text) */
+export const syncAttemptAnswer = (attemptId, attemptQuestionId, attemptOptionIds, textAnswer = null) => {
+  const payload = {
+    attemptQuestionId,
+    attemptOptionIds: Array.isArray(attemptOptionIds) ? attemptOptionIds : (attemptOptionIds ? [attemptOptionIds] : []),
+    textAnswer,
+  };
+  return axios.patch(`/attempt/${attemptId}/answer`, payload).then((res) => res.data);
+};
