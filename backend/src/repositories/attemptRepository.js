@@ -242,7 +242,7 @@ export const listQuizAttemptsByUserIdPaginated = async (userId, limit, offset) =
     ORDER BY qa.started_at DESC, qa.id DESC
     LIMIT ? OFFSET ?;
   `;
-  const [rows] = await pool.execute(sql, [userId, limit, offset]);
+  const [rows] = await pool.query(sql, [userId, limit, offset]);
   return rows;
 };
 
@@ -301,5 +301,59 @@ export const getAttemptAnswersByOptionIds = async (optionIds) => {
     `SELECT * FROM attempt_answers WHERE attempt_option_id IN (${placeholders})`,
     optionIds
   );
+  return rows;
+};
+
+/**
+ * Lấy tất cả các lần thi đã hoàn thành của một Quiz (Leaderboard/Analytics)
+ */
+export const getFinishedAttemptsByQuizId = async (quizId) => {
+  const sql = `
+    SELECT 
+      id, user_id, quiz_id, score, started_at, finished_at,
+      TIMESTAMPDIFF(SECOND, started_at, finished_at) AS duration_seconds
+    FROM quiz_attempts
+    WHERE quiz_id = ? AND finished_at IS NOT NULL
+    ORDER BY started_at DESC;
+  `;
+  const [rows] = await pool.execute(sql, [quizId]);
+  return rows;
+};
+
+/**
+ * Lấy lần thi mới nhất của mỗi user cho một Quiz (Dashboard)
+ */
+export const getLatestAttemptsByQuizId = async (quizId) => {
+  const sql = `
+    SELECT 
+      qa.id, qa.user_id, qa.quiz_id, qa.score, qa.started_at, qa.finished_at,
+      CASE 
+        WHEN qa.finished_at IS NULL THEN NULL
+        ELSE TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at)
+      END AS duration_seconds
+    FROM quiz_attempts qa
+    INNER JOIN (
+      SELECT user_id, MAX(started_at) as max_started_at
+      FROM quiz_attempts
+      WHERE quiz_id = ?
+      GROUP BY user_id
+    ) latest ON qa.user_id = latest.user_id AND qa.started_at = latest.max_started_at
+    WHERE qa.quiz_id = ?;
+  `;
+  const [rows] = await pool.execute(sql, [quizId, quizId]);
+  return rows;
+};
+
+/**
+ * Đếm số lần tham gia của mỗi user cho một Quiz
+ */
+export const getUserAttemptCountsByQuizId = async (quizId) => {
+  const sql = `
+    SELECT user_id, COUNT(*) as total_attempts
+    FROM quiz_attempts
+    WHERE quiz_id = ?
+    GROUP BY user_id;
+  `;
+  const [rows] = await pool.execute(sql, [quizId]);
   return rows;
 };
