@@ -12,7 +12,7 @@ if (!fs.existsSync(logDir)) {
 }
 
 const logFormat = winston.format.printf(({ level, message, timestamp, stack }) => {
-  return `${timestamp} [${level.toUpperCase()}]: ${stack || message}`;
+  return `${timestamp} [${level}]: ${stack || message}`;
 });
 
 const logger = winston.createLogger({
@@ -46,8 +46,12 @@ const logger = winston.createLogger({
 if (process.env.NODE_ENV !== 'production') {
   logger.add(new winston.transports.Console({
     format: winston.format.combine(
-      winston.format.colorize(),
       winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+      winston.format((info) => {
+        info.level = info.level.toUpperCase();
+        return info;
+      })(),
+      winston.format.colorize({ all: true }),
       logFormat
     ),
   }));
