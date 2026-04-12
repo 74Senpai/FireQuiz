@@ -29,7 +29,7 @@ export const changeContent = async (id, content, tx = pool) => {
 };
 
 export const changeMediaUrl = async (id, mediaUrl, tx = pool) => {
-  const sql = "UPDATE questions SET media_url = COALESCE(?, media_url) WHERE id = ?;";
+  const sql = "UPDATE questions SET media_url = ? WHERE id = ?;";
   await tx.execute(sql, [mediaUrl ?? null, id]);
 };
 
