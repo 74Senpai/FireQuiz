@@ -20,10 +20,12 @@
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
     "multer": "^2.1.1",
     "mysql2": "^3.19.1",
     "nodemailer": "^8.0.2",
-    "pdfkit": "^0.18.0"
+    "pdfkit": "^0.18.0",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "@sinonjs/fake-timers": "^10.0.1",

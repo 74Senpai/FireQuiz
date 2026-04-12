@@ -1,4 +1,5 @@
 import pool from '../db/db.js';
+import logger from '../utils/logger.js';
 import * as quizRepository from '../repositories/quizRepository.js';
 import * as questionRepository from '../repositories/questionRepository.js';
 import * as answerRepository from '../repositories/answerRepository.js';
@@ -40,7 +41,7 @@ export const createQuiz = async (user, data) => {
   }
 
   const quizId = await quizRepository.createQuiz({title, description, gradingScale, timeLimitSeconds, availableFrom, availableUntil, maxAttempts, creatorId:id });
-  console.log(`info: in quizService.js:22 quizId = ${quizId}`);
+  logger.info(`quizService.js - Created quiz with ID: ${quizId}`);
   return quizId;
 }
 

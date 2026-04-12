@@ -1,6 +1,8 @@
+import logger from '../utils/logger.js';
+
 export const errorHandler = (err, req, res, next) => {
   // log stack trace
-  console.log(err);
+  logger.error(err);
 
   const status = err.status || 500;
 

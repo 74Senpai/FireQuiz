@@ -11,6 +11,8 @@ import attemptRoute from './routes/attemptRoute.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import cookieParser from 'cookie-parser';
 import { protectedRoute } from './middlewares/authMiddleware.js';
+import logger from './utils/logger.js';
+import requestLogger from './middlewares/requestLogger.js';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -24,6 +26,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+app.use(requestLogger);
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -32,14 +36,14 @@ app.use(cookieParser());
 async function startServer() {
   try {
     await pool.query("SELECT 1");
-    console.log("DB connected!");
+    logger.info("Database connected successfully!");
 
     app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server running on ${PORT}`);
+      logger.info(`Server running on port ${PORT}`);
     });
 
   } catch (err) {
-    console.error("DB connection failed:", err);
+    logger.error("Database connection failed:", err);
     process.exit(1);
   }
 }

@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import logger from '../utils/logger.js';
 import * as questionRepository from '../repositories/questionRepository.js';
 import * as answerRepository from '../repositories/answerRepository.js';
 import { getQuizById } from '../repositories/quizRepository.js';
@@ -156,7 +157,7 @@ export const bulkCreateQuestions = async (quizId, validRows) => {
       results.success++;
     } catch (err) {
       results.failed++;
-      console.error(`Lỗi import row: ${row.content}`, err.message);
+      logger.error(`importService.js - Error importing row: ${row.content} - ${err.message}`);
     }
   }
 
