@@ -25,10 +25,14 @@ const excelFilter = (req, file, cb) => {
 };
 
 const mediaFilter = (req, file, cb) => {
-  if (ALLOWED_MEDIA.includes(file.mimetype)) {
+  const isMedia = file.mimetype.startsWith('image/') || 
+                  file.mimetype.startsWith('video/') || 
+                  file.mimetype.startsWith('audio/');
+                  
+  if (isMedia) {
     cb(null, true);
   } else {
-    cb(new AppError('Định dạng file không hợp lệ (Chỉ nhận ảnh, MP4, MP3, WAV, OGG)', 400), false);
+    cb(new AppError('Định dạng file không hợp lệ (Chỉ nhận ảnh, video, âm thanh)', 400), false);
   }
 };
 

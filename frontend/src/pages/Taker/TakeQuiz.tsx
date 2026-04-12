@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, AlertTriangle, CheckCircle2, Loader2, ChevronLeft, ChevronRight, ListChecks } from "lucide-react";
+import { Clock, AlertTriangle, CheckCircle2, Loader2, ChevronLeft, ChevronRight, ListChecks, FileAudio } from "lucide-react";
 import * as attemptServices from "@/services/attemptServices";
 import { cn } from "@/lib/utils";
 
@@ -275,6 +275,26 @@ export function TakeQuiz() {
                       {((q.type || "").trim().toUpperCase().startsWith("MULTIPLE") || (q.type || "").trim().toUpperCase().startsWith("MULTI")) && <span className="ml-2 text-xs font-normal text-indigo-400 bg-indigo-400/10 px-2 py-0.5 rounded border border-indigo-400/20">Chọn nhiều đáp án</span>}
                     </h3>
                   </div>
+
+                  {/* Media Display in TakeQuiz */}
+                  {q.media_url && (
+                    <div className="pl-0 sm:pl-12">
+                      <div className="rounded-xl overflow-hidden border border-white/10 bg-black/20 max-w-2xl">
+                        {(q.media_url.match(/\.(jpeg|jpg|gif|png|webp)/i) || q.media_url.includes('image')) && (
+                          <img src={q.media_url} className="w-full h-auto max-h-96 object-contain" alt="Question media" />
+                        )}
+                        {(q.media_url.match(/\.(mp4|webm)/i) || q.media_url.includes('video')) && (
+                          <video src={q.media_url} controls className="w-full h-auto max-h-96" />
+                        )}
+                        {(q.media_url.match(/\.(mp3|wav|ogg)/i) || q.media_url.includes('audio')) && (
+                          <div className="p-6 flex flex-col items-center gap-4">
+                            <FileAudio className="w-10 h-10 text-indigo-400" />
+                            <audio src={q.media_url} controls className="w-full max-w-md" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {q.type === "TEXT" ? (
                     <div className="pl-0 sm:pl-12">

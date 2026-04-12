@@ -5,7 +5,8 @@ import AppError from '../errors/AppError.js';
 dotenv.config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY; // Dùng role key hoặc service_role key
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabaseBucket = process.env.SUPABASE_BUCKET || 'quizzes-img';
 
 if (!supabaseUrl || !supabaseKey) {
   console.warn("Supabase credentials are not provided. Please set SUPABASE_URL and SUPABASE_KEY in .env");
@@ -21,10 +22,10 @@ if (supabaseUrl && supabaseKey) {
  * @param {Buffer} fileBuffer - Dữ liệu file nằm trên RAM.
  * @param {string} fileName - Tên file gốc.
  * @param {string} mimeType - Loại file (mimetype).
- * @param {string} bucket - Tên bucket public (mặc định 'firequiz-assets').
+ * @param {string} bucket - Tên bucket (mặc định lấy từ SUPABASE_BUCKET).
  * @returns {Promise<string>} Đường dẫn public của file đã upload.
  */
-export const uploadFileToSupabase = async (fileBuffer, fileName, mimeType, bucket = 'firequiz-assets') => {
+export const uploadFileToSupabase = async (fileBuffer, fileName, mimeType, bucket = supabaseBucket) => {
   if (!supabase) {
     throw new AppError('Dịch vụ lưu trữ chưa được cấu hình', 500);
   }
