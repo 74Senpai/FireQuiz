@@ -31,7 +31,7 @@ export const uploadFileToSupabase = async (fileBuffer, fileName, mimeType, bucke
   }
 
   // Tạo tên file duy nhất để tránh trùng lặp
-  const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1E9)}-${fileName.replace(/\s+/g, '_')}`;
+  const uniqueName = `${crypto.randomUUID()}-${fileName.replace(/\s+/g, '_')}`;
 
   const { data, error } = await supabase.storage
     .from(bucket)
