@@ -12,7 +12,7 @@ export const updateAvatar = asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, message: 'avatar_url is required' });
   }
 
-  const userRepo = await import('../repositories/userRepository.js');
+  await userRepository.updateAvatarUrl(req.user.id, avatar_url);
   await userRepo.updateAvatarUrl(req.user.id, avatar_url);
 
   return res.status(200).json({ success: true, message: 'Avatar updated successfully', avatar_url });
