@@ -79,7 +79,7 @@ export const createQuizAttempt = async (conn, userId, quizId, quizTitle) => {
  */
 export const getQuestionsAndAnswersByQuizId = async (conn, quizId) => {
   const [rows] = await conn.execute(
-    `SELECT q.id as question_id, q.content as question_content, q.type as question_type,
+    `SELECT q.id as question_id, q.content as question_content, q.type as question_type, q.media_url as question_media_url,
             a.id as answer_id, a.content as answer_content, a.is_correct as answer_is_correct
      FROM questions q
      LEFT JOIN answers a ON q.id = a.question_id
@@ -95,7 +95,7 @@ export const getQuestionsAndAnswersByQuizId = async (conn, quizId) => {
 export const bulkInsertAttemptQuestions = async (conn, questionsData) => {
   if (questionsData.length === 0) return null;
   const [result] = await conn.query(
-    `INSERT INTO attempt_questions (quiz_attempt_id, content, type) VALUES ?`,
+    `INSERT INTO attempt_questions (quiz_attempt_id, content, type, media_url) VALUES ?`,
     [questionsData]
   );
   return result;
@@ -129,7 +129,7 @@ export const getActiveAttempt = async (quizId, userId) => {
  */
 export const getAttemptSnapshot = async (attemptId) => {
   const [questions] = await pool.execute(
-    `SELECT id, content, type FROM attempt_questions WHERE quiz_attempt_id = ?`,
+    `SELECT id, content, type, media_url FROM attempt_questions WHERE quiz_attempt_id = ?`,
     [attemptId]
   );
 
@@ -159,6 +159,7 @@ export const getAttemptSnapshot = async (attemptId) => {
       id: q.id,
       text: q.content,
       type: q.type,
+      media_url: q.media_url,
       options: optionsData,
       selectedOptionIds: selectedOptionIds,
       textAnswer: textAnswer

@@ -12,7 +12,10 @@ import {
   History,
   AlertTriangle,
   FileAudio,
+  ZoomIn,
+  X,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { getAttemptReview } from "@/services/attemptServices";
 import { cn } from "@/lib/utils";
 
@@ -65,6 +68,7 @@ export function ReviewQuiz() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [payload, setPayload] = useState<any>(null);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -161,6 +165,31 @@ export function ReviewQuiz() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-10 animate-fade-in">
+      {/* Image Zoom Modal */}
+      <AnimatePresence>
+        {zoomedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+            onClick={() => setZoomedImage(null)}
+          >
+            <motion.img
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              src={zoomedImage}
+              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+              alt="Zoomed view"
+            />
+            <button className="absolute top-6 right-6 p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+              <X className="w-6 h-6 text-white" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header section with Breadcrumbs */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-4">
@@ -382,7 +411,21 @@ export function ReviewQuiz() {
                     {question.media_url && (
                       <div className="mt-4 rounded-xl overflow-hidden border border-white/10 bg-black/20 max-w-2xl">
                         {(question.media_url.match(/\.(jpeg|jpg|gif|png|webp)/i) || question.media_url.includes('image')) && (
-                          <img src={question.media_url} className="w-full h-auto max-h-96 object-contain" alt="Question media" />
+                          <div 
+                            className="relative group/media cursor-zoom-in overflow-hidden rounded-lg"
+                            onClick={() => setZoomedImage(question.media_url)}
+                          >
+                            <img 
+                              src={question.media_url} 
+                              className="w-full h-auto max-h-96 object-contain transition-transform duration-300 group-hover/media:scale-[1.02]" 
+                              alt="Question media" 
+                            />
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/media:opacity-100 transition-opacity flex items-center justify-center">
+                                <div className="bg-white/20 backdrop-blur-md p-2 rounded-full border border-white/30">
+                                    <ZoomIn className="w-6 h-6 text-white" />
+                                </div>
+                            </div>
+                          </div>
                         )}
                         {(question.media_url.match(/\.(mp4|webm)/i) || question.media_url.includes('video')) && (
                           <video src={question.media_url} controls className="w-full h-auto max-h-96" />
