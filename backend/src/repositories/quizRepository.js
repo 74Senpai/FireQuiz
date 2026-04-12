@@ -88,7 +88,11 @@ export const updateQuizInfo = async (id, data) => {
     UPDATE quizzes
     SET title = COALESCE(?, title), 
         description = COALESCE(?, description),
-        thumbnail_url = COALESCE(?, thumbnail_url)
+        thumbnail_url = ?
+    WHERE id = ?
+  `;
+
+  await pool.execute(sql, [title ?? null, description ?? null, thumbnailUrl, id]);
     WHERE id = ?
   `;
 
