@@ -3,6 +3,7 @@ import * as answerRepository from '../repositories/answerRepository.js';
 import { getQuizById } from '../repositories/quizRepository.js';
 import pool from '../db/db.js';
 import AppError from '../errors/AppError.js';
+import { deleteFileFromSupabase } from './supabaseService.js';
 
 const ALLOWED_TYPES = ['ANANSWER', 'MULTI_ANSWERS', 'TRUE_FALSE', 'TEXT'];
 const MIN_OPTIONS = 3;
@@ -149,7 +150,19 @@ export const updateQuestion = async (questionId, userId, data) => {
     // Cập nhật content, type và mediaUrl
     if (content !== undefined) await questionRepository.changeContent(questionId, content, conn);
     if (type !== undefined) await questionRepository.changeType(questionId, type, conn);
-    if (mediaUrl !== undefined) await questionRepository.changeMediaUrl(questionId, mediaUrl, conn);
+    
+    if (mediaUrl !== undefined) {
+      const oldQuestion = await questionRepository.findQuestionById(questionId);
+      const oldMediaUrl = oldQuestion?.media_url;
+
+      await questionRepository.changeMediaUrl(questionId, mediaUrl, conn);
+
+      // Nếu mediaUrl thay đổi (khác cái cũ), hãy thử xóa cái cũ
+      if (oldMediaUrl && oldMediaUrl !== mediaUrl) {
+         // deleteFileFromSupabase đã có check reference count bên trong
+         await deleteFileFromSupabase(oldMediaUrl);
+      }
+    }
 
     // Replace toàn bộ đáp án cũ nếu có answers mới
     if (answers !== undefined) {
@@ -171,11 +184,19 @@ export const deleteQuestion = async (questionId, userId) => {
   
   const conn = await pool.getConnection();
   try {
+    const question = await questionRepository.findQuestionById(questionId);
+    const mediaUrl = question?.media_url;
+
     await conn.beginTransaction();
     // Xóa đáp án trước (đề phòng không có cascade delete trong DB)
     await answerRepository.deleteAnswersByQuestionId(questionId, conn);
     await questionRepository.deleteQuestionById(questionId, conn);
     await conn.commit();
+
+    // Sau khi xóa xong khỏi DB, thử xóa media (nếu có)
+    if (mediaUrl) {
+      await deleteFileFromSupabase(mediaUrl);
+    }
   } catch (error) {
     await conn.rollback();
     throw error;

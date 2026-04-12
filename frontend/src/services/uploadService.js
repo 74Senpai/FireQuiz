@@ -18,3 +18,14 @@ export const uploadFile = async (file) => {
   // Backend trả về { success: true, message: "...", data: { url: "..." } }
   return res.data.data || res.data;
 };
+
+/**
+ * Gửi yêu cầu xóa file từ hệ thống (xóa thật trên Supabase nếu usage count = 0)
+ * @param {string} url - URL của file cần xóa
+ */
+export const deleteFile = async (url) => {
+  const res = await axios.delete("/upload", {
+    data: { url }
+  });
+  return res.data;
+};

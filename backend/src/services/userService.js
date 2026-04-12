@@ -1,5 +1,6 @@
 import * as userRepository from '../repositories/userRepository.js';
 import logger from '../utils/logger.js';
+import { deleteFileFromSupabase } from './supabaseService.js';
 
 export const getUserById = async (id) => {
   const user = await userRepository.findById(id);
@@ -18,4 +19,17 @@ export const getUserById = async (id) => {
     fullName: user.full_name,
     email: user.email,
   };
+};
+
+export const updateAvatar = async (userId, newAvatarUrl) => {
+  const user = await userRepository.findById(userId);
+  if (!user) return;
+
+  const oldAvatarUrl = user.avatar_url;
+  await userRepository.updateAvatarUrl(userId, newAvatarUrl);
+
+  // Thử xóa avatar cũ nếu có thay đổi
+  if (oldAvatarUrl && oldAvatarUrl !== newAvatarUrl) {
+    await deleteFileFromSupabase(oldAvatarUrl);
+  }
 };

@@ -6,6 +6,7 @@ import * as answerRepository from '../repositories/answerRepository.js';
 import * as attemptAggregationService from '../services/attemptAggregationService.js';
 import { findById } from '../repositories/userRepository.js';
 import AppError from '../errors/AppError.js';
+import { deleteFileFromSupabase } from './supabaseService.js';
 
 const PIN_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const PIN_LENGTH = 6;
@@ -169,13 +170,16 @@ export const setStatus = async (id, user, status) => {
 };
 
 export const changeQuizInfo = async (id, user, info) => {
-  const { title, description } = info;
-  
   const quiz = await quizRepository.getQuizById(id);
-
   checkQuizExistAndOwner(quiz, user);
 
+  const oldThumbnailUrl = quiz?.thumbnail_url;
   await quizRepository.updateQuizInfo(id, info);
+
+  // Xóa thumbnail cũ nếu bị thay đổi hoặc gỡ bỏ
+  if (info.thumbnailUrl !== undefined && oldThumbnailUrl && oldThumbnailUrl !== info.thumbnailUrl) {
+    await deleteFileFromSupabase(oldThumbnailUrl);
+  }
 };
 
 export const changeQuizSettings = async(id, user, settings) => {
@@ -248,11 +252,15 @@ export const listPublicOpenQuizzes = async (query) => {
 
 export const deleteQuiz = async (id, user) => {
   const quiz = await quizRepository.getQuizById(id);
-  
   checkQuizExistAndOwner(quiz, user);
+  const thumbnailUrl = quiz?.thumbnail_url;
 
   try {
     await quizRepository.hardDelete(id);
+    // Nếu hard delete thành công, nỗ lực xóa thumbnail
+    if (thumbnailUrl) {
+      await deleteFileFromSupabase(thumbnailUrl);
+    }
   } catch (err) {
     if (err.code === "ER_ROW_IS_REFERENCED_2") {
       await quizRepository.softDelete(id);

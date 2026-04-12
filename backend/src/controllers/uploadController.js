@@ -1,4 +1,4 @@
-import { uploadFileToSupabase } from '../services/supabaseService.js';
+import { uploadFileToSupabase, deleteFileFromSupabase } from '../services/supabaseService.js';
 import AppError from '../errors/AppError.js';
 
 export const uploadMediaFile = async (req, res, next) => {
@@ -20,6 +20,25 @@ export const uploadMediaFile = async (req, res, next) => {
       data: {
         url: fileUrl
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteMediaFile = async (req, res, next) => {
+  try {
+    const { url } = req.body;
+    if (!url) {
+      throw new AppError('Vui lòng cung cấp URL file cần xóa', 400);
+    }
+
+    // deleteFileFromSupabase đã có logic check usage count
+    await deleteFileFromSupabase(url);
+
+    res.status(200).json({
+      success: true,
+      message: 'Yêu cầu xóa file đã được xử lý (file chỉ bị xóa nếu không còn ai sử dụng)'
     });
   } catch (error) {
     next(error);

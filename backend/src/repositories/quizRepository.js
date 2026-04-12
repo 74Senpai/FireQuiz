@@ -92,10 +92,6 @@ export const updateQuizInfo = async (id, data) => {
     WHERE id = ?
   `;
 
-  await pool.execute(sql, [title ?? null, description ?? null, thumbnailUrl, id]);
-    WHERE id = ?
-  `;
-
   await pool.execute(sql, [title ?? null, description ?? null, thumbnailUrl ?? null, id]);
 };
 

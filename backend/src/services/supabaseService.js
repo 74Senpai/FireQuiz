@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import AppError from '../errors/AppError.js';
+import * as mediaRepository from '../repositories/mediaRepository.js';
 
 dotenv.config();
 
@@ -49,4 +50,46 @@ export const uploadFileToSupabase = async (fileBuffer, fileName, mimeType, bucke
     .getPublicUrl(data.path);
 
   return publicUrlData.publicUrl;
+};
+
+/**
+ * Trích xuất path của file từ Supabase Public URL.
+ * URL format: https://[project].supabase.co/storage/v1/object/public/[bucket]/[path]
+ */
+const extractPathFromUrl = (url) => {
+  if (!url) return null;
+  const parts = url.split(`/public/${supabaseBucket}/`);
+  return parts.length > 1 ? parts[1] : null;
+};
+
+/**
+ * Xóa file khỏi Supabase Storage nếu không còn bản ghi nào tham chiếu đến.
+ * @param {string} fileUrl - URL public của file cần xóa.
+ */
+export const deleteFileFromSupabase = async (fileUrl) => {
+  if (!supabase || !fileUrl) return;
+
+  // 1. Kiểm tra xem còn ai dùng URL này không
+  const usageCount = await mediaRepository.countMediaUsage(fileUrl);
+  
+  // Nếu usageCount > 0, nghĩa là vẫn còn bản ghi khác (quiz/attempt/user) đang dùng
+  if (usageCount > 0) {
+    console.log(`Media skipped deletion: ${fileUrl} (Still used by ${usageCount} records)`);
+    return; 
+  }
+
+  // 2. Không còn ai dùng -> Xóa thực thụ trên Supabase
+  const filePath = extractPathFromUrl(fileUrl);
+  if (!filePath) return;
+
+  const { error } = await supabase.storage
+    .from(supabaseBucket)
+    .remove([filePath]);
+
+  if (error) {
+    console.error(`Error deleting file from Supabase: ${error.message}`);
+    // Không ném lỗi ra ngoài để tránh làm hỏng flow chính (như xóa câu hỏi)
+  } else {
+    console.log(`Media deleted from Supabase: ${filePath}`);
+  }
 };
