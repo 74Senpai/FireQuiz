@@ -7,7 +7,8 @@ dotenv.config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
-const supabaseBucket = process.env.SUPABASE_BUCKET || 'quizzes-img';
+export const supabaseBucket = process.env.SUPABASE_BUCKET || 'quizzes-img';
+export const supabaseAvatarBucket = process.env.SUPABASE_AVATAR_BUCKET || 'user-avatars';
 
 if (!supabaseUrl || !supabaseKey) {
   console.warn("Supabase credentials are not provided. Please set SUPABASE_URL and SUPABASE_KEY in .env");
@@ -19,19 +20,18 @@ if (supabaseUrl && supabaseKey) {
 }
 
 /**
- * Tải file lên Supabase Storage và trả về public URL.
- * @param {Buffer} fileBuffer - Dữ liệu file nằm trên RAM.
+ * Tải file lên Supabase Storage và trả về đường dẫn (path).
+ * @param {Buffer} fileBuffer - Dữ liệu file.
  * @param {string} fileName - Tên file gốc.
- * @param {string} mimeType - Loại file (mimetype).
- * @param {string} bucket - Tên bucket (mặc định lấy từ SUPABASE_BUCKET).
- * @returns {Promise<string>} Đường dẫn public của file đã upload.
+ * @param {string} mimeType - Mimetype.
+ * @param {string} bucket - Tên bucket.
+ * @returns {Promise<string>} Đường dẫn (path) của file đã upload.
  */
 export const uploadFileToSupabase = async (fileBuffer, fileName, mimeType, bucket = supabaseBucket) => {
   if (!supabase) {
     throw new AppError('Dịch vụ lưu trữ chưa được cấu hình', 500);
   }
 
-  // Tạo tên file duy nhất để tránh trùng lặp
   const uniqueName = `${crypto.randomUUID()}-${fileName.replace(/\s+/g, '_')}`;
 
   const { data, error } = await supabase.storage
@@ -45,51 +45,86 @@ export const uploadFileToSupabase = async (fileBuffer, fileName, mimeType, bucke
     throw new AppError(`Lỗi upload ảnh: ${error.message}`, 500);
   }
 
-  const { data: publicUrlData } = supabase.storage
-    .from(bucket)
-    .getPublicUrl(data.path);
+  // Trả về path thay vì URL đầy đủ
+  return data.path;
+};
 
-  return publicUrlData.publicUrl;
+/**
+ * Tạo Signed URL (link tạm thời) cho file.
+ * @param {string} path - Đường dẫn file.
+ * @param {number} expiresSeconds - Thời gian hết hạn (giây).
+ * @param {string} bucket - Tên bucket.
+ * @returns {Promise<string>} Signed URL.
+ */
+export const createSignedUrl = async (path, expiresSeconds = 3600, bucket = supabaseBucket) => {
+  if (!supabase || !path) return null;
+  
+  // Nếu path là URL đầy đủ (do dữ liệu cũ chưa migrate), cố gắng trích xuất path
+  const actualPath = path.includes('http') ? extractPathFromUrl(path, bucket) : path;
+  if (!actualPath) return path;
+
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(actualPath, expiresSeconds);
+
+  if (error) {
+    console.error(`Error creating signed URL for ${actualPath}:`, error.message);
+    return null;
+  }
+  return data.signedUrl;
+};
+
+/**
+ * Lấy Public URL cho file (dùng cho avatar).
+ */
+export const getPublicUrl = (path, bucket = supabaseAvatarBucket) => {
+  if (!supabase || !path) return null;
+  const actualPath = path.includes('http') ? extractPathFromUrl(path, bucket) : path;
+  if (!actualPath) return path;
+
+  const { data } = supabase.storage
+    .from(bucket)
+    .getPublicUrl(actualPath);
+    
+  return data.publicUrl;
 };
 
 /**
  * Trích xuất path của file từ Supabase Public URL.
  * URL format: https://[project].supabase.co/storage/v1/object/public/[bucket]/[path]
  */
-const extractPathFromUrl = (url) => {
+const extractPathFromUrl = (url, bucket = supabaseBucket) => {
   if (!url) return null;
-  const parts = url.split(`/public/${supabaseBucket}/`);
+  const searchPart = `/public/${bucket}/`;
+  const parts = url.split(searchPart);
   return parts.length > 1 ? parts[1] : null;
 };
 
 /**
- * Xóa file khỏi Supabase Storage nếu không còn bản ghi nào tham chiếu đến.
- * @param {string} fileUrl - URL public của file cần xóa.
+ * Xóa file khỏi Supabase Storage.
  */
-export const deleteFileFromSupabase = async (fileUrl) => {
+export const deleteFileFromSupabase = async (fileUrl, bucket = supabaseBucket) => {
   if (!supabase || !fileUrl) return;
 
   // 1. Kiểm tra xem còn ai dùng URL này không
   const usageCount = await mediaRepository.countMediaUsage(fileUrl);
   
-  // Nếu usageCount > 0, nghĩa là vẫn còn bản ghi khác (quiz/attempt/user) đang dùng
   if (usageCount > 0) {
     console.log(`Media skipped deletion: ${fileUrl} (Still used by ${usageCount} records)`);
     return; 
   }
 
   // 2. Không còn ai dùng -> Xóa thực thụ trên Supabase
-  const filePath = extractPathFromUrl(fileUrl);
+  const filePath = fileUrl.includes('http') ? extractPathFromUrl(fileUrl, bucket) : fileUrl;
   if (!filePath) return;
 
   const { error } = await supabase.storage
-    .from(supabaseBucket)
+    .from(bucket)
     .remove([filePath]);
 
   if (error) {
-    console.error(`Error deleting file from Supabase: ${error.message}`);
-    // Không ném lỗi ra ngoài để tránh làm hỏng flow chính (như xóa câu hỏi)
+    console.error(`Error deleting file from Supabase bucket ${bucket}: ${error.message}`);
   } else {
-    console.log(`Media deleted from Supabase: ${filePath}`);
+    console.log(`Media deleted from Supabase bucket ${bucket}: ${filePath}`);
   }
 };

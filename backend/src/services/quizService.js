@@ -7,6 +7,7 @@ import * as attemptAggregationService from '../services/attemptAggregationServic
 import { findById } from '../repositories/userRepository.js';
 import AppError from '../errors/AppError.js';
 import { deleteFileFromSupabase } from './supabaseService.js';
+import * as mediaService from './mediaService.js';
 
 const PIN_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const PIN_LENGTH = 6;
@@ -59,7 +60,7 @@ export const getQuiz = async (id, user) => {
     }
   }
 
-  return quiz;
+  return await mediaService.hydrateQuiz(quiz);
 };
 
 export const getQuizPreview = async (id, user) => {
@@ -78,8 +79,8 @@ export const getQuizPreview = async (id, user) => {
   }));
 
   return {
-    quiz,
-    questions: questionsWithAnswers,
+    quiz: await mediaService.hydrateQuiz(quiz),
+    questions: await mediaService.hydrateQuestions(questionsWithAnswers),
   };
 };
 
@@ -91,12 +92,13 @@ export const getLeaderboard = async (id, user) => {
   const leaderboard = await attemptAggregationService.getLeaderboardDataByQuizId(id);
 
   return {
-    quiz: {
+    quiz: await mediaService.hydrateQuiz({
       id: quiz.id,
       title: quiz.title,
       status: quiz.status,
       gradingScale: quiz.grading_scale,
-    },
+      thumbnail_url: quiz.thumbnail_url
+    }),
     data: leaderboard,
   };
 };
@@ -110,12 +112,13 @@ export const getQuestionAnalytics = async (id, user) => {
   const totalAttempts = analytics[0]?.total_attempts || 0;
 
   return {
-    quiz: {
+    quiz: await mediaService.hydrateQuiz({
       id: quiz.id,
       title: quiz.title,
       status: quiz.status,
       gradingScale: quiz.grading_scale,
-    },
+      thumbnail_url: quiz.thumbnail_url
+    }),
     summary: {
       totalAttempts,
       totalQuestions: analytics.length,
@@ -132,12 +135,13 @@ export const getResultsDashboard = async (id, user) => {
   const dashboard = await attemptAggregationService.getResultsDashboardDataByQuizId(id);
 
   return {
-    quiz: {
+    quiz: await mediaService.hydrateQuiz({
       id: quiz.id,
       title: quiz.title,
       status: quiz.status,
       gradingScale: quiz.grading_scale,
-    },
+      thumbnail_url: quiz.thumbnail_url
+    }),
     summary: {
       totalParticipants: dashboard.length,
       submittedCount: dashboard.filter(
@@ -200,7 +204,7 @@ export const changeQuizSettings = async(id, user, settings) => {
 
 export const getListQuizByUserId = async (user) => {
   const quizzes = await quizRepository.getListQuizByUserId(user.id);
-  return quizzes;
+  return await mediaService.hydrateQuizzes(quizzes);
 };
 
 /**
@@ -237,7 +241,9 @@ export const listPublicOpenQuizzes = async (query) => {
     conn.release();
   }
 
-  const data = rows.map(({ quiz_code: _omit, ...rest }) => rest);
+  const data = await mediaService.hydrateQuizzes(
+    rows.map(({ quiz_code: _omit, ...rest }) => rest)
+  );
 
   return {
     data,
@@ -323,5 +329,6 @@ export const removePin = async (id, user) => {
 
 
 export const getPublicQuizzes = async () => {
-  return await quizRepository.getPublicQuizzes();
+  const quizzes = await quizRepository.getPublicQuizzes();
+  return await mediaService.hydrateQuizzes(quizzes);
 };

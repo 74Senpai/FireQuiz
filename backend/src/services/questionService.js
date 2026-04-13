@@ -4,6 +4,7 @@ import { getQuizById } from '../repositories/quizRepository.js';
 import pool from '../db/db.js';
 import AppError from '../errors/AppError.js';
 import { deleteFileFromSupabase } from './supabaseService.js';
+import * as mediaService from './mediaService.js';
 
 const ALLOWED_TYPES = ['ANANSWER', 'MULTI_ANSWERS', 'TRUE_FALSE', 'TEXT'];
 const MIN_OPTIONS = 3;
@@ -110,10 +111,12 @@ export const getListQuestionByQuizId = async (quizId, user) => {
   );
   const answersByQuestionId = buildAnswersByQuestionIdMap(answers);
 
-  return questions.map(q => ({
+  const questionsWithAnswers = questions.map(q => ({
     ...q,
     answers: answersByQuestionId.get(q.id) || [],
   }));
+
+  return await mediaService.hydrateQuestions(questionsWithAnswers);
 };
 
 const checkQuestionExistAndOwner = async (questionId, userId) => {
@@ -219,7 +222,8 @@ export const getQuestionById = async (questionId, user) => {
   const quiz = await getQuizById(question.quiz_id);
   checkQuizAccess(quiz, user);
 
-  return question;
+  const [hydrated] = await mediaService.hydrateQuestions([question]);
+  return hydrated;
 };
 
 // Các hàm legacy (giữ lại để tương thích)

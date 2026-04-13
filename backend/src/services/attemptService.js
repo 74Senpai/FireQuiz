@@ -2,6 +2,7 @@ import * as attemptRepository from '../repositories/attemptRepository.js';
 import * as quizRepository from '../repositories/quizRepository.js';
 import pool from '../db/db.js';
 import AppError from '../errors/AppError.js';
+import * as mediaService from './mediaService.js';
 
 const buildOptionsByQuestionId = (options) => {
   return options.reduce((acc, option) => {
@@ -103,7 +104,10 @@ export const getMyAttemptReviewDetail = async (user, attemptIdParam) => {
     };
   });
 
-  return { attempt, questions };
+  const quiz = await quizRepository.getQuizById(attempt.quiz_id);
+  const hydratedQuestions = await mediaService.hydrateQuestions(questions);
+
+  return { attempt, questions: hydratedQuestions };
 };
 
 const generateAttemptSnapshot = async (quizId, userId, quizTitle) => {
@@ -205,10 +209,13 @@ const generateAttemptSnapshot = async (quizId, userId, quizTitle) => {
       }
     }
 
+    const expiresSeconds = (quiz.time_limit_seconds || 3600) + 300;
+    const hydratedQuestions = await mediaService.hydrateQuestions(questionsData, expiresSeconds);
+
     await conn.commit();
     return {
       attemptId,
-      questions: questionsData
+      questions: hydratedQuestions
     };
 
   } catch (err) {
@@ -308,17 +315,15 @@ export const startAttempt = async (quizId, userId) => {
   const activeAttempt = await attemptRepository.getActiveAttempt(quizId, userId);
 
   if (activeAttempt) {
-    const attemptData = await attemptRepository.getAttemptSnapshot(activeAttempt.id);
-    let remainingSeconds = quiz.time_limit_seconds;
-    if (remainingSeconds) {
-      const elapsedSeconds = Math.floor((now - new Date(activeAttempt.started_at)) / 1000);
-      remainingSeconds = Math.max(0, quiz.time_limit_seconds - elapsedSeconds);
-    }
+    const hydratedData = await attemptRepository.getAttemptSnapshot(activeAttempt.id);
+    const expiresSeconds = (quiz.time_limit_seconds || 3600) + 300;
+    const hydratedQuestions = await mediaService.hydrateQuestions(hydratedData.questions, expiresSeconds);
 
     return {
       quizTitle: activeAttempt.quiz_title,
       timeLimitSeconds: remainingSeconds,
-      ...attemptData
+      ...hydratedData,
+      questions: hydratedQuestions
     };
   }
 
