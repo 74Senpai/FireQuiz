@@ -3,6 +3,8 @@ import * as answerRepository from '../repositories/answerRepository.js';
 import { getQuizById } from '../repositories/quizRepository.js';
 import pool from '../db/db.js';
 import AppError from '../errors/AppError.js';
+import { deleteFileFromSupabase } from './supabaseService.js';
+import * as mediaService from './mediaService.js';
 
 const ALLOWED_TYPES = ['ANANSWER', 'MULTI_ANSWERS', 'TRUE_FALSE', 'TEXT'];
 const MIN_OPTIONS = 3;
@@ -68,7 +70,7 @@ const saveAnswers = async (questionId, answers, tx = pool) => {
 };
 
 export const createQuestion = async (user, data) => {
-  const { content, type, quizId, answers } = data;
+  const { content, type, quizId, answers, mediaUrl } = data;
 
   if (!ALLOWED_TYPES.includes(type)) {
     throw new AppError(`Loại câu hỏi không hợp lệ. Chỉ chấp nhận: ${ALLOWED_TYPES.join(', ')}`, 400);
@@ -83,7 +85,7 @@ export const createQuestion = async (user, data) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    const questionId = await questionRepository.create({ content, type, quizId }, conn);
+    const questionId = await questionRepository.create({ content, type, quizId, mediaUrl }, conn);
     await saveAnswers(questionId, answers, conn);
     await conn.commit();
     return questionId;
@@ -109,10 +111,12 @@ export const getListQuestionByQuizId = async (quizId, user) => {
   );
   const answersByQuestionId = buildAnswersByQuestionIdMap(answers);
 
-  return questions.map(q => ({
+  const questionsWithAnswers = questions.map(q => ({
     ...q,
     answers: answersByQuestionId.get(q.id) || [],
   }));
+
+  return await mediaService.hydrateQuestions(questionsWithAnswers);
 };
 
 const checkQuestionExistAndOwner = async (questionId, userId) => {
@@ -130,7 +134,7 @@ const checkQuestionExistAndOwner = async (questionId, userId) => {
 };
 
 export const updateQuestion = async (questionId, userId, data) => {
-  const { type, content, answers } = data;
+  const { type, content, answers, mediaUrl } = data;
 
   await checkQuestionExistAndOwner(questionId, userId);
 
@@ -146,9 +150,22 @@ export const updateQuestion = async (questionId, userId, data) => {
   try {
     await conn.beginTransaction();
 
-    // Cập nhật content và type
-    if (content) await questionRepository.changeContent(questionId, content, conn);
-    if (type) await questionRepository.changeType(questionId, type, conn);
+    // Cập nhật content, type và mediaUrl
+    if (content !== undefined) await questionRepository.changeContent(questionId, content, conn);
+    if (type !== undefined) await questionRepository.changeType(questionId, type, conn);
+    
+    if (mediaUrl !== undefined) {
+      const oldQuestion = await questionRepository.findQuestionById(questionId);
+      const oldMediaUrl = oldQuestion?.media_url;
+
+      await questionRepository.changeMediaUrl(questionId, mediaUrl, conn);
+
+      // Nếu mediaUrl thay đổi (khác cái cũ), hãy thử xóa cái cũ
+      if (oldMediaUrl && oldMediaUrl !== mediaUrl) {
+         // deleteFileFromSupabase đã có check reference count bên trong
+         await deleteFileFromSupabase(oldMediaUrl);
+      }
+    }
 
     // Replace toàn bộ đáp án cũ nếu có answers mới
     if (answers !== undefined) {
@@ -170,11 +187,19 @@ export const deleteQuestion = async (questionId, userId) => {
   
   const conn = await pool.getConnection();
   try {
+    const question = await questionRepository.findQuestionById(questionId);
+    const mediaUrl = question?.media_url;
+
     await conn.beginTransaction();
     // Xóa đáp án trước (đề phòng không có cascade delete trong DB)
     await answerRepository.deleteAnswersByQuestionId(questionId, conn);
     await questionRepository.deleteQuestionById(questionId, conn);
     await conn.commit();
+
+    // Sau khi xóa xong khỏi DB, thử xóa media (nếu có)
+    if (mediaUrl) {
+      await deleteFileFromSupabase(mediaUrl);
+    }
   } catch (error) {
     await conn.rollback();
     throw error;
@@ -197,7 +222,8 @@ export const getQuestionById = async (questionId, user) => {
   const quiz = await getQuizById(question.quiz_id);
   checkQuizAccess(quiz, user);
 
-  return question;
+  const [hydrated] = await mediaService.hydrateQuestions([question]);
+  return hydrated;
 };
 
 // Các hàm legacy (giữ lại để tương thích)

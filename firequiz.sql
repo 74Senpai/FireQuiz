@@ -14,6 +14,7 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
+    avatar_url VARCHAR(255),
     role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -31,6 +32,7 @@ CREATE TABLE quizzes (
     creator_id INT NOT NULL,
     quiz_code CHAR(10) UNIQUE,
     description TEXT,
+    thumbnail_url VARCHAR(255),
     status CHAR(10) NOT NULL DEFAULT 'DRAFT',
     grading_scale INT,
     time_limit_seconds INT,
@@ -77,6 +79,7 @@ CREATE TABLE questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     content VARCHAR(255) NOT NULL,
     type CHAR(15) NOT NULL,
+    media_url VARCHAR(255),
     quiz_id INT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -105,6 +108,7 @@ CREATE TABLE attempt_questions (
     quiz_attempt_id INT NOT NULL,
     content VARCHAR(255) NOT NULL,
     type VARCHAR(20) NOT NULL,
+    media_url VARCHAR(255),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_attempt_questions_quiz_attempts FOREIGN KEY (quiz_attempt_id) REFERENCES quiz_attempts (id)
 );

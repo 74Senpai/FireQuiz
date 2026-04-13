@@ -84,8 +84,8 @@ export const setStatus = asyncHandler(async (req, res) => {
 export const changeQuizInfo = asyncHandler(async (req, res) => {
   const user = req.user;
   const id = req.params.id;
-  const { title, description } = req.body;
-  await quizService.changeQuizInfo(id, user, { title, description });
+  const { title, description, thumbnailUrl } = req.body;
+  await quizService.changeQuizInfo(id, user, { title, description, thumbnailUrl });
   return res.status(204).send();
 });
 

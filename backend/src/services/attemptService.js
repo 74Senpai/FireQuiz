@@ -2,6 +2,7 @@ import * as attemptRepository from '../repositories/attemptRepository.js';
 import * as quizRepository from '../repositories/quizRepository.js';
 import pool from '../db/db.js';
 import AppError from '../errors/AppError.js';
+import * as mediaService from './mediaService.js';
 
 const buildOptionsByQuestionId = (options) => {
   return options.reduce((acc, option) => {
@@ -91,6 +92,7 @@ export const getMyAttemptReviewDetail = async (user, attemptIdParam) => {
       quiz_attempt_id: question.quiz_attempt_id,
       content: question.content,
       type: question.type,
+      media_url: question.media_url,
       options: opts.map((opt) => ({
         id: opt.id,
         attempt_question_id: opt.attempt_question_id,
@@ -102,10 +104,15 @@ export const getMyAttemptReviewDetail = async (user, attemptIdParam) => {
     };
   });
 
-  return { attempt, questions };
+  const quiz = await quizRepository.getQuizById(attempt.quiz_id);
+  const hydratedQuestions = await mediaService.hydrateQuestions(questions);
+
+  return { attempt, questions: hydratedQuestions };
 };
 
-const generateAttemptSnapshot = async (quizId, userId, quizTitle) => {
+const generateAttemptSnapshot = async (quiz, userId) => {
+  const quizId = quiz.id;
+  const quizTitle = quiz.title;
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -122,6 +129,7 @@ const generateAttemptSnapshot = async (quizId, userId, quizTitle) => {
         questionsMap.set(row.question_id, {
           content: row.question_content,
           type: row.question_type,
+          mediaUrl: row.question_media_url,
           answers: []
         });
       }
@@ -146,7 +154,7 @@ const generateAttemptSnapshot = async (quizId, userId, quizTitle) => {
     }
 
     // 3. Bulk insert attempt_questions
-    const attemptQuestionsPayload = groupedQuestions.map(q => [attemptId, q.content, q.type]);
+    const attemptQuestionsPayload = groupedQuestions.map(q => [attemptId, q.content, q.type, q.mediaUrl]);
     const aqResult = await attemptRepository.bulkInsertAttemptQuestions(conn, attemptQuestionsPayload);
     
     let currentAqId = aqResult.insertId;
@@ -186,6 +194,7 @@ const generateAttemptSnapshot = async (quizId, userId, quizTitle) => {
           id: q.aqId,
           text: q.content,
           type: q.type,
+          media_url: q.mediaUrl,
           options: optionsData
         });
       }
@@ -196,15 +205,19 @@ const generateAttemptSnapshot = async (quizId, userId, quizTitle) => {
           id: q.aqId,
           text: q.content,
           type: q.type,
+          media_url: q.mediaUrl,
           options: []
         });
       }
     }
 
+    const expiresSeconds = (quiz.time_limit_seconds || 3600) + 300;
+    const hydratedQuestions = await mediaService.hydrateQuestions(questionsData, expiresSeconds);
+
     await conn.commit();
     return {
       attemptId,
-      questions: questionsData
+      questions: hydratedQuestions
     };
 
   } catch (err) {
@@ -304,17 +317,21 @@ export const startAttempt = async (quizId, userId) => {
   const activeAttempt = await attemptRepository.getActiveAttempt(quizId, userId);
 
   if (activeAttempt) {
-    const attemptData = await attemptRepository.getAttemptSnapshot(activeAttempt.id);
+    const hydratedData = await attemptRepository.getAttemptSnapshot(activeAttempt.id);
     let remainingSeconds = quiz.time_limit_seconds;
     if (remainingSeconds) {
-      const elapsedSeconds = Math.floor((now - new Date(activeAttempt.started_at)) / 1000);
+      const elapsedSeconds = Math.floor((now.getTime() - new Date(activeAttempt.started_at).getTime()) / 1000);
       remainingSeconds = Math.max(0, quiz.time_limit_seconds - elapsedSeconds);
     }
+
+    const expiresSeconds = (quiz.time_limit_seconds || 3600) + 300;
+    const hydratedQuestions = await mediaService.hydrateQuestions(hydratedData.questions, expiresSeconds);
 
     return {
       quizTitle: activeAttempt.quiz_title,
       timeLimitSeconds: remainingSeconds,
-      ...attemptData
+      ...hydratedData,
+      questions: hydratedQuestions
     };
   }
 
@@ -325,7 +342,7 @@ export const startAttempt = async (quizId, userId) => {
     }
   }
 
-  const attemptData = await generateAttemptSnapshot(quizId, userId, quiz.title);
+  const attemptData = await generateAttemptSnapshot(quiz, userId);
 
   return {
     quizTitle: quiz.title,

@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, AlertTriangle, CheckCircle2, Loader2, ChevronLeft, ChevronRight, ListChecks } from "lucide-react";
+import { Clock, AlertTriangle, CheckCircle2, Loader2, ChevronLeft, ChevronRight, ListChecks, FileAudio, ZoomIn, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import * as attemptServices from "@/services/attemptServices";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ export function TakeQuiz() {
   const [syncStatus, setSyncStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   const syncTimerRef = useRef<Record<number, NodeJS.Timeout>>({});
 
@@ -276,6 +278,40 @@ export function TakeQuiz() {
                     </h3>
                   </div>
 
+                  {/* Media Display in TakeQuiz */}
+                  {q.media_url && (
+                    <div className="pl-0 sm:pl-12">
+                      <div className="rounded-xl overflow-hidden border border-white/10 bg-black/20 max-w-2xl">
+                        {(q.media_url.match(/\.(jpeg|jpg|gif|png|webp)/i) || q.media_url.includes('image')) && (
+                          <div 
+                            className="relative group/media cursor-zoom-in overflow-hidden rounded-lg"
+                            onClick={() => setZoomedImage(q.media_url)}
+                          >
+                            <img 
+                              src={q.media_url} 
+                              className="w-full h-auto max-h-96 object-contain transition-transform duration-300 group-hover/media:scale-[1.02]" 
+                              alt="Question media" 
+                            />
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/media:opacity-100 transition-opacity flex items-center justify-center">
+                                <div className="bg-white/20 backdrop-blur-md p-2 rounded-full border border-white/30">
+                                    <ZoomIn className="w-6 h-6 text-white" />
+                                </div>
+                            </div>
+                          </div>
+                        )}
+                        {(q.media_url.match(/\.(mp4|webm)/i) || q.media_url.includes('video')) && (
+                          <video src={q.media_url} controls className="w-full h-auto max-h-96" />
+                        )}
+                        {(q.media_url.match(/\.(mp3|wav|ogg)/i) || q.media_url.includes('audio')) && (
+                          <div className="p-6 flex flex-col items-center gap-4">
+                            <FileAudio className="w-10 h-10 text-indigo-400" />
+                            <audio src={q.media_url} controls className="w-full max-w-md" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {q.type === "TEXT" ? (
                     <div className="pl-0 sm:pl-12">
                       <textarea
@@ -454,6 +490,35 @@ export function TakeQuiz() {
           </div>
         </div>
       </div>
+
+      {/* Image Zoom Modal */}
+      <AnimatePresence>
+        {zoomedImage && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4"
+            onClick={() => setZoomedImage(null)}
+          >
+             <button 
+                className="absolute top-6 right-6 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all z-[110]"
+                onClick={() => setZoomedImage(null)}
+             >
+                <X className="w-6 h-6" />
+             </button>
+             
+             <motion.img 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                src={zoomedImage} 
+                className="max-w-full max-h-full rounded-lg shadow-2xl object-contain cursor-default"
+                onClick={(e) => e.stopPropagation()}
+             />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

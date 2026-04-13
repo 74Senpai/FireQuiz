@@ -9,13 +9,14 @@ export const createQuiz = async (data) => {
     timeLimitSeconds,
     availableFrom,
     availableUntil,
-    maxAttempts
+    maxAttempts,
+    thumbnailUrl
   } = data;
 
   const sql = `
     INSERT INTO quizzes
-    (title, creator_id, description, grading_scale, time_limit_seconds, available_from, available_until, max_attempts)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    (title, creator_id, description, grading_scale, time_limit_seconds, available_from, available_until, max_attempts, thumbnail_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const [result] = await pool.execute(sql, [
@@ -26,7 +27,8 @@ export const createQuiz = async (data) => {
     timeLimitSeconds ?? null,
     availableFrom ?? null,
     availableUntil ?? null,
-    maxAttempts ?? null
+    maxAttempts ?? null,
+    thumbnailUrl ?? null
   ]);
 
   return result.insertId;
@@ -80,15 +82,17 @@ export const updateQuizSettings = async (id, data) => {
 };
 
 export const updateQuizInfo = async (id, data) => {
-  const { title, description } = data;
+  const { title, description, thumbnailUrl } = data;
 
   const sql = `
     UPDATE quizzes
-    SET title = COALESCE(?, title), description = COALESCE(?, description)
+    SET title = COALESCE(?, title), 
+        description = COALESCE(?, description),
+        thumbnail_url = ?
     WHERE id = ?
   `;
 
-  await pool.execute(sql, [title ?? null, description ?? null, id]);
+  await pool.execute(sql, [title ?? null, description ?? null, thumbnailUrl ?? null, id]);
 };
 
 export const getListQuizByUserId = async (id) => {
