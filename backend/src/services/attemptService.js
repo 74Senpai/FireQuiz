@@ -110,7 +110,9 @@ export const getMyAttemptReviewDetail = async (user, attemptIdParam) => {
   return { attempt, questions: hydratedQuestions };
 };
 
-const generateAttemptSnapshot = async (quizId, userId, quizTitle) => {
+const generateAttemptSnapshot = async (quiz, userId) => {
+  const quizId = quiz.id;
+  const quizTitle = quiz.title;
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -316,6 +318,12 @@ export const startAttempt = async (quizId, userId) => {
 
   if (activeAttempt) {
     const hydratedData = await attemptRepository.getAttemptSnapshot(activeAttempt.id);
+    let remainingSeconds = quiz.time_limit_seconds;
+    if (remainingSeconds) {
+      const elapsedSeconds = Math.floor((now.getTime() - new Date(activeAttempt.started_at).getTime()) / 1000);
+      remainingSeconds = Math.max(0, quiz.time_limit_seconds - elapsedSeconds);
+    }
+
     const expiresSeconds = (quiz.time_limit_seconds || 3600) + 300;
     const hydratedQuestions = await mediaService.hydrateQuestions(hydratedData.questions, expiresSeconds);
 
@@ -334,7 +342,7 @@ export const startAttempt = async (quizId, userId) => {
     }
   }
 
-  const attemptData = await generateAttemptSnapshot(quizId, userId, quiz.title);
+  const attemptData = await generateAttemptSnapshot(quiz, userId);
 
   return {
     quizTitle: quiz.title,
