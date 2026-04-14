@@ -151,3 +151,21 @@ export const resetPassword = async (resetToken, newPassword) => {
 
   return { message: "Đổi mật khẩu thành công" };
 };
+
+export const changePassword = async (userId, oldPassword, newPassword) => {
+  const user = await userRepository.findById(userId);
+  if (!user) {
+    throw new AppError("Người dùng không tồn tại", 404);
+  }
+
+  const isOldPasswordCorrect = await bcrypt.compare(oldPassword, user.password_hash);
+  if (!isOldPasswordCorrect) {
+    throw new AppError("Mật khẩu cũ không chính xác", 401);
+  }
+
+  const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+  await userRepository.updatePasswordById(userId, hashedNewPassword);
+
+  return { message: "Đổi mật khẩu thành công" };
+};
+

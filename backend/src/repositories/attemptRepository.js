@@ -358,3 +358,18 @@ export const getUserAttemptCountsByQuizId = async (quizId) => {
   const [rows] = await pool.execute(sql, [quizId]);
   return rows;
 };
+
+/**
+ * Lấy dữ liệu thống kê lịch sử thi của User (Dùng cho biểu đồ)
+ */
+export const getHistoryStatsByUserId = async (userId) => {
+  const sql = `
+    SELECT quiz_title, score, finished_at
+    FROM quiz_attempts
+    WHERE user_id = ? AND finished_at IS NOT NULL
+    ORDER BY finished_at ASC;
+  `;
+  const [rows] = await pool.execute(sql, [userId]);
+  return rows;
+};
+

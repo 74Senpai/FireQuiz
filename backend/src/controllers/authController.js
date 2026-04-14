@@ -91,3 +91,14 @@ export const resetPassword = asyncHandler(async (req, res) => {
 
   return res.status(200).json(response);
 });
+
+export const changePassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  if (!oldPassword || !newPassword) {
+    throw new AppError("Thiếu mật khẩu cũ hoặc mật khẩu mới", 400);
+  }
+
+  const response = await authService.changePassword(req.user.id, oldPassword, newPassword);
+
+  return res.status(200).json(response);
+});

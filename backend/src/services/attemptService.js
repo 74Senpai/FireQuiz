@@ -409,3 +409,11 @@ export const joinQuizByCode = async (code, userId) => {
 
   return quiz;
 };
+
+/**
+ * Thống kê lịch sử thi cho user hiện tại
+ */
+export const getMyHistoryStats = async (user) => {
+  return await attemptRepository.getHistoryStatsByUserId(user.id);
+};
+

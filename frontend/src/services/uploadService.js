@@ -29,3 +29,6 @@ export const deleteFile = async (url) => {
   });
   return res.data;
 };
+
+export const uploadAvatar = uploadFile;
+

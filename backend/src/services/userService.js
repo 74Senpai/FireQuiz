@@ -35,3 +35,8 @@ export const updateAvatar = async (userId, newAvatarUrl) => {
     await deleteFileFromSupabase(oldAvatarUrl, supabaseAvatarBucket);
   }
 };
+
+export const updateProfileData = async (userId, data) => {
+  return await userRepository.updateProfileData(userId, data);
+};
+

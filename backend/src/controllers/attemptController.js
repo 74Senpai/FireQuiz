@@ -106,3 +106,13 @@ export const reportViolation = asyncHandler(async (req, res) => {
 
   return res.status(200).json({ message: 'Đã báo cáo vi phạm thành công' });
 });
+
+/**
+ * GET /api/attempts/stats/my
+ * Trả về danh sách { quiz_title, score, finished_at } để vẽ biểu đồ
+ */
+export const getMyStats = asyncHandler(async (req, res) => {
+  const result = await attemptService.getMyHistoryStats(req.user);
+  return res.status(200).json(result);
+});
+
