@@ -8,10 +8,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Download, Search, FileSpreadsheet } from "lucide-react";
+import { Download, Search, FileSpreadsheet, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import * as quizService from "@/services/quizServices";
 import { ResultsDashboardPanel } from "@/components/ui/ResultsDashboardPanel";
+
+type ExportKind = "excel" | "pdf";
+
+type ExportStatus = {
+  kind: ExportKind;
+  stage: "preparing" | "downloading" | "success" | "error";
+  progress: number;
+  message: string;
+  fileName?: string;
+};
 
 export function Results() {
   const navigate = useNavigate();
@@ -19,6 +29,8 @@ export function Results() {
   const [selectedQuizId, setSelectedQuizId] = useState("");
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [exportStatus, setExportStatus] = useState<ExportStatus | null>(null);
+  const isAnyExporting = isExportingExcel || isExportingPdf;
 
   useEffect(() => {
     const fetchQuizzes = async () => {
@@ -49,37 +61,106 @@ export function Results() {
     window.URL.revokeObjectURL(url);
   };
 
-  const handleExportExcel = async () => {
-    if (!selectedQuizId) return;
+  const parseFileNameFromDisposition = (contentDisposition?: string) => {
+    if (!contentDisposition) return null;
 
-    setIsExportingExcel(true);
-    try {
-      const response = await quizService.exportQuizResultsExcel(selectedQuizId);
-      downloadFile(
-        response.data,
-        `quiz-${selectedQuizId}-results.xlsx`,
-      );
-    } catch (error) {
-      console.error("Khong the xuat bao cao Excel:", error);
-    } finally {
-      setIsExportingExcel(false);
+    const utfFileName = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utfFileName?.[1]) {
+      return decodeURIComponent(utfFileName[1]);
     }
+
+    const quotedFileName = contentDisposition.match(/filename="([^"]+)"/i);
+    if (quotedFileName?.[1]) {
+      return quotedFileName[1];
+    }
+
+    const plainFileName = contentDisposition.match(/filename=([^;]+)/i);
+    return plainFileName?.[1]?.trim() || null;
   };
 
-  const handleExportPdf = async () => {
+  const buildFallbackFileName = (kind: ExportKind) =>
+    `quiz-${selectedQuizId}-results.${kind === "excel" ? "xlsx" : "pdf"}`;
+
+  const getExportLabel = (kind: ExportKind) =>
+    kind === "excel" ? "Excel" : "PDF";
+
+  const handleExportReport = async (kind: ExportKind) => {
     if (!selectedQuizId) return;
 
-    setIsExportingPdf(true);
+    const isPdf = kind === "pdf";
+    const exportLabel = getExportLabel(kind);
+    const request = isPdf
+      ? quizService.exportQuizResultsPdf
+      : quizService.exportQuizResultsExcel;
+
+    if (isPdf) {
+      setIsExportingPdf(true);
+    } else {
+      setIsExportingExcel(true);
+    }
+
+    setExportStatus({
+      kind,
+      stage: "preparing",
+      progress: 12,
+      message: `Dang chuan bi bao cao ${exportLabel} tren may chu...`,
+    });
+
     try {
-      const response = await quizService.exportQuizResultsPdf(selectedQuizId);
-      downloadFile(
-        response.data,
-        `quiz-${selectedQuizId}-results.pdf`,
-      );
-    } catch (error) {
-      console.error("Khong the xuat bao cao PDF:", error);
+      const response = await request(selectedQuizId, {
+        onDownloadProgress: (event: any) => {
+          if (event?.total) {
+            const progress = Math.max(
+              20,
+              Math.min(95, Math.round((event.loaded / event.total) * 100)),
+            );
+
+            setExportStatus({
+              kind,
+              stage: "downloading",
+              progress,
+              message: `Dang tai bao cao ${exportLabel}... ${progress}%`,
+            });
+            return;
+          }
+
+          setExportStatus({
+            kind,
+            stage: "downloading",
+            progress: 60,
+            message: `Dang tai tep ${exportLabel}, vui long doi trong giay lat...`,
+          });
+        },
+      });
+
+      const fileName =
+        parseFileNameFromDisposition(response.headers["content-disposition"]) ||
+        buildFallbackFileName(kind);
+
+      downloadFile(response.data, fileName);
+      setExportStatus({
+        kind,
+        stage: "success",
+        progress: 100,
+        message: `Da tai bao cao ${exportLabel} thanh cong.`,
+        fileName,
+      });
+    } catch (error: any) {
+      console.error(`Khong the xuat bao cao ${exportLabel}:`, error);
+      setExportStatus({
+        kind,
+        stage: "error",
+        progress: 100,
+        message:
+          error.response?.data?.message ||
+          `Khong the xuat bao cao ${exportLabel}. Vui long thu lai.`,
+      });
     } finally {
-      setIsExportingPdf(false);
+      if (isPdf) {
+        setIsExportingPdf(false);
+      } else {
+        setIsExportingExcel(false);
+      }
     }
   };
 
@@ -119,24 +200,84 @@ export function Results() {
           </Button>
           <Button
             type="button"
-            disabled={!selectedQuizId || isExportingPdf}
-            onClick={handleExportPdf}
+            disabled={!selectedQuizId || isAnyExporting}
+            onClick={() => handleExportReport("pdf")}
             className="gap-2 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 shadow-lg"
           >
-            <Download className="h-4 w-4" />
+            {isExportingPdf ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
             {isExportingPdf ? "Dang xuat PDF" : "Tai bao cao PDF"}
           </Button>
           <Button
             type="button"
-            disabled={!selectedQuizId || isExportingExcel}
-            onClick={handleExportExcel}
+            disabled={!selectedQuizId || isAnyExporting}
+            onClick={() => handleExportReport("excel")}
             className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg"
           >
-            <FileSpreadsheet className="h-4 w-4" />
+            {isExportingExcel ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="h-4 w-4" />
+            )}
             {isExportingExcel ? "Dang xuat Excel" : "Tai bao cao Excel"}
           </Button>
         </div>
       </div>
+
+      {exportStatus ? (
+        <Card
+          className={`backdrop-blur-md shadow-2xl ${
+            exportStatus.stage === "error"
+              ? "border-rose-400/30 bg-rose-500/10"
+              : exportStatus.stage === "success"
+                ? "border-emerald-400/30 bg-emerald-500/10"
+                : "border-indigo-400/30 bg-indigo-500/10"
+          }`}
+        >
+          <CardContent className="space-y-4 p-5">
+            <div
+              className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+              aria-live="polite"
+            >
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  Tien trinh xuat bao cao {getExportLabel(exportStatus.kind)}
+                </p>
+                <p className="mt-1 text-sm text-slate-200">
+                  {exportStatus.message}
+                </p>
+                {exportStatus.fileName ? (
+                  <p className="mt-1 text-xs text-slate-300">
+                    Tep vua tai: {exportStatus.fileName}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-3 text-sm font-semibold text-white">
+                {exportStatus.stage === "preparing" ||
+                exportStatus.stage === "downloading" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : null}
+                <span>{exportStatus.progress}%</span>
+              </div>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-slate-950/40">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${
+                  exportStatus.stage === "error"
+                    ? "bg-rose-400"
+                    : exportStatus.stage === "success"
+                      ? "bg-emerald-400"
+                      : "bg-gradient-to-r from-indigo-400 to-cyan-400"
+                }`}
+                style={{ width: `${exportStatus.progress}%` }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card className="border-amber-400/20 bg-gradient-to-br from-amber-500/10 to-orange-500/5 backdrop-blur-md shadow-2xl">
         <CardHeader className="pb-4">
