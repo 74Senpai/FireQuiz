@@ -7,6 +7,7 @@ import AppError from '../errors/AppError.js';
 const sendReport = (res, report) => {
   res.setHeader('Content-Type', report.contentType);
   res.setHeader('Content-Disposition', `attachment; filename="${report.fileName}"`);
+  res.setHeader('Content-Length', String(report.buffer.length));
   return res.status(200).send(report.buffer);
 };
 
