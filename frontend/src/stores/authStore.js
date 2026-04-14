@@ -30,9 +30,12 @@ export const useAuthStore = create((set) => ({
       const data = await authService.getProfile();
       set({
         user: {
+          id: data.id,
           full_name: data.fullName,
           email: data.email,
           role: data.role,
+          avatar_url: data.avatar_url,
+          bio: data.bio
         },
         isAuthenticated: true,
         isLoading: false,
@@ -70,9 +73,12 @@ export const useAuthStore = create((set) => ({
       const data = await authService.getProfile();
       set({
         user: {
+          id: data.id,
           full_name: data.fullName,
           email: data.email,
           role: data.role,
+          avatar_url: data.avatar_url,
+          bio: data.bio
         },
         isAuthenticated: true,
         isLoading: false,
@@ -82,5 +88,11 @@ export const useAuthStore = create((set) => ({
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
+
+  updateUser: (data) => {
+    set((state) => ({
+      user: state.user ? { ...state.user, ...data } : null
+    }));
+  }
 }));
 

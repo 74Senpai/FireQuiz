@@ -67,3 +67,16 @@ export const updateAvatarUrl = async (id, avatarUrl) => {
   const [result] = await pool.execute(sql, [avatarUrl, id]);
   return result.affectedRows > 0;
 };
+
+export const updateProfile = async (id, data) => {
+  const { fullName, email, bio } = data;
+  const sql = `
+    UPDATE users
+    SET full_name = COALESCE(?, full_name),
+        email = COALESCE(?, email),
+        bio = COALESCE(?, bio)
+    WHERE id = ? AND is_active = 1;
+  `;
+  const [result] = await pool.execute(sql, [fullName ?? null, email ?? null, bio ?? null, id]);
+  return result.affectedRows > 0;
+};

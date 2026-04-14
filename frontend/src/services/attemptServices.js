@@ -16,16 +16,21 @@ export const startAttempt = (quizId) =>
 export const reportAttemptViolation = (attemptId) =>
   axios.patch(`/attempt/${attemptId}/violation`).then((res) => res.data);
 
-/** Nộp bài thi */
-export const submitAttempt = (attemptId) =>
-  axios.patch(`/attempt/${attemptId}/submit`).then((res) => res.data);
+/**
+ * Nộp bài chính thức (Option A).
+ * Gửi kèm toàn bộ answers + textAnswers để BE ghi DB.
+ * Đây là lần DUY NHẤT đáp án được ghi vào database.
+ *
+ * @param {number} attemptId
+ * @param {Record<number, number[]>} answers      - { questionId: [optionId, ...] }
+ * @param {Record<number, string>}   textAnswers  - { questionId: "nội dung" }
+ */
+export const submitAttempt = (attemptId, answers = {}, textAnswers = {}) =>
+  axios
+    .patch(`/attempt/${attemptId}/submit`, { answers, textAnswers })
+    .then((res) => res.data);
 
-/** Đồng bộ đáp án (hỗ trợ cả mảng cho Multiple Choice và chuỗi cho Text) */
-export const syncAttemptAnswer = (attemptId, attemptQuestionId, attemptOptionIds, textAnswer = null) => {
-  const payload = {
-    attemptQuestionId,
-    attemptOptionIds: Array.isArray(attemptOptionIds) ? attemptOptionIds : (attemptOptionIds ? [attemptOptionIds] : []),
-    textAnswer,
-  };
-  return axios.patch(`/attempt/${attemptId}/answer`, payload).then((res) => res.data);
-};
+/** Thống kê điểm số */
+export const getMyStats = () =>
+  axios.get("/attempt/stats/my").then((res) => res.data);
+

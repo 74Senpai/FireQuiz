@@ -10,13 +10,15 @@ export const createQuiz = async (data) => {
     availableFrom,
     availableUntil,
     maxAttempts,
+    maxTabViolations,
+    maxAttemptsPerUser,
     thumbnailUrl
   } = data;
 
   const sql = `
     INSERT INTO quizzes
-    (title, creator_id, description, grading_scale, time_limit_seconds, available_from, available_until, max_attempts, thumbnail_url)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (title, creator_id, description, grading_scale, time_limit_seconds, available_from, available_until, max_attempts, max_tab_violations, max_attempts_per_user, thumbnail_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const [result] = await pool.execute(sql, [
@@ -28,6 +30,8 @@ export const createQuiz = async (data) => {
     availableFrom ?? null,
     availableUntil ?? null,
     maxAttempts ?? null,
+    maxTabViolations ?? 2,
+    maxAttemptsPerUser ?? null,
     thumbnailUrl ?? null
   ]);
 
@@ -58,7 +62,9 @@ export const updateQuizSettings = async (id, data) => {
     timeLimitSeconds,
     availableFrom,
     availableUntil,
-    maxAttempts
+    maxAttempts,
+    maxTabViolations,
+    maxAttemptsPerUser
   } = data;
 
   const sql = `
@@ -67,7 +73,9 @@ export const updateQuizSettings = async (id, data) => {
         time_limit_seconds = COALESCE(?, time_limit_seconds),
         available_from = COALESCE(?, available_from),
         available_until = COALESCE(?, available_until),
-        max_attempts = COALESCE(?, max_attempts)
+        max_attempts = COALESCE(?, max_attempts),
+        max_tab_violations = COALESCE(?, max_tab_violations),
+        max_attempts_per_user = COALESCE(?, max_attempts_per_user)
     WHERE id = ?
   `;
 
@@ -77,6 +85,8 @@ export const updateQuizSettings = async (id, data) => {
     availableFrom ?? null,
     availableUntil ?? null,
     maxAttempts ?? null,
+    maxTabViolations ?? null,
+    maxAttemptsPerUser ?? null,
     id
   ]);
 };
@@ -165,7 +175,9 @@ export const countPublicOpenQuizzes = async (conn) => {
 
 export const findPublicOpenQuizzes = async (conn, { limit, offset }) => {
   const [rows] = await conn.execute(
-    `SELECT * FROM quizzes
+    `SELECT quizzes.*,
+       (SELECT COUNT(*) FROM quiz_attempts WHERE quiz_id = quizzes.id) AS joined_count
+     FROM quizzes
      WHERE status = 'PUBLIC'
        AND (${SQL_OPEN_WINDOW})
      ORDER BY id DESC

@@ -33,7 +33,9 @@ export const createQuiz = async (user, data) => {
     timeLimitSeconds,
     availableFrom,
     availableUntil,
-    maxAttempts
+    maxAttempts,
+    maxTabViolations,
+    maxAttemptsPerUser
   } = data;
 
   const { id } = user;
@@ -42,7 +44,7 @@ export const createQuiz = async (user, data) => {
     throw new AppError("Không thể thiếu tên bộ câu hỏi hoặc người tạo", 400);
   }
 
-  const quizId = await quizRepository.createQuiz({title, description, gradingScale, timeLimitSeconds, availableFrom, availableUntil, maxAttempts, creatorId:id });
+  const quizId = await quizRepository.createQuiz({title, description, gradingScale, timeLimitSeconds, availableFrom, availableUntil, maxAttempts, maxTabViolations, maxAttemptsPerUser, creatorId:id });
   logger.info(`quizService.js - Created quiz with ID: ${quizId}`);
   return quizId;
 }
@@ -192,7 +194,9 @@ export const changeQuizSettings = async(id, user, settings) => {
     timeLimitSeconds,
     availableFrom,
     availableUntil,
-    maxAttempts
+    maxAttempts,
+    maxTabViolations,
+    maxAttemptsPerUser
   } = settings;
 
   const quiz = await quizRepository.getQuizById(id);
@@ -242,7 +246,10 @@ export const listPublicOpenQuizzes = async (query) => {
   }
 
   const data = await mediaService.hydrateQuizzes(
-    rows.map(({ quiz_code: _omit, ...rest }) => rest)
+    rows.map(({ quiz_code: _omit, joined_count, ...rest }) => ({
+      ...rest,
+      joinedCount: Number(joined_count) || 0
+    }))
   );
 
   return {

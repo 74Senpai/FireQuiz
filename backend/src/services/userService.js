@@ -35,3 +35,14 @@ export const updateAvatar = async (userId, newAvatarUrl) => {
     await deleteFileFromSupabase(oldAvatarUrl, supabaseAvatarBucket);
   }
 };
+
+export const updateProfile = async (userId, data) => {
+  const { email } = data;
+  if (email) {
+    const existing = await userRepository.findByEmail(email);
+    if (existing && existing.id !== userId) {
+      throw new Error("Email đã được sử dụng bởi người dùng khác");
+    }
+  }
+  return await userRepository.updateProfile(userId, data);
+};

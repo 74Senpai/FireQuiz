@@ -38,6 +38,8 @@ export function QuizEditor() {
   const [openTime, setOpenTime] = useState("");
   const [closeTime, setCloseTime] = useState("");
   const [maxParticipants, setMaxParticipants] = useState("");
+  const [maxAttemptsPerUser, setMaxAttemptsPerUser] = useState("");
+  const [maxTabViolations, setMaxTabViolations] = useState("2");
 
   // PIN & Status state
   const [quizStatus, setQuizStatus] = useState<QuizStatus>("DRAFT");
@@ -65,6 +67,8 @@ export function QuizEditor() {
           setOpenTime(toInputDate(quiz.available_from));
           setCloseTime(toInputDate(quiz.available_until));
           setMaxParticipants(quiz.max_attempts?.toString() || "");
+          setMaxAttemptsPerUser(quiz.max_attempts_per_user?.toString() || "");
+          setMaxTabViolations(quiz.max_tab_violations !== undefined && quiz.max_tab_violations !== null ? quiz.max_tab_violations.toString() : "2");
           setQuizStatus((quiz.status as QuizStatus) || "DRAFT");
           setQuizPin(quiz.quiz_code || null);
         }
@@ -104,6 +108,8 @@ export function QuizEditor() {
         availableFrom: openTime || null,
         availableUntil: closeTime || null,
         maxAttempts: maxParticipants ? parseInt(maxParticipants) : null,
+        maxAttemptsPerUser: maxAttemptsPerUser ? parseInt(maxAttemptsPerUser) : null,
+        maxTabViolations: maxTabViolations ? parseInt(maxTabViolations) : 0,
       };
 
       if (isEditMode) {
@@ -315,6 +321,21 @@ export function QuizEditor() {
                       </select>
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <ShieldAlert className="w-4 h-4 text-slate-400" /> Giới hạn cảnh báo chuyển tab
+                    </label>
+                    <Input
+                      type="number"
+                      value={maxTabViolations}
+                      onChange={e => setMaxTabViolations(e.target.value)}
+                      className="bg-slate-900/50 border-white/10 max-w-sm"
+                      placeholder="Nhập số lần (0 để không giới hạn)"
+                    />
+                    <p className="text-xs text-slate-500">
+                       Số lần thí sinh được phép chuyển tab hoặc ẩn cửa sổ bài thi. Nếu vượt quá, bài sẽ tự động nộp (0 = vô hiệu).
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -498,15 +519,27 @@ export function QuizEditor() {
                     {errors.schedule && <p className="text-sm text-red-400">{errors.schedule}</p>}
                   </div>
                 </div>
-                <div className="space-y-2 pt-4 border-t border-white/10">
-                  <label className="text-sm font-medium">Số người tối đa (lượt thi)</label>
-                  <Input
-                    type="number"
-                    value={maxParticipants}
-                    onChange={e => setMaxParticipants(e.target.value)}
-                    placeholder="Để trống nếu không giới hạn"
-                    className="max-w-xs bg-slate-900/50 border-white/10"
-                  />
+                <div className="flex gap-6 pt-4 border-t border-white/10">
+                  <div className="space-y-2 flex-1">
+                    <label className="text-sm font-medium">Tổng số người tối đa (Slots)</label>
+                    <Input
+                      type="number"
+                      value={maxParticipants}
+                      onChange={e => setMaxParticipants(e.target.value)}
+                      placeholder="Để trống nếu không giới hạn"
+                      className="bg-slate-900/50 border-white/10"
+                    />
+                  </div>
+                  <div className="space-y-2 flex-1">
+                    <label className="text-sm font-medium">Số lượt thi tối đa cho 1 người</label>
+                    <Input
+                      type="number"
+                      value={maxAttemptsPerUser}
+                      onChange={e => setMaxAttemptsPerUser(e.target.value)}
+                      placeholder="Để trống nếu không giới hạn"
+                      className="bg-slate-900/50 border-white/10"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>

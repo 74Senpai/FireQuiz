@@ -18,4 +18,10 @@ export const updateAvatar = asyncHandler(async (req, res) => {
   return res.status(200).json({ success: true, message: 'Avatar updated successfully', avatar_url });
 });
 
+export const updateProfile = asyncHandler(async (req, res) => {
+  const { fullName, email, bio } = req.body;
+  await userService.updateProfile(req.user.id, { fullName, email, bio });
+  return res.status(200).json({ success: true, message: 'Profile updated successfully' });
+});
+
 
