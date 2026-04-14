@@ -41,27 +41,22 @@ const logger = winston.createLogger({
 
 //
 // Always log to console so cloud platforms (Render, Railway, etc.) can capture stdout.
-// Use colorized format in development, simple JSON in production.
+// Production: human-readable format (no color). Dev: colorized.
 //
-if (process.env.NODE_ENV === 'production') {
-  logger.add(new winston.transports.Console({
+const consoleTransport = (colorize) =>
+  new winston.transports.Console({
     format: winston.format.combine(
       winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-      winston.format.json()
-    ),
-  }));
-} else {
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+      winston.format.errors({ stack: true }),
       winston.format((info) => {
         info.level = info.level.toUpperCase();
         return info;
       })(),
-      winston.format.colorize({ all: true }),
+      ...(colorize ? [winston.format.colorize({ all: true })] : []),
       logFormat
     ),
-  }));
-}
+  });
+
+logger.add(consoleTransport(process.env.NODE_ENV !== 'production'));
 
 export default logger;
