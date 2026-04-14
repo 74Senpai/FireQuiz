@@ -24,7 +24,8 @@ app.use(cors({
   origin: originURL,
   credentials: true,               // Cho phép gửi cookie/token qua lại
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // Các phương thức HTTP được phép
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Disposition', 'Content-Length']
 }));
 
 app.use(requestLogger);
