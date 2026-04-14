@@ -57,14 +57,20 @@ export const getQuizResultsDashboard = (id) =>
 /**
  * Export Excel kết quả
  */
-export const exportQuizResultsExcel = (id) =>
-  axios.get(`/quiz/${id}/export/excel`, { responseType: "blob" });
+export const exportQuizResultsExcel = (id, config = {}) =>
+  axios.get(`/quiz/${id}/export/excel`, {
+    responseType: "blob",
+    ...config,
+  });
 
 /**
  * Export PDF kết quả
  */
-export const exportQuizResultsPdf = (id) =>
-  axios.get(`/quiz/${id}/export/pdf`, { responseType: "blob" });
+export const exportQuizResultsPdf = (id, config = {}) =>
+  axios.get(`/quiz/${id}/export/pdf`, {
+    responseType: "blob",
+    ...config,
+  });
 
 /**
  * Cập nhật trạng thái Quiz (PUBLIC, PRIVATE, DRAFT)
