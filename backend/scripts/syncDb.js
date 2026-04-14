@@ -15,6 +15,10 @@ const initDB = async () => {
     password: process.env.DB_PASSWORD,
     // Cho phép chạy nhiều command SQL trong một lần gọi (batch processing)
     multipleStatements: true, 
+    ssl: {
+      minVersion: 'TLSv1.2',
+      rejectUnauthorized: true, 
+    },
   });
 
   try {
