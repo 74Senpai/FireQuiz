@@ -3,6 +3,7 @@ import * as quizRepository from '../repositories/quizRepository.js';
 import pool from '../db/db.js';
 import AppError from '../errors/AppError.js';
 import * as mediaService from './mediaService.js';
+import { buildDraftKey, delCache } from '../cache/cacheClient.js';
 
 const buildOptionsByQuestionId = (options) => {
   return options.reduce((acc, option) => {
@@ -330,6 +331,7 @@ export const startAttempt = async (quizId, userId) => {
     return {
       quizTitle: activeAttempt.quiz_title,
       timeLimitSeconds: remainingSeconds,
+      maxTabViolations: quiz.max_tab_violations ?? 2,
       ...hydratedData,
       questions: hydratedQuestions
     };
@@ -342,16 +344,34 @@ export const startAttempt = async (quizId, userId) => {
     }
   }
 
+  if (quiz.max_attempts_per_user) {
+    const userAttemptsCount = await attemptRepository.countQuizAttemptsByUserAndQuiz(userId, quizId);
+    if (userAttemptsCount >= quiz.max_attempts_per_user) {
+      throw new AppError('Bạn đã dùng hết số lượt làm bài cho phép đối với Quiz này', 403);
+    }
+  }
+
   const attemptData = await generateAttemptSnapshot(quiz, userId);
 
   return {
     quizTitle: quiz.title,
     timeLimitSeconds: quiz.time_limit_seconds,
+    maxTabViolations: quiz.max_tab_violations ?? 2,
     ...attemptData
   };
 };
 
-export const finishAttempt = async (attemptId, userId) => {
+/**
+ * Nộp bài chính thức (Option A):
+ * - FE gửi kèm toàn bộ answers + textAnswers trong request body
+ * - BE validate, ghi hàng loạt vào DB, tính điểm, xóa cache draft
+ *
+ * @param {number} attemptId
+ * @param {number} userId
+ * @param {Object} answers        - { [attemptQuestionId]: [attemptOptionId, ...] }
+ * @param {Object} textAnswers    - { [attemptQuestionId]: string } (câu TEXT)
+ */
+export const finishAttempt = async (attemptId, userId, answers = {}, textAnswers = {}) => {
   const attempt = await attemptRepository.getQuizAttemptById(attemptId);
   if (!attempt) {
     throw new AppError('Không tìm thấy bài làm', 404);
@@ -366,23 +386,78 @@ export const finishAttempt = async (attemptId, userId) => {
   }
 
   const quiz = await quizRepository.getQuizById(attempt.quiz_id);
-  const scoreData = await attemptRepository.getAttemptScoreData(attemptId);
 
+  // Ghi đáp án từ request vào DB trong transaction
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    for (const [qIdStr, optionIds] of Object.entries(answers)) {
+      const attemptQuestionId = Number(qIdStr);
+      if (!Number.isFinite(attemptQuestionId)) continue;
+
+      // Xóa đáp án cũ (nếu có) trước khi ghi mới
+      await attemptRepository.deleteAttemptAnswers(conn, attemptQuestionId);
+
+      const ids = Array.isArray(optionIds) ? optionIds.filter((id) => Number.isFinite(Number(id))) : [];
+      if (ids.length > 0) {
+        const textValue = textAnswers[qIdStr] || null;
+        const payload = ids.map((id, index) => ({
+          attemptOptionId: Number(id),
+          textAnswer: index === 0 ? textValue : null,
+        }));
+        await attemptRepository.bulkInsertAttemptAnswers(conn, payload);
+      }
+    }
+
+    // Xử lý câu TEXT (không có option, chỉ có text)
+    for (const [qIdStr, textValue] of Object.entries(textAnswers)) {
+      if (answers[qIdStr]) continue; // đã xử lý ở trên
+      const attemptQuestionId = Number(qIdStr);
+      if (!Number.isFinite(attemptQuestionId)) continue;
+
+      await attemptRepository.deleteAttemptAnswers(conn, attemptQuestionId);
+
+      // Lấy option đầu tiên của câu TEXT để gắn textAnswer
+      const [opts] = await conn.execute(
+        `SELECT id FROM attempt_options WHERE attempt_question_id = ? LIMIT 1`,
+        [attemptQuestionId]
+      );
+      if (opts.length > 0) {
+        await attemptRepository.bulkInsertAttemptAnswers(conn, [{
+          attemptOptionId: opts[0].id,
+          textAnswer: textValue || null,
+        }]);
+      }
+    }
+
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+
+  // Tính điểm
+  const scoreData = await attemptRepository.getAttemptScoreData(attemptId);
   let finalScore = 0;
   if (scoreData.total > 0) {
     const gradingScale = quiz.grading_scale || 10;
     finalScore = (scoreData.correct / scoreData.total) * gradingScale;
   }
-
   finalScore = Math.round(finalScore * 100) / 100;
 
   await attemptRepository.markAttemptFinished(attemptId, finalScore);
+
+  // Xóa cache draft sau khi đã ghi DB thành công
+  delCache(buildDraftKey(attempt.quiz_id, userId));
 
   return {
     message: 'Nộp bài thành công',
     score: finalScore,
     correct: scoreData.correct,
-    total: scoreData.total
+    total: scoreData.total,
   };
 };
 

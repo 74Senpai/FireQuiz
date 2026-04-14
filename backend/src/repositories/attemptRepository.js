@@ -228,6 +228,17 @@ export const countQuizAttemptsByUserId = async (userId) => {
 };
 
 /**
+ * Đếm số lần tham gia của một User cho một Quiz cụ thể
+ */
+export const countQuizAttemptsByUserAndQuiz = async (userId, quizId) => {
+  const [rows] = await pool.execute(
+    `SELECT COUNT(*) AS total FROM quiz_attempts WHERE user_id = ? AND quiz_id = ?`,
+    [userId, quizId]
+  );
+  return Number(rows[0]?.total) || 0;
+};
+
+/**
  * Lấy danh sách lịch sử thi của User (phân trang)
  */
 export const listQuizAttemptsByUserIdPaginated = async (userId, limit, offset) => {
@@ -248,12 +259,31 @@ export const listQuizAttemptsByUserIdPaginated = async (userId, limit, offset) =
 };
 
 /**
+ * Lấy thống kê điểm số theo thời gian để vẽ biểu đồ
+ */
+export const getHistoryStatsByUserId = async (userId) => {
+  const sql = `
+    SELECT 
+      quiz_title, 
+      score, 
+      finished_at 
+    FROM quiz_attempts 
+    WHERE user_id = ? AND finished_at IS NOT NULL 
+    ORDER BY finished_at ASC;
+  `;
+  const [rows] = await pool.execute(sql, [userId]);
+  return rows;
+};
+
+
+/**
  * Lấy một lần thi cụ thể để review
  */
 export const getQuizAttemptByIdAndUserId = async (attemptId, userId) => {
   const sql = `
     SELECT
-      qa.id, qa.user_id, qa.quiz_id, qa.quiz_title, qa.score, qa.started_at, qa.finished_at,
+      qa.id, qa.user_id, qa.quiz_id, qa.quiz_title, qa.score,
+      qa.started_at, qa.finished_at, qa.tab_violations,
       CASE
         WHEN qa.finished_at IS NULL THEN NULL
         ELSE TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at)
@@ -311,7 +341,7 @@ export const getAttemptAnswersByOptionIds = async (optionIds) => {
 export const getFinishedAttemptsByQuizId = async (quizId) => {
   const sql = `
     SELECT 
-      id, user_id, quiz_id, score, started_at, finished_at,
+      id, user_id, quiz_id, score, started_at, finished_at, tab_violations,
       TIMESTAMPDIFF(SECOND, started_at, finished_at) AS duration_seconds
     FROM quiz_attempts
     WHERE quiz_id = ? AND finished_at IS NOT NULL
@@ -328,6 +358,7 @@ export const getLatestAttemptsByQuizId = async (quizId) => {
   const sql = `
     SELECT 
       qa.id, qa.user_id, qa.quiz_id, qa.score, qa.started_at, qa.finished_at,
+      qa.tab_violations,
       CASE 
         WHEN qa.finished_at IS NULL THEN NULL
         ELSE TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at)
