@@ -108,7 +108,7 @@ export function Results() {
 
     try {
       const response = await request(selectedQuizId, {
-        onDownloadProgress: (event: any) => {
+        onDownloadProgress: (event: import("axios").AxiosProgressEvent) => {
           if (event?.total) {
             const progress = Math.max(
               20,
