@@ -29,3 +29,8 @@ export const syncAttemptAnswer = (attemptId, attemptQuestionId, attemptOptionIds
   };
   return axios.patch(`/attempt/${attemptId}/answer`, payload).then((res) => res.data);
 };
+
+/** Lấy thống kê lịch sử thi (Dùng cho biểu đồ) */
+export const getMyStats = () =>
+  axios.get("/attempt/stats/my").then((res) => res.data);
+

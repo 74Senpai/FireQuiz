@@ -19,7 +19,8 @@ export const getUserById = async (id) => {
     role: user.role,
     fullName: user.full_name,
     email: user.email,
-    avatar_url: user.avatar_url
+    avatar_url: user.avatar_url,
+    bio: user.bio
   });
 };
 
@@ -35,3 +36,15 @@ export const updateAvatar = async (userId, newAvatarUrl) => {
     await deleteFileFromSupabase(oldAvatarUrl, supabaseAvatarBucket);
   }
 };
+
+export const updateProfileData = async (userId, data) => {
+  const { email } = data;
+  if (email) {
+    const existingUser = await userRepository.findByEmail(email);
+    if (existingUser && existingUser.id !== userId) {
+      throw new AppError("Email đã được sử dụng bởi người dùng khác", 409);
+    }
+  }
+  return await userRepository.updateProfileData(userId, data);
+};
+
