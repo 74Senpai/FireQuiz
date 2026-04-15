@@ -92,7 +92,7 @@ export const updateQuizInfo = async (id, data) => {
 };
 
 export const getListQuizByUserId = async (id) => {
-  const sql = "SELECT * FROM quizzes WHERE creator_id = ? AND status != 'DELETED';";
+  const sql = "SELECT id, title, description, creator_id, quiz_code, status, grading_scale, time_limit_seconds, available_from, available_until, max_attempts, created_at, updated_at FROM quizzes WHERE creator_id = ? AND status != 'DELETED';";
 
   const [row] = await pool.execute(sql, [id]);
   return row;
