@@ -147,13 +147,23 @@ export function Results() {
       });
     } catch (error: any) {
       console.error(`Khong the xuat bao cao ${exportLabel}:`, error);
+      
+      let errorMessage = `Khong the xuat bao cao ${exportLabel}. Vui long thu lai.`;
+      if (error.response?.data instanceof Blob && error.response.data.type === "application/json") {
+        try {
+          const errorText = await error.response.data.text();
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.message) errorMessage = errorJson.message;
+        } catch (e) {}
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+
       setExportStatus({
         kind,
         stage: "error",
         progress: 100,
-        message:
-          error.response?.data?.message ||
-          `Khong the xuat bao cao ${exportLabel}. Vui long thu lai.`,
+        message: errorMessage,
       });
     } finally {
       if (isPdf) {
