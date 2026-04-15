@@ -95,6 +95,7 @@ export const getMyAttemptReviewDetail = async (user, attemptIdParam) => {
       content: question.content,
       type: question.type,
       media_url: question.media_url,
+      explanation: question.explanation,
       options: opts.map((opt) => ({
         id: opt.id,
         attempt_question_id: opt.attempt_question_id,
@@ -132,6 +133,7 @@ const generateAttemptSnapshot = async (quiz, userId) => {
           content: row.question_content,
           type: row.question_type,
           mediaUrl: row.question_media_url,
+          explanation: row.question_explanation,
           answers: []
         });
       }
