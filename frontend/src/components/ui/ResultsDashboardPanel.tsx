@@ -41,6 +41,16 @@ type DashboardPayload = {
     totalParticipants: number;
     submittedCount: number;
     inProgressCount: number;
+    overallRatio: {
+      correct: number;
+      incorrect: number;
+      correctRate: number;
+      incorrectRate: number;
+    };
+    scoreHistogram: Array<{
+      range: string;
+      count: number;
+    }>;
   };
   data: DashboardRow[];
 };
@@ -176,6 +186,68 @@ export function ResultsDashboardPanel({ quizId }: ResultsDashboardPanelProps) {
             </p>
           </div>
         </div>
+
+        {/* Analytics Charts */}
+        {payload && payload.summary.overallRatio && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="border-white/10 bg-slate-950/20 shadow-none">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold text-slate-200">
+                  Ty le Dung / Sai toan he thong
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-400">
+                  Tong hop theo tat ca thi sinh da nop bai
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className="text-emerald-400">Dung ({payload.summary.overallRatio.correctRate}%)</span>
+                    <span className="text-rose-400">Sai ({payload.summary.overallRatio.incorrectRate}%)</span>
+                  </div>
+                  <div className="flex h-4 w-full overflow-hidden rounded-full bg-slate-800">
+                    <div className="bg-emerald-500 transition-all" style={{ width: `${payload.summary.overallRatio.correctRate}%` }} />
+                    <div className="bg-rose-500 transition-all" style={{ width: `${payload.summary.overallRatio.incorrectRate}%` }} />
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-400">
+                    <span>{payload.summary.overallRatio.correct} cau</span>
+                    <span>{payload.summary.overallRatio.incorrect} cau</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/10 bg-slate-950/20 shadow-none">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold text-slate-200">
+                  Pho diem (Histogram)
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-400">
+                  Phan bo diem so cua thi sinh hoan thanh
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-end h-[80px] gap-1 md:gap-2">
+                  {payload.summary.scoreHistogram.map((bin, i) => {
+                    const maxCount = Math.max(...payload.summary.scoreHistogram.map(b => b.count), 1);
+                    const heightPercent = `${(bin.count / maxCount) * 100}%`;
+                    
+                    return (
+                      <div key={i} className="group relative flex flex-1 flex-col items-center justify-end">
+                        <div className="w-full rounded-t-sm bg-indigo-500/80 transition-all hover:bg-indigo-400" style={{ height: heightPercent, minHeight: bin.count > 0 ? '4px' : '0px' }}></div>
+                        <div className="mt-1 text-[10px] text-slate-400" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>{bin.range}</div>
+                        {/* Tooltip */}
+                        <div className="pointer-events-none absolute -top-8 z-10 whitespace-nowrap rounded bg-slate-800 px-2 py-1 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+                          {bin.count} hs
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         <div className="grid gap-4 xl:grid-cols-4">
           <div className="relative xl:col-span-1">
