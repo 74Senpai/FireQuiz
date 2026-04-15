@@ -40,6 +40,11 @@ export const getListQuestionByQuizId = async (id) => {
   return row;
 };
 
+export const changeExplanation = async (id, explanation, tx = pool) => {
+  const sql = "UPDATE questions SET explanation = ? WHERE id = ?;";
+  await tx.execute(sql, [explanation ?? null, id]);
+};
+
 export const deleteQuestionById = async (id, tx = pool) => {
   const sql = "DELETE FROM questions WHERE id = ?;";
 
