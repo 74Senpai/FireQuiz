@@ -19,7 +19,8 @@ export const getUserById = async (id) => {
     role: user.role,
     fullName: user.full_name,
     email: user.email,
-    avatar_url: user.avatar_url
+    avatar_url: user.avatar_url,
+    bio: user.bio
   });
 };
 

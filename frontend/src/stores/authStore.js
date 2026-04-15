@@ -30,9 +30,8 @@ export const useAuthStore = create((set) => ({
       const data = await authService.getProfile();
       set({
         user: {
-          full_name: data.fullName,
-          email: data.email,
-          role: data.role,
+          ...data,
+          full_name: data.fullName, // Keep this mapping for backwards compatibility in frontend
         },
         isAuthenticated: true,
         isLoading: false,
@@ -70,9 +69,8 @@ export const useAuthStore = create((set) => ({
       const data = await authService.getProfile();
       set({
         user: {
+          ...data,
           full_name: data.fullName,
-          email: data.email,
-          role: data.role,
         },
         isAuthenticated: true,
         isLoading: false,
@@ -81,6 +79,12 @@ export const useAuthStore = create((set) => ({
       localStorage.removeItem("accessToken");
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
+  },
+
+  updateUser: (newData) => {
+    set((state) => ({
+      user: { ...state.user, ...newData }
+    }));
   },
 }));
 

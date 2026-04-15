@@ -6,6 +6,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 const alterQueries = [
   "ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255);",
+  "ALTER TABLE users ADD COLUMN bio TEXT;",
   "ALTER TABLE quizzes ADD COLUMN thumbnail_url VARCHAR(255);",
   "ALTER TABLE questions ADD COLUMN media_url VARCHAR(255);",
   "ALTER TABLE attempt_questions ADD COLUMN media_url VARCHAR(255);"
