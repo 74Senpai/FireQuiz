@@ -52,7 +52,7 @@ export function Profile() {
       try {
         const statsRes = await attemptServices.getMyStats();
         const formattedStats = (statsRes.data || statsRes || []).map((s: any) => ({
-          name: s.quiz_title,
+          name: `${s.quiz_title} (${new Date(s.finished_at).toLocaleDateString('vi-VN')})`,
           score: Number(s.score),
           date: new Date(s.finished_at).toLocaleDateString('vi-VN')
         }));
