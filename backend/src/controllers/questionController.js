@@ -4,7 +4,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const createQuestion = asyncHandler(async (req, res) => {
   const user = req.user;
-  const { content, type, quizId, answers } = req.body;
+  const { content, type, quizId, answers, explanation } = req.body;
 
   if (!content || !type || !quizId) {
     throw new AppError('Không được thiếu content, type, quizId', 400);
@@ -15,7 +15,7 @@ export const createQuestion = asyncHandler(async (req, res) => {
     throw new AppError('Câu hỏi trắc nghiệm phải có đáp án', 400);
   }
 
-  const id = await questionService.createQuestion(user, { content, type, quizId, answers: answers || [] });
+  const id = await questionService.createQuestion(user, { content, type, quizId, answers: answers || [], explanation });
   return res.status(201).json({ questionId: id });
 });
 

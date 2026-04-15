@@ -2,11 +2,11 @@ import pool from '../db/db.js';
 import logger from '../utils/logger.js';
 
 export const create = async (data, tx = pool) => {
-  const { content, type, quizId } = data;
+  const { content, type, quizId, explanation } = data;
  
   logger.info(`questionRepository.js - Creating question - content: ${content}, type: ${type}, quizId: ${quizId}`);
-  const sql = "INSERT INTO questions(content, type, quiz_id) VALUES (?, ?, ?);";
-  const [row] = await tx.execute(sql, [content, type, quizId]);
+  const sql = "INSERT INTO questions(content, type, quiz_id, explanation) VALUES (?, ?, ?, ?);";
+  const [row] = await tx.execute(sql, [content, type, quizId, explanation ?? null]);
   return row.insertId;
 };
 
@@ -33,6 +33,11 @@ export const getListQuestionByQuizId = async (id) => {
 
   const [row] = await pool.execute(sql, [id]);
   return row;
+};
+
+export const changeExplanation = async (id, explanation, tx = pool) => {
+  const sql = "UPDATE questions SET explanation = ? WHERE id = ?;";
+  await tx.execute(sql, [explanation ?? null, id]);
 };
 
 export const deleteQuestionById = async (id, tx = pool) => {
