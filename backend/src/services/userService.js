@@ -38,6 +38,13 @@ export const updateAvatar = async (userId, newAvatarUrl) => {
 };
 
 export const updateProfileData = async (userId, data) => {
+  const { email } = data;
+  if (email) {
+    const existingUser = await userRepository.findByEmail(email);
+    if (existingUser && existingUser.id !== userId) {
+      throw new AppError("Email đã được sử dụng bởi người dùng khác", 409);
+    }
+  }
   return await userRepository.updateProfileData(userId, data);
 };
 
