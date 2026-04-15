@@ -21,7 +21,7 @@ export const updateAvatar = asyncHandler(async (req, res) => {
 export const updateProfile = asyncHandler(async (req, res) => {
   const { fullName, email, bio } = req.body;
   if (!fullName || !email) {
-    return res.status(400).json({ success: false, message: 'Full name and email are required' });
+    throw new AppError('Họ tên và email là bắt buộc', 400);
   }
 
   await userService.updateProfileData(req.user.id, { fullName, email, bio });
