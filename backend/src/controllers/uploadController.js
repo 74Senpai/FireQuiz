@@ -1,4 +1,4 @@
-import { uploadFileToSupabase } from '../services/supabaseService.js';
+import { uploadFileToSupabase, getPublicUrl } from '../services/supabaseService.js';
 import AppError from '../errors/AppError.js';
 
 export const uploadMediaFile = async (req, res, next) => {
@@ -25,19 +25,19 @@ export const uploadMediaFile = async (req, res, next) => {
       bucket
     );
 
+    let returnUrl = filePath;
+    if (type === 'avatar') {
+      returnUrl = getPublicUrl(filePath, bucket);
+    }
+
     res.status(200).json({
       success: true,
       message: 'Upload file thành công',
       data: {
-        url: filePath // Bây giờ chỉ trả về path
+        url: returnUrl // Trả về full url thay vì path nếu là avatar
       }
     });
   } catch (error) {
     next(error);
   }
 };
-
-// Xóa bỏ deleteMediaFile vì nguy cơ bảo mật
-
-
-
