@@ -42,7 +42,9 @@ CREATE TABLE quizzes (
     CONSTRAINT fk_quiz_creator FOREIGN KEY (creator_id) REFERENCES users (id)
 );
 
-CREATE INDEX idx_quizzes_creator_id ON quizzes (creator_id);
+CREATE INDEX idx_quizzes_creator_status ON quizzes (creator_id, status);
+
+CREATE INDEX idx_quizzes_public_window ON quizzes (status, available_from, available_until);
 
 CREATE INDEX idx_quizzes_quiz_code ON quizzes (quiz_code);
 
