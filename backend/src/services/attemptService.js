@@ -91,6 +91,7 @@ export const getMyAttemptReviewDetail = async (user, attemptIdParam) => {
       quiz_attempt_id: question.quiz_attempt_id,
       content: question.content,
       type: question.type,
+      explanation: question.explanation,
       options: opts.map((opt) => ({
         id: opt.id,
         attempt_question_id: opt.attempt_question_id,
@@ -122,6 +123,7 @@ const generateAttemptSnapshot = async (quizId, userId, quizTitle) => {
         questionsMap.set(row.question_id, {
           content: row.question_content,
           type: row.question_type,
+          explanation: row.question_explanation,
           answers: []
         });
       }
@@ -146,7 +148,7 @@ const generateAttemptSnapshot = async (quizId, userId, quizTitle) => {
     }
 
     // 3. Bulk insert attempt_questions
-    const attemptQuestionsPayload = groupedQuestions.map(q => [attemptId, q.content, q.type]);
+    const attemptQuestionsPayload = groupedQuestions.map(q => [attemptId, q.content, q.type, q.explanation ?? null]);
     const aqResult = await attemptRepository.bulkInsertAttemptQuestions(conn, attemptQuestionsPayload);
     
     let currentAqId = aqResult.insertId;

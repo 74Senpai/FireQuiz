@@ -19,6 +19,7 @@ const validateRow = (row, index) => {
   const content = row.question?.toString().trim();
   const type = row.type?.toString().trim().toUpperCase();
   const correctOptionsRaw = row.correct_options?.toString().trim();
+  const explanation = row.explanation?.toString().trim() || null;
 
   if (!content) errors.push('Thiếu nội dung câu hỏi');
   if (!type) errors.push('Thiếu loại câu hỏi');
@@ -37,7 +38,7 @@ const validateRow = (row, index) => {
 
   // Validate theo loại
   if (type === 'TEXT') {
-    return { valid: true, rowNum, data: { content, type, answers: [] } };
+    return { valid: true, rowNum, data: { content, type, explanation, answers: [] } };
   }
 
   if (type === 'TRUE_FALSE') {
@@ -54,7 +55,7 @@ const validateRow = (row, index) => {
       content,
       isCorrect: i + 1 === correctIdx,
     }));
-    return { valid: true, rowNum, data: { content, type, answers } };
+    return { valid: true, rowNum, data: { content, type, explanation, answers } };
   }
 
   // ANANSWER / MULTI_ANSWERS
@@ -82,7 +83,7 @@ const validateRow = (row, index) => {
     isCorrect: correctIndices.includes(i + 1),
   }));
 
-  return { valid: true, rowNum, data: { content, type, answers } };
+  return { valid: true, rowNum, data: { content, type, explanation, answers } };
 };
 
 /**
@@ -141,6 +142,7 @@ export const bulkCreateQuestions = async (quizId, validRows) => {
         content: row.content,
         type: row.type,
         quizId,
+        explanation: row.explanation,
       });
 
       if (row.answers && row.answers.length > 0) {
@@ -176,6 +178,7 @@ export const generateTemplateBuffer = async () => {
     { header: 'question', key: 'question', width: 40 },
     { header: 'type', key: 'type', width: 16 },
     { header: 'correct_options', key: 'correct_options', width: 18 },
+    { header: 'explanation', key: 'explanation', width: 30 },
     ...Array.from({ length: MAX_OPTIONS }, (_, i) => ({
       header: `option${i + 1}`,
       key: `option${i + 1}`,
@@ -196,6 +199,7 @@ export const generateTemplateBuffer = async () => {
       question: 'Thủ đô của Việt Nam là?',
       type: 'ANANSWER',
       correct_options: '1',
+      explanation: 'Hà Nội là thủ đô của Việt Nam từ năm 1945.',
       option1: 'Hà Nội',
       option2: 'TP.HCM',
       option3: 'Đà Nẵng',
@@ -205,6 +209,7 @@ export const generateTemplateBuffer = async () => {
       question: 'Những ngôn ngữ nào là ngôn ngữ lập trình?',
       type: 'MULTI_ANSWERS',
       correct_options: '1,3',
+      explanation: 'HTML và CSS là ngôn ngữ đánh dấu và định dạng, không phải ngôn ngữ lập trình.',
       option1: 'JavaScript',
       option2: 'HTML',
       option3: 'Python',
@@ -214,6 +219,7 @@ export const generateTemplateBuffer = async () => {
       question: 'Trái Đất quay quanh Mặt Trời đúng không?',
       type: 'TRUE_FALSE',
       correct_options: '1',
+      explanation: 'Đây là sự thật hiển nhiên (thuyết nhật tâm).',
       option1: 'TRUE',
       option2: 'FALSE',
     },
@@ -221,6 +227,7 @@ export const generateTemplateBuffer = async () => {
       question: 'Hãy mô tả ngắn gọn về HTTP là gì?',
       type: 'TEXT',
       correct_options: '',
+      explanation: 'HTTP là giao thức truyền tải siêu văn bản...',
     },
   ];
 
