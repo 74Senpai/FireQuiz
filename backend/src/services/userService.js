@@ -41,7 +41,7 @@ export const updateProfile = async (userId, data) => {
   if (email) {
     const existing = await userRepository.findByEmail(email);
     if (existing && existing.id !== userId) {
-      throw new Error("Email đã được sử dụng bởi người dùng khác");
+      throw new AppError("Email đã được sử dụng bởi người dùng khác", 400);
     }
   }
   return await userRepository.updateProfile(userId, data);
