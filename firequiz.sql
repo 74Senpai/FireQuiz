@@ -42,10 +42,9 @@ CREATE TABLE quizzes (
     CONSTRAINT fk_quiz_creator FOREIGN KEY (creator_id) REFERENCES users (id)
 );
 
+CREATE INDEX idx_quizzes_creator_id ON quizzes (creator_id);
 CREATE INDEX idx_quizzes_creator_status ON quizzes (creator_id, status);
-
 CREATE INDEX idx_quizzes_public_window ON quizzes (status, available_from, available_until);
-
 CREATE INDEX idx_quizzes_quiz_code ON quizzes (quiz_code);
 
 -- =========================
@@ -57,7 +56,7 @@ CREATE TABLE quiz_attempts (
     quiz_id INT NOT NULL,
     quiz_title VARCHAR(255) NOT NULL,
     score DECIMAL(5, 2),
-    tab_violations INT NOT NULL DEFAULT 0,
+    tab_violations INT NOT NULL DEFAULT 0,   -- [FIX] Thêm cột ghi nhận vi phạm chuyển tab
     started_at DATETIME NOT NULL,
     finished_at DATETIME,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -67,9 +66,7 @@ CREATE TABLE quiz_attempts (
 );
 
 CREATE INDEX idx_attempts_user_id ON quiz_attempts (user_id);
-
 CREATE INDEX idx_attempts_quiz_id ON quiz_attempts (quiz_id);
-
 CREATE INDEX idx_attempts_user_started ON quiz_attempts (user_id, started_at);
 
 -- =========================
@@ -79,6 +76,7 @@ CREATE TABLE questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     content VARCHAR(255) NOT NULL,
     type CHAR(15) NOT NULL,
+    explanation TEXT,                         -- [FIX] Thêm cột giải thích đáp án
     quiz_id INT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -102,17 +100,24 @@ CREATE TABLE answers (
 
 CREATE INDEX idx_answers_question_id ON answers (question_id);
 
+-- =========================
+-- TABLE: attempt_questions
+-- =========================
 CREATE TABLE attempt_questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     quiz_attempt_id INT NOT NULL,
     content VARCHAR(255) NOT NULL,
-    type VARCHAR(20) NOT NULL,
+    type VARCHAR(20) NOT NULL,               -- [FIX] VARCHAR(10) → VARCHAR(20) để chứa 'SINGLE_CHOICE', 'MULTIPLE_CHOICE'
+    explanation TEXT,                         -- [FIX] Thêm cột giải thích (snapshot từ questions.explanation)
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_attempt_questions_quiz_attempts FOREIGN KEY (quiz_attempt_id) REFERENCES quiz_attempts (id)
 );
 
 CREATE INDEX idx_attempt_questions_attempt ON attempt_questions (quiz_attempt_id);
 
+-- =========================
+-- TABLE: attempt_options
+-- =========================
 CREATE TABLE attempt_options (
     id INT AUTO_INCREMENT PRIMARY KEY,
     attempt_question_id INT NOT NULL,
@@ -124,6 +129,9 @@ CREATE TABLE attempt_options (
 
 CREATE INDEX idx_attempt_options_question ON attempt_options (attempt_question_id);
 
+-- =========================
+-- TABLE: attempt_answers
+-- =========================
 CREATE TABLE attempt_answers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     attempt_option_id INT NOT NULL,
@@ -135,6 +143,9 @@ CREATE TABLE attempt_answers (
 
 CREATE INDEX idx_attempt_answers_option ON attempt_answers (attempt_option_id);
 
+-- =========================
+-- TABLE: sessions
+-- =========================
 CREATE TABLE sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
