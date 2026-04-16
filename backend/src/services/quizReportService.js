@@ -75,7 +75,7 @@ const getPdfFontPaths = () => {
 
   if (!regularFontPath || !boldFontPath) {
     throw new AppError(
-      'Khong tim thay font Unicode cho xuat PDF. Hay cau hinh PDF_FONT_REGULAR_PATH va PDF_FONT_BOLD_PATH.',
+      'Không tìm thấy phông chữ Unicode để xuất PDF. Hãy cấu hình PDF_FONT_REGULAR_PATH và PDF_FONT_BOLD_PATH.',
       500,
     );
   }
@@ -96,11 +96,11 @@ const registerPdfFonts = (doc) => {
 
 const checkQuizExistAndOwner = (quiz, user) => {
   if (!quiz) {
-    throw new AppError("Quiz khong ton tai", 404);
+    throw new AppError("Bộ câu hỏi không tồn tại", 404);
   }
 
   if (!user || user.id != quiz.creator_id) {
-    throw new AppError("Ban khong co quyen thuc hien hanh dong nay", 403);
+    throw new AppError("Bạn không có quyền thực hiện hành động này", 403);
   }
 };
 
@@ -129,7 +129,7 @@ const getCreatorDisplayName = (user) =>
 
 const getScheduleText = (quiz) => {
   if (!quiz.available_from && !quiz.available_until) {
-    return 'Khong gioi han';
+    return 'Không giới hạn';
   }
 
   return `${formatDateTime(quiz.available_from)} - ${formatDateTime(quiz.available_until)}`;
@@ -226,7 +226,7 @@ const getReportData = async (quizId, user) => {
 export const buildExcelReport = async (quizId, user) => {
   const { quiz, rows, generatedAt, generatedBy, summary } = await getReportData(quizId, user);
   const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet("Bao cao ket qua");
+  const worksheet = workbook.addWorksheet("Báo cáo kết quả");
 
   workbook.creator = 'FireQuiz';
   workbook.company = 'FireQuiz';
@@ -234,17 +234,17 @@ export const buildExcelReport = async (quizId, user) => {
   workbook.modified = generatedAt;
 
   worksheet.columns = [
-    { header: "Hang", key: "rank", width: 10 },
-    { header: "Thi sinh", key: "full_name", width: 28 },
+    { header: "Hạng", key: "rank", width: 10 },
+    { header: "Thí sinh", key: "full_name", width: 28 },
     { header: "Email", key: "email", width: 30 },
-    { header: "Ma hoc sinh", key: "student_code", width: 14 },
-    { header: "Diem", key: "score", width: 12, style: { numFmt: '0.00' } },
-    { header: "Thoi gian", key: "duration", width: 14 },
-    { header: "Dung", key: "correct_count", width: 10 },
+    { header: "Mã học sinh", key: "student_code", width: 14 },
+    { header: "Điểm", key: "score", width: 12, style: { numFmt: '0.00' } },
+    { header: "Thời gian", key: "duration", width: 14 },
+    { header: "Đúng", key: "correct_count", width: 10 },
     { header: "Sai", key: "incorrect_count", width: 10 },
-    { header: "Ty le dung", key: "accuracy_rate", width: 12, style: { numFmt: '0.00%' } },
-    { header: "Bat dau", key: "started_at", width: 22 },
-    { header: "Hoan thanh", key: "finished_at", width: 22 },
+    { header: "Tỷ lệ đúng", key: "accuracy_rate", width: 12, style: { numFmt: '0.00%' } },
+    { header: "Bắt đầu", key: "started_at", width: 22 },
+    { header: "Hoàn thành", key: "finished_at", width: 22 },
   ];
 
   worksheet.views = [{ state: 'frozen', ySplit: EXCEL_TABLE_HEADER_ROW, showGridLines: false }];
@@ -258,7 +258,7 @@ export const buildExcelReport = async (quizId, user) => {
   };
 
   worksheet.mergeCells("A1:K1");
-  worksheet.getCell("A1").value = `Bao cao ket qua quiz - ${quiz.title}`;
+  worksheet.getCell("A1").value = `Báo cáo kết quả bộ câu hỏi - ${quiz.title}`;
   worksheet.getCell("A1").font = {
     size: 18,
     bold: true,
@@ -268,35 +268,35 @@ export const buildExcelReport = async (quizId, user) => {
 
   worksheet.mergeCells("A2:K2");
   worksheet.getCell("A2").value =
-    "Bao cao duoc dinh dang de doi chieu nhanh, loc du lieu va in A4 ngang.";
+    "Báo cáo được định dạng để đối chiếu nhanh, lọc dữ liệu và in A4 ngang.";
   worksheet.getCell("A2").font = { size: 10, color: { argb: REPORT_THEME.mutedText } };
   worksheet.getCell("A2").alignment = { horizontal: "left", vertical: "middle" };
 
-  worksheet.getCell("A4").value = "Bo quiz";
+  worksheet.getCell("A4").value = "Bộ câu hỏi";
   worksheet.getCell("B4").value = quiz.title || "--";
-  worksheet.getCell("D4").value = "Nguoi xuat";
+  worksheet.getCell("D4").value = "Người xuất";
   worksheet.getCell("E4").value = generatedBy;
-  worksheet.getCell("G4").value = "Ngay xuat";
+  worksheet.getCell("G4").value = "Ngày xuất";
   worksheet.getCell("H4").value = formatDateTime(generatedAt);
-  worksheet.getCell("J4").value = "Lich mo";
+  worksheet.getCell("J4").value = "Lịch mở";
   worksheet.getCell("K4").value = getScheduleText(quiz);
 
-  worksheet.getCell("A5").value = "Tong thi sinh";
+  worksheet.getCell("A5").value = "Tổng thí sinh";
   worksheet.getCell("B5").value = summary.totalParticipants;
-  worksheet.getCell("D5").value = "Diem trung binh";
+  worksheet.getCell("D5").value = "Điểm trung bình";
   worksheet.getCell("E5").value = `${summary.averageScore.toFixed(2)}/${summary.gradingScale}`;
-  worksheet.getCell("G5").value = "Ty le dung";
+  worksheet.getCell("G5").value = "Tỷ lệ đúng";
   worksheet.getCell("H5").value = formatPercentage(summary.accuracyRate);
-  worksheet.getCell("J5").value = "TB thoi gian";
+  worksheet.getCell("J5").value = "TB thời gian";
   worksheet.getCell("K5").value = formatDuration(summary.averageDurationSeconds);
 
-  worksheet.getCell("A6").value = "Trang thai";
+  worksheet.getCell("A6").value = "Trạng thái";
   worksheet.getCell("B6").value = quiz.status || "--";
-  worksheet.getCell("D6").value = "Thang diem";
+  worksheet.getCell("D6").value = "Thang điểm";
   worksheet.getCell("E6").value = `${summary.gradingScale}`;
-  worksheet.getCell("G6").value = "Tong dung / sai";
+  worksheet.getCell("G6").value = "Tổng đúng / sai";
   worksheet.getCell("H6").value = `${summary.totalCorrect} / ${summary.totalIncorrect}`;
-  worksheet.getCell("J6").value = "Gioi han";
+  worksheet.getCell("J6").value = "Giới hạn";
   worksheet.getCell("K6").value = formatDuration(quiz.time_limit_seconds);
 
   ['A4', 'D4', 'G4', 'J4', 'A5', 'D5', 'G5', 'J5', 'A6', 'D6', 'G6', 'J6'].forEach((ref) => {
@@ -428,7 +428,7 @@ export const buildPdfReport = async (quizId, user) => {
         .font(PDF_FONT_REGULAR)
         .fontSize(9)
         .fillColor("#475569")
-        .text("FireQuiz - Bao cao ket qua quiz", 36, 14, {
+        .text("FireQuiz - Báo cáo kết quả bộ câu hỏi", 36, 14, {
           width: 260,
           align: "left",
         });
@@ -477,7 +477,7 @@ export const buildPdfReport = async (quizId, user) => {
           align: "left",
         });
       doc
-        .text(`Ma hoc sinh: USER${String(row.user_id).padStart(4, "0")}`, 50, cardTop + 42, {
+        .text(`Mã học sinh: USER${String(row.user_id).padStart(4, "0")}`, 50, cardTop + 42, {
           width: 240,
           align: "left",
         });
@@ -507,16 +507,16 @@ export const buildPdfReport = async (quizId, user) => {
           width: 130,
           align: "left",
         });
-      doc.text(`Ty le dung: ${formatPercentage(accuracyRate)}`, 410, cardTop + 32, {
+      doc.text(`Tỷ lệ đúng: ${formatPercentage(accuracyRate)}`, 410, cardTop + 32, {
         width: 130,
         align: "left",
       });
 
-      doc.text(`Thoi gian: ${formatDuration(row.duration_seconds)}`, 570, cardTop + 14, {
+      doc.text(`Thời gian: ${formatDuration(row.duration_seconds)}`, 570, cardTop + 14, {
         width: 180,
         align: "left",
       });
-      doc.text(`Hoan thanh: ${formatDateTime(row.finished_at)}`, 570, cardTop + 32, {
+      doc.text(`Hoàn thành: ${formatDateTime(row.finished_at)}`, 570, cardTop + 32, {
         width: 180,
         align: "left",
       });
@@ -526,14 +526,14 @@ export const buildPdfReport = async (quizId, user) => {
 
     drawHeader();
 
-    doc.font(PDF_FONT_BOLD).fontSize(20).fillColor("#0F172A").text("Bao cao ket qua quiz");
+    doc.font(PDF_FONT_BOLD).fontSize(20).fillColor("#0F172A").text("Báo cáo kết quả bộ câu hỏi");
     doc.font(PDF_FONT_REGULAR).fontSize(14).fillColor("#1D4ED8").text(quiz.title);
     doc.moveDown(0.6);
     doc.font(PDF_FONT_REGULAR).fontSize(10).fillColor("#475569");
-    doc.text(`Nguoi xuat: ${generatedBy}`);
-    doc.text(`Ngay xuat: ${formatDateTime(generatedAt)}`);
-    doc.text(`Lich mo: ${getScheduleText(quiz)}`);
-    doc.text(`Thoi gian gioi han: ${formatDuration(quiz.time_limit_seconds)}`);
+    doc.text(`Người xuất: ${generatedBy}`);
+    doc.text(`Ngày xuất: ${formatDateTime(generatedAt)}`);
+    doc.text(`Lịch mở: ${getScheduleText(quiz)}`);
+    doc.text(`Thời gian giới hạn: ${formatDuration(quiz.time_limit_seconds)}`);
     doc.moveDown(0.8);
 
     doc
@@ -544,19 +544,19 @@ export const buildPdfReport = async (quizId, user) => {
       .font(PDF_FONT_BOLD)
       .fontSize(10)
       .fillColor("#0F172A")
-      .text(`Tong thi sinh: ${summary.totalParticipants}`, 52, summaryTop, { width: 160 })
-      .text(`Diem trung binh: ${summary.averageScore.toFixed(2)}/${summary.gradingScale}`, 220, summaryTop, { width: 180 })
-      .text(`Ty le dung: ${formatPercentage(summary.accuracyRate)}`, 430, summaryTop, { width: 130 })
-      .text(`TB thoi gian: ${formatDuration(summary.averageDurationSeconds)}`, 580, summaryTop, { width: 160 });
+      .text(`Tổng thí sinh: ${summary.totalParticipants}`, 52, summaryTop, { width: 160 })
+      .text(`Điểm trung bình: ${summary.averageScore.toFixed(2)}/${summary.gradingScale}`, 220, summaryTop, { width: 180 })
+      .text(`Tỷ lệ đúng: ${formatPercentage(summary.accuracyRate)}`, 430, summaryTop, { width: 130 })
+      .text(`TB thời gian: ${formatDuration(summary.averageDurationSeconds)}`, 580, summaryTop, { width: 160 });
     doc
       .font(PDF_FONT_REGULAR)
       .fontSize(9)
       .fillColor("#475569")
-      .text(`Tong dung / sai: ${summary.totalCorrect} / ${summary.totalIncorrect}`, 52, summaryTop + 22, { width: 220 })
-      .text(`Diem cao nhat: ${summary.highestScore.toFixed(2)}/${summary.gradingScale}`, 320, summaryTop + 22, { width: 220 });
+      .text(`Tổng đúng / sai: ${summary.totalCorrect} / ${summary.totalIncorrect}`, 52, summaryTop + 22, { width: 220 })
+      .text(`Điểm cao nhất: ${summary.highestScore.toFixed(2)}/${summary.gradingScale}`, 320, summaryTop + 22, { width: 220 });
     doc.y += 74;
 
-    doc.font(PDF_FONT_BOLD).fontSize(12).fillColor("#0F172A").text("Chi tiet thi sinh");
+    doc.font(PDF_FONT_BOLD).fontSize(12).fillColor("#0F172A").text("Chi tiết thí sinh");
     doc.moveDown(0.4);
 
     if (!rows.length) {
@@ -567,7 +567,7 @@ export const buildPdfReport = async (quizId, user) => {
         .font(PDF_FONT_REGULAR)
         .fontSize(10)
         .fillColor("#475569")
-        .text("Chua co du lieu nop bai de xuat bao cao.", 52, doc.y + 18);
+        .text("Chưa có dữ liệu nộp bài để xuất báo cáo.", 52, doc.y + 18);
     } else {
       rows.forEach(drawRowCard);
     }

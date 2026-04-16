@@ -34,7 +34,7 @@ export const sendOTPEmail = async (email, otp) => {
 
   await sendMail({
     to: email,
-    subject: "Reset Password OTP",
+    subject: "Mã OTP khôi phục mật khẩu",
     html
   });
 };

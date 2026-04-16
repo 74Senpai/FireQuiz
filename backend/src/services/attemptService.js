@@ -387,7 +387,7 @@ export const recordTabViolation = async (attemptId, userId) => {
 export const joinQuizByCode = async (code, userId) => {
   const quiz = await quizRepository.getQuizByCode(code);
   if (!quiz) {
-    throw new AppError("Sai PIN", 404);
+    throw new AppError("Mã PIN không chính xác", 404);
   }
   
   await startAttempt(quiz.id, userId);
