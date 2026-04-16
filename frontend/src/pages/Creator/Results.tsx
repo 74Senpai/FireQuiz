@@ -43,7 +43,7 @@ export function Results() {
           setSelectedQuizId(String(items[0].id));
         }
       } catch (error) {
-        console.error("Khong the tai danh sach quiz cho leaderboard:", error);
+        console.error("Không thể tải danh sách bộ câu hỏi:", error);
       }
     };
 
@@ -103,7 +103,7 @@ export function Results() {
       kind,
       stage: "preparing",
       progress: 12,
-      message: `Dang chuan bi bao cao ${exportLabel} tren may chu...`,
+      message: `Đang chuẩn bị báo cáo ${exportLabel} trên máy chủ...`,
     });
 
     try {
@@ -119,7 +119,7 @@ export function Results() {
               kind,
               stage: "downloading",
               progress,
-              message: `Dang tai bao cao ${exportLabel}... ${progress}%`,
+              message: `Đang tải báo cáo ${exportLabel}... ${progress}%`,
             });
             return;
           }
@@ -128,7 +128,7 @@ export function Results() {
             kind,
             stage: "downloading",
             progress: 60,
-            message: `Dang tai tep ${exportLabel}, vui long doi trong giay lat...`,
+            message: `Đang tải tệp ${exportLabel}, vui lòng đợi trong giây lát...`,
           });
         },
       });
@@ -142,13 +142,13 @@ export function Results() {
         kind,
         stage: "success",
         progress: 100,
-        message: `Da tai bao cao ${exportLabel} thanh cong.`,
+        message: `Đã tải báo cáo ${exportLabel} thành công.`,
         fileName,
       });
     } catch (error: any) {
-      console.error(`Khong the xuat bao cao ${exportLabel}:`, error);
+      console.error(`Không thể xuất báo cáo ${exportLabel}:`, error);
       
-      let errorMessage = `Khong the xuat bao cao ${exportLabel}. Vui long thu lai.`;
+      let errorMessage = `Không thể xuất báo cáo ${exportLabel}. Vui lòng thử lại.`;
       if (error.response?.data instanceof Blob && error.response.data.type === "application/json") {
         try {
           const errorText = await error.response.data.text();
@@ -179,10 +179,10 @@ export function Results() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="inline-block bg-[length:200%_auto] bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent drop-shadow-lg transition-all duration-300 hover:scale-[1.02] hover:drop-shadow-[0_0_15px_rgba(167,139,250,0.6)]">
-            Ket qua Quiz
+            Kết quả Bộ câu hỏi
           </h2>
           <p className="mt-1 text-slate-400">
-            Xem va xuat du lieu ket qua hoc sinh.
+            Xem và xuất dữ liệu kết quả học sinh.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -195,7 +195,7 @@ export function Results() {
             }
             className="gap-2 border-sky-400/40 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20"
           >
-            Xem thong ke cau hoi
+            Xem thống kê câu hỏi
           </Button>
           <Button
             type="button"
@@ -206,7 +206,7 @@ export function Results() {
             }
             className="gap-2 border-amber-400/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20"
           >
-            Xem bang xep hang
+            Xem bảng xếp hạng
           </Button>
           <Button
             type="button"
@@ -219,7 +219,7 @@ export function Results() {
             ) : (
               <Download className="h-4 w-4" />
             )}
-            {isExportingPdf ? "Dang xuat PDF" : "Tai bao cao PDF"}
+            {isExportingPdf ? "Đang xuất PDF" : "Tải báo cáo PDF"}
           </Button>
           <Button
             type="button"
@@ -232,7 +232,7 @@ export function Results() {
             ) : (
               <FileSpreadsheet className="h-4 w-4" />
             )}
-            {isExportingExcel ? "Dang xuat Excel" : "Tai bao cao Excel"}
+            {isExportingExcel ? "Đang xuất Excel" : "Tải báo cáo Excel"}
           </Button>
         </div>
       </div>
@@ -254,14 +254,14 @@ export function Results() {
             >
               <div>
                 <p className="text-sm font-semibold text-white">
-                  Tien trinh xuat bao cao {getExportLabel(exportStatus.kind)}
+                  Tiến trình xuất báo cáo {getExportLabel(exportStatus.kind)}
                 </p>
                 <p className="mt-1 text-sm text-slate-200">
                   {exportStatus.message}
                 </p>
                 {exportStatus.fileName ? (
                   <p className="mt-1 text-xs text-slate-300">
-                    Tep vua tai: {exportStatus.fileName}
+                    Tệp vừa tải: {exportStatus.fileName}
                   </p>
                 ) : null}
               </div>
@@ -291,10 +291,10 @@ export function Results() {
 
       <Card className="border-amber-400/20 bg-gradient-to-br from-amber-500/10 to-orange-500/5 backdrop-blur-md shadow-2xl">
         <CardHeader className="pb-4">
-          <CardTitle className="text-amber-200">Bang xep hang Top 10</CardTitle>
+          <CardTitle className="text-amber-200">Bảng xếp hạng Top 10</CardTitle>
           <CardDescription className="text-slate-300">
-            Chon quiz va mo giao dien vinh danh thi sinh co thanh tich cao
-            nhat.
+            Chọn bộ câu hỏi và mở giao diện vinh danh thí sinh có thành tích cao
+            nhất.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 md:flex-row md:items-center">
@@ -303,7 +303,7 @@ export function Results() {
             onChange={(event) => setSelectedQuizId(event.target.value)}
             className="flex h-10 w-full rounded-lg border border-amber-400/20 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 md:max-w-md"
           >
-            <option value="">Chon quiz de xem leaderboard</option>
+            <option value="">Chọn bộ câu hỏi để xem bảng xếp hạng</option>
             {quizzes.map((quiz) => (
               <option key={quiz.id} value={quiz.id}>
                 {quiz.title}
@@ -318,7 +318,7 @@ export function Results() {
             }
             className="gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
           >
-            Mo bang xep hang
+            Mở bảng xếp hạng
           </Button>
         </CardContent>
       </Card>
@@ -326,10 +326,10 @@ export function Results() {
       <Card className="border-sky-400/20 bg-gradient-to-br from-sky-500/10 to-cyan-500/5 backdrop-blur-md shadow-2xl">
         <CardHeader className="pb-4">
           <CardTitle className="text-sky-200">
-            Thong ke chuyen sau cau hoi
+            Thống kê chuyên sâu câu hỏi
           </CardTitle>
           <CardDescription className="text-slate-300">
-            Xem bieu do ty le dung sai cua tung cau hoi de danh gia do kho.
+            Xem biểu đồ tỷ lệ đúng sai của từng câu hỏi để đánh giá độ khó.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 md:flex-row md:items-center">
@@ -338,7 +338,7 @@ export function Results() {
             onChange={(event) => setSelectedQuizId(event.target.value)}
             className="flex h-10 w-full rounded-lg border border-sky-400/20 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 md:max-w-md"
           >
-            <option value="">Chon quiz de xem thong ke</option>
+            <option value="">Chọn bộ câu hỏi để xem thống kê</option>
             {quizzes.map((quiz) => (
               <option key={quiz.id} value={quiz.id}>
                 {quiz.title}
@@ -353,7 +353,7 @@ export function Results() {
             }
             className="gap-2 bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600"
           >
-            Mo thong ke cau hoi
+            Mở thống kê câu hỏi
           </Button>
         </CardContent>
       </Card>
@@ -362,14 +362,14 @@ export function Results() {
         <CardHeader className="pb-4">
           <div className="flex gap-4">
             <select className="flex h-10 w-64 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-              <option>Thi giua ky - Toan 101</option>
-              <option>Thi cuoi ky - Vat ly</option>
+              <option>Thi giữa kỳ - Toán 101</option>
+              <option>Thi cuối kỳ - Vật lý</option>
             </select>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 className="bg-white/10 pl-9 text-slate-100 placeholder:text-slate-400"
-                placeholder="Tim kiem ten hoac ma hoc sinh..."
+                placeholder="Tìm kiếm tên hoặc mã học sinh..."
               />
             </div>
           </div>
@@ -379,12 +379,12 @@ export function Results() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-white/10 bg-white/5 text-xs uppercase text-slate-400">
                 <tr>
-                  <th className="px-6 py-3 font-medium">Ten hoc sinh</th>
-                  <th className="px-6 py-3 font-medium">Ma hoc sinh</th>
-                  <th className="px-6 py-3 font-medium">Diem</th>
-                  <th className="px-6 py-3 font-medium">Thoi gian</th>
-                  <th className="px-6 py-3 font-medium">Dung/Sai</th>
-                  <th className="px-6 py-3 text-right font-medium">Actions</th>
+                  <th className="px-6 py-3 font-medium">Tên học sinh</th>
+                  <th className="px-6 py-3 font-medium">Mã học sinh</th>
+                  <th className="px-6 py-3 font-medium">Điểm</th>
+                  <th className="px-6 py-3 font-medium">Thời gian</th>
+                  <th className="px-6 py-3 font-medium">Đúng/Sai</th>
+                  <th className="px-6 py-3 text-right font-medium">Hành động</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
