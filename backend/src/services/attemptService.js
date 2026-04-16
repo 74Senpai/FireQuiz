@@ -5,6 +5,7 @@ import AppError from '../errors/AppError.js';
 import * as mediaService from './mediaService.js';
 import { buildDraftKey, delCache } from '../cache/cacheClient.js';
 
+
 const buildOptionsByQuestionId = (options) => {
   return options.reduce((acc, option) => {
     if (!acc.has(option.attempt_question_id)) {
@@ -120,12 +121,12 @@ const generateAttemptSnapshot = async (quiz, userId) => {
 
     // 1. Phân tích câu hỏi và đáp án
     const rows = await attemptRepository.getQuestionsAndAnswersByQuizId(conn, quizId);
-    
+
     // Group
     const questionsMap = new Map();
     for (const row of rows) {
       if (!row.question_id) continue;
-      
+
       if (!questionsMap.has(row.question_id)) {
         questionsMap.set(row.question_id, {
           content: row.question_content,
@@ -134,7 +135,7 @@ const generateAttemptSnapshot = async (quiz, userId) => {
           answers: []
         });
       }
-      
+
       if (row.answer_id) {
         questionsMap.get(row.question_id).answers.push({
           content: row.answer_content,
@@ -157,7 +158,7 @@ const generateAttemptSnapshot = async (quiz, userId) => {
     // 3. Bulk insert attempt_questions
     const attemptQuestionsPayload = groupedQuestions.map(q => [attemptId, q.content, q.type, q.mediaUrl]);
     const aqResult = await attemptRepository.bulkInsertAttemptQuestions(conn, attemptQuestionsPayload);
-    
+
     let currentAqId = aqResult.insertId;
     const attemptOptionsPayload = [];
     const questionsData = [];
@@ -165,9 +166,9 @@ const generateAttemptSnapshot = async (quiz, userId) => {
     // Gán ID cho câu hỏi và chuẩn bị bulk insert options
     for (const q of groupedQuestions) {
       const aqId = currentAqId++;
-      
+
       shuffleArray(q.answers);
-      
+
       q.aqId = aqId;
       q.optionsCount = q.answers.length;
 
@@ -261,10 +262,10 @@ export const submitAnswer = async (attemptId, userId, attemptQuestionId, attempt
     await conn.beginTransaction();
 
     await attemptRepository.deleteAttemptAnswers(conn, attemptQuestionId);
-    
+
     // Đảm bảo attemptOptionIds là array
     const ids = Array.isArray(attemptOptionIds) ? attemptOptionIds : [attemptOptionIds];
-    
+
     if (ids.length > 0) {
       const answersPayload = ids.map((id, index) => ({
         attemptOptionId: id,
@@ -387,49 +388,83 @@ export const finishAttempt = async (attemptId, userId, answers = {}, textAnswers
 
   const quiz = await quizRepository.getQuizById(attempt.quiz_id);
 
-  // Ghi đáp án từ request vào DB trong transaction
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
 
+    // Bước 1: Fetch toàn bộ attempt_options của attempt này trong 1 query duy nhất
+    const allOptions = await attemptRepository.getAllOptionsByAttemptId(conn, attemptId);
+
+    // Bước 2: Build map: attemptQuestionId => [{ id, ... }, ...]
+    // Đây đồng thời là whitelist các questionId/optionId hợp lệ cho attempt này.
+    const optionsByQId = new Map();
+    const validOptionIds = new Set(); // Tập hợp option IDs hợp lệ (chống IDOR)
+    for (const opt of allOptions) {
+      if (!optionsByQId.has(opt.attempt_question_id)) {
+        optionsByQId.set(opt.attempt_question_id, []);
+      }
+      optionsByQId.get(opt.attempt_question_id).push(opt);
+      validOptionIds.add(opt.id);
+    }
+
+    // Bước 3: Gom toàn bộ option IDs cần xóa và payload cần insert
+    const optionIdsToDelete = [];
+    const insertPayload = [];
+
+    // Xử lý câu có option (SINGLE_CHOICE, MULTIPLE_CHOICE, ...)
     for (const [qIdStr, optionIds] of Object.entries(answers)) {
       const attemptQuestionId = Number(qIdStr);
       if (!Number.isFinite(attemptQuestionId)) continue;
 
-      // Xóa đáp án cũ (nếu có) trước khi ghi mới
-      await attemptRepository.deleteAttemptAnswers(conn, attemptQuestionId);
+      // [SECURITY] Bỏ qua bất kỳ questionId nào không thuộc attempt này
+      if (!optionsByQId.has(attemptQuestionId)) continue;
 
-      const ids = Array.isArray(optionIds) ? optionIds.filter((id) => Number.isFinite(Number(id))) : [];
+      const existingOpts = optionsByQId.get(attemptQuestionId);
+      existingOpts.forEach(o => optionIdsToDelete.push(o.id));
+
+      const ids = Array.isArray(optionIds)
+        ? optionIds
+            .map(Number)
+            .filter((id) => Number.isFinite(id) && validOptionIds.has(id)) // [SECURITY] chỉ chấp nhận optionId hợp lệ
+        : [];
+
       if (ids.length > 0) {
         const textValue = textAnswers[qIdStr] || null;
-        const payload = ids.map((id, index) => ({
-          attemptOptionId: Number(id),
-          textAnswer: index === 0 ? textValue : null,
-        }));
-        await attemptRepository.bulkInsertAttemptAnswers(conn, payload);
+        ids.forEach((id, index) => {
+          insertPayload.push({
+            attemptOptionId: id,
+            textAnswer: index === 0 ? textValue : null,
+          });
+        });
       }
     }
 
-    // Xử lý câu TEXT (không có option, chỉ có text)
+    // Xử lý câu TEXT (không có option chọn, chỉ có text)
     for (const [qIdStr, textValue] of Object.entries(textAnswers)) {
       if (answers[qIdStr]) continue; // đã xử lý ở trên
       const attemptQuestionId = Number(qIdStr);
       if (!Number.isFinite(attemptQuestionId)) continue;
 
-      await attemptRepository.deleteAttemptAnswers(conn, attemptQuestionId);
+      // [SECURITY] Bỏ qua bất kỳ questionId nào không thuộc attempt này
+      if (!optionsByQId.has(attemptQuestionId)) continue;
 
-      // Lấy option đầu tiên của câu TEXT để gắn textAnswer
-      const [opts] = await conn.execute(
-        `SELECT id FROM attempt_options WHERE attempt_question_id = ? LIMIT 1`,
-        [attemptQuestionId]
-      );
-      if (opts.length > 0) {
-        await attemptRepository.bulkInsertAttemptAnswers(conn, [{
-          attemptOptionId: opts[0].id,
+      const existingOpts = optionsByQId.get(attemptQuestionId);
+      existingOpts.forEach(o => optionIdsToDelete.push(o.id));
+
+      // Gắn textAnswer vào option đầu tiên của câu TEXT (lấy từ map, không cần query DB)
+      if (existingOpts.length > 0) {
+        insertPayload.push({
+          attemptOptionId: existingOpts[0].id,
           textAnswer: textValue || null,
-        }]);
+        });
       }
     }
+
+    // Bước 4: 1 bulk DELETE duy nhất cho toàn bộ câu hỏi được cập nhật
+    await attemptRepository.bulkDeleteAttemptAnswersByOptionIds(conn, optionIdsToDelete);
+
+    // Bước 5: 1 bulk INSERT duy nhất cho toàn bộ đáp án mới
+    await attemptRepository.bulkInsertAttemptAnswers(conn, insertPayload);
 
     await conn.commit();
   } catch (err) {
@@ -479,7 +514,7 @@ export const joinQuizByCode = async (code, userId) => {
   if (!quiz) {
     throw new AppError("Sai PIN", 404);
   }
-  
+
   await startAttempt(quiz.id, userId);
 
   return quiz;

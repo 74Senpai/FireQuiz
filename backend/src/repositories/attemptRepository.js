@@ -1,6 +1,32 @@
 import pool from '../db/db.js';
 
 /**
+ * Lấy toàn bộ attempt_options của một attempt (dùng cho finishAttempt bulk-mode)
+ */
+export const getAllOptionsByAttemptId = async (conn, attemptId) => {
+  const [rows] = await conn.execute(
+    `SELECT ao.id, ao.attempt_question_id
+     FROM attempt_options ao
+     JOIN attempt_questions aq ON ao.attempt_question_id = aq.id
+     WHERE aq.quiz_attempt_id = ?`,
+    [attemptId]
+  );
+  return rows;
+};
+
+/**
+ * Xóa hàng loạt đáp án theo danh sách option IDs (1 câu DELETE duy nhất)
+ */
+export const bulkDeleteAttemptAnswersByOptionIds = async (conn, optionIds) => {
+  if (!optionIds || optionIds.length === 0) return;
+  const placeholders = optionIds.map(() => '?').join(',');
+  await conn.execute(
+    `DELETE FROM attempt_answers WHERE attempt_option_id IN (${placeholders})`,
+    optionIds
+  );
+};
+
+/**
  * Xoá đáp án tạm thời của một câu hỏi trong một bài làm
  */
 export const deleteAttemptAnswers = async (conn, attemptQuestionId) => {
@@ -180,7 +206,7 @@ export const getAttemptScoreData = async (attemptId) => {
     `SELECT COUNT(*) as total FROM attempt_questions WHERE quiz_attempt_id = ?`,
     [attemptId]
   );
-  
+
   const [correctRows] = await pool.execute(
     `SELECT COUNT(*) as correct
      FROM attempt_answers aa
