@@ -542,7 +542,218 @@ export function ReviewQuiz() {
           })}
         </div>
       </div>
-    </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════
+           PRINT ONLY SECTION — chỉ hiển thị khi in
+      ══════════════════════════════════════════════════ */}
+      <div
+        className="print-only"
+        style={{
+          display: 'none',
+          fontFamily: 'Arial, Helvetica, sans-serif',
+          color: '#111',
+          background: '#fff',
+          fontSize: '10.5pt',
+          lineHeight: '1.7',
+          padding: '30px 40px', /* Thay vì padding: 0 để đảm bảo lề trong an toàn */
+          maxWidth: '850px',
+          margin: '0 auto',
+        }}
+      >
+        {/* ── TIÊU ĐỀ ── */}
+        <div style={{ textAlign: 'center', borderBottom: '3px double #000', paddingBottom: '12px', marginBottom: '20px' }}>
+          <div style={{ fontSize: '20pt', fontWeight: 'bold', letterSpacing: '3px' }}>🔥 FIREQUIZ</div>
+          <div style={{ fontSize: '13pt', fontWeight: 'bold', marginTop: '4px' }}>KẾT QUẢ BÀI TRẮC NGHIỆM</div>
+        </div>
+
+        {/* ── THÔNG TIN BÀI LÀM ── */}
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '24px' }}>
+          <tbody>
+            {[
+              { label: 'Tên bài',        value: attempt.quiz_title },
+              { label: 'Bắt đầu',        value: formatDt(attempt.started_at) },
+              { label: 'Hoàn thành',     value: formatDt(attempt.finished_at) },
+              { label: 'Thời gian làm',  value: durationLabel },
+              { label: 'Điểm số',        value: scoreLabel(attempt.score) },
+            ].map(({ label, value }) => (
+              <tr key={label}>
+                <td style={{ width: '150px', padding: '3px 12px 3px 0', fontWeight: 'bold', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                  {label}:
+                </td>
+                <td style={{ padding: '3px 0', fontWeight: label === 'Điểm số' ? 'bold' : 'normal', fontSize: label === 'Điểm số' ? '12pt' : '10.5pt' }}>
+                  {value}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* ── I. TỔNG KẾT ── */}
+        <div style={{ marginBottom: '26px' }}>
+          <div style={{ fontSize: '11.5pt', fontWeight: 'bold', borderBottom: '2px solid #000', paddingBottom: '3px', marginBottom: '10px' }}>
+            I. TỔNG KẾT
+          </div>
+          <table style={{ borderCollapse: 'collapse', width: '60%' }}>
+            <thead>
+              <tr style={{ background: '#ebebeb' }}>
+                <th style={{ padding: '5px 16px', border: '1px solid #aaa', textAlign: 'left', fontWeight: 'bold' }}>Chỉ số</th>
+                <th style={{ padding: '5px 16px', border: '1px solid #aaa', textAlign: 'center', fontWeight: 'bold' }}>Số lượng</th>
+                <th style={{ padding: '5px 16px', border: '1px solid #aaa', textAlign: 'center', fontWeight: 'bold' }}>Tỉ lệ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { label: '✓  Câu đúng',     count: summary.correct },
+                { label: '✗  Câu sai',      count: summary.incorrect },
+                { label: '—  Chưa trả lời', count: summary.unanswered },
+              ].map(({ label, count }) => {
+                const total = payload.questions?.length ?? 0;
+                const pct = total > 0 ? ((count / total) * 100).toFixed(1) : '0.0';
+                return (
+                  <tr key={label}>
+                    <td style={{ padding: '4px 16px', border: '1px solid #ccc' }}>{label}</td>
+                    <td style={{ padding: '4px 16px', border: '1px solid #ccc', textAlign: 'center', fontWeight: 'bold' }}>
+                      {count} / {total}
+                    </td>
+                    <td style={{ padding: '4px 16px', border: '1px solid #ccc', textAlign: 'center' }}>
+                      {pct}%
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* ── II. CHI TIẾT TỪNG CÂU HỎI ── */}
+        <div>
+          <div style={{ fontSize: '11.5pt', fontWeight: 'bold', borderBottom: '2px solid #000', paddingBottom: '3px', marginBottom: '16px' }}>
+            II. CHI TIẾT TỪNG CÂU HỎI
+          </div>
+
+          {payload.questions?.map((question: any, qi: number) => {
+            const ev = evaluateQuestion(question);
+            const status = !ev.hasResponse ? 'unanswered' : ev.isCorrect ? 'correct' : 'incorrect';
+            const statusLabel =
+              status === 'correct' ? '✓ ĐÚNG' : status === 'incorrect' ? '✗ SAI' : '— CHƯA LÀM';
+            const leftBorderColor =
+              status === 'correct' ? '#16a34a' : status === 'incorrect' ? '#dc2626' : '#9ca3af';
+            const statusColor =
+              status === 'correct' ? '#166534' : status === 'incorrect' ? '#991b1b' : '#555';
+            const qType = (question.type ?? '').trim().toUpperCase();
+            const qTypeLabel =
+              qType.startsWith('MULTIPLE') || qType.startsWith('MULTI') ? 'Chọn nhiều' :
+              qType === 'TRUE_FALSE' ? 'Đúng/Sai' :
+              qType === 'TEXT'       ? 'Tự luận'  : 'Chọn một';
+
+            return (
+              <div
+                key={question.id}
+                style={{
+                  marginBottom: '18px',
+                  paddingLeft: '12px',
+                  paddingBottom: '6px',
+                  borderLeft: `4px solid ${leftBorderColor}`,
+                  pageBreakInside: 'avoid',
+                }}
+              >
+                {/* Số câu + trạng thái */}
+                <div style={{ marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 'bold', fontSize: '11pt' }}>Câu {qi + 1}.</span>
+                  {' '}
+                  <span style={{ fontWeight: 'bold', color: statusColor, fontSize: '9.5pt' }}>
+                    [{statusLabel}]
+                  </span>
+                  {' '}
+                  <span style={{ fontSize: '9pt', color: '#666', fontStyle: 'italic' }}>
+                    ({qTypeLabel})
+                  </span>
+                </div>
+
+                {/* Nội dung câu hỏi */}
+                <div style={{ fontWeight: 'bold', marginBottom: '6px', paddingLeft: '16px' }}>
+                  {question.content}
+                </div>
+
+                {/* Câu tự luận */}
+                {question.type === 'TEXT' ? (
+                  <div style={{ paddingLeft: '16px', fontSize: '10pt' }}>
+                    <div style={{ marginBottom: '3px' }}>
+                      <strong>Câu trả lời của bạn:</strong>{' '}
+                      {question.options?.[0]?.answer?.text_answer || '(Không có câu trả lời)'}
+                    </div>
+                    <div>
+                      <strong>Đáp án mẫu:</strong>{' '}
+                      {question.options?.[0]?.content || '(Không có đáp án mẫu)'}
+                    </div>
+                  </div>
+                ) : (
+                  /* Câu trắc nghiệm — 2 cột: ký hiệu + nội dung */
+                  <table style={{ width: '100%', borderCollapse: 'collapse', paddingLeft: '16px', fontSize: '10pt' }}>
+                    <tbody>
+                      {question.options?.map((opt: any, oi: number) => {
+                        const letter = String.fromCharCode(65 + oi);
+                        const userPicked = Boolean(opt.selected);
+                        const isCorrect  = Boolean(opt.is_correct);
+
+                        // Ký hiệu trạng thái (rõ ràng, không bị cắt)
+                        const icon =
+                          userPicked && isCorrect  ? '[✓]' :
+                          userPicked && !isCorrect ? '[✗]' :
+                          isCorrect                ? '[ ]' : '   ';
+
+                        // Ghi chú cuối (chỉ khi cần thiết)
+                        const note =
+                          userPicked && isCorrect  ? ' ← bạn chọn, đúng' :
+                          userPicked && !isCorrect ? ' ← bạn chọn, sai'  :
+                          isCorrect                ? ' ← đáp án đúng'    : '';
+
+                        const textColor =
+                          userPicked && isCorrect  ? '#166534' :
+                          userPicked && !isCorrect ? '#991b1b' :
+                          isCorrect                ? '#166534' : '#333';
+
+                        return (
+                          <tr key={opt.id} style={{ color: textColor, fontWeight: (userPicked || isCorrect) ? 'bold' : 'normal' }}>
+                            <td style={{ width: '28px', verticalAlign: 'top', padding: '1px 0', fontFamily: 'monospace' }}>
+                              {icon}
+                            </td>
+                            <td style={{ width: '22px', verticalAlign: 'top', padding: '1px 4px' }}>
+                              {letter}.
+                            </td>
+                            <td style={{ verticalAlign: 'top', padding: '1px 0' }}>
+                              {opt.content}
+                              {note && (
+                                <span style={{ fontStyle: 'italic', fontWeight: 'normal', color: textColor, fontSize: '9pt' }}>
+                                  {note}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+
+                {/* Giải thích (nếu có) */}
+                {question.explanation && (
+                  <div style={{ marginTop: '6px', marginLeft: '16px', padding: '5px 10px', borderLeft: '3px solid #888', fontSize: '9.5pt', fontStyle: 'italic', color: '#333' }}>
+                    <strong style={{ fontStyle: 'normal' }}>Giải thích:</strong>{' '}{question.explanation}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── FOOTER ── */}
+        <div style={{ marginTop: '32px', borderTop: '1px solid #bbb', paddingTop: '8px', textAlign: 'center', fontSize: '9pt', color: '#666' }}>
+          Được tạo bởi <strong>🔥 FireQuiz</strong> — In lúc: {new Date().toLocaleString('vi-VN')}
+        </div>
+      </div>
+    </>
   );
 }
 
