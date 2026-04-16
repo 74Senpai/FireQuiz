@@ -98,20 +98,6 @@ export function Profile() {
     fetchStats();
   }, []);
 
-  // Photo state
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        fullName: user.full_name || "",
-        email: user.email || "",
-        role: user.role || "",
-        bio: user.bio || "",
-      });
-    }
-  }, [user]);
-
   const handleInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -192,29 +178,20 @@ export function Profile() {
     }
   };
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.[0]) return;
-    const file = e.target.files[0];
-
-    setUploadingAvatar(true);
-    setMessage(null);
-    try {
-      // Giả sử server port 5000 / api / upload
-      const res = await uploadService.uploadAvatar(file);
-      const newUrl = res.url || res.data?.url;
-
-      if (newUrl) {
-        await userServices.updateAvatar(newUrl);
-        updateUser({ avatar_url: newUrl });
-        setMessage({
-          type: "success",
-          text: "Cập nhật ảnh đại diện thành công!",
-        });
-      }
-    } catch (err: any) {
-      setMessage({ type: "error", text: "Không thể tải ảnh lên" });
-    } finally {
-      setUploadingAvatar(false);
+  const handleDeleteAccount = async () => {
+    if (
+      window.confirm(
+        "CẢNH BÁO: Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác.",
+      )
+    ) {
+      setIsLoading(true);
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      setIsLoading(false);
+      alert("Tài khoản của bạn đã được xóa.");
+      // Clear store and redirect
+      await logout();
+      navigate("/login");
     }
   };
 
