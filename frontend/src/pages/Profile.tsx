@@ -98,6 +98,20 @@ export function Profile() {
     fetchStats();
   }, []);
 
+  // Photo state
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        fullName: user.full_name || "",
+        email: user.email || "",
+        role: user.role || "",
+        bio: user.bio || "",
+      });
+    }
+  }, [user]);
+
   const handleInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
