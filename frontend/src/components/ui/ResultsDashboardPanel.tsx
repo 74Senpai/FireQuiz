@@ -98,7 +98,7 @@ export function ResultsDashboardPanel({ quizId }: ResultsDashboardPanelProps) {
       } catch (err: any) {
         setPayload(null);
         setError(
-          err.response?.data?.message || "Khong the tai dashboard ket qua.",
+          err.response?.data?.message || "Không thể tải bảng kết quả.",
         );
       } finally {
         setIsLoading(false);
@@ -150,10 +150,10 @@ export function ResultsDashboardPanel({ quizId }: ResultsDashboardPanelProps) {
     <Card className="border-emerald-400/20 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 backdrop-blur-md shadow-2xl">
       <CardHeader>
         <CardTitle className="text-emerald-200">
-          Dashboard ket qua thi sinh
+          Bảng kết quả thí sinh
         </CardTitle>
         <CardDescription className="text-slate-300">
-          Quan ly thi sinh theo diem, thoi gian hoan thanh va trang thai nop bai.
+          Quản lý thí sinh theo điểm, thời gian hoàn thành và trạng thái nộp bài.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -161,7 +161,7 @@ export function ResultsDashboardPanel({ quizId }: ResultsDashboardPanelProps) {
           <div className="rounded-xl border border-white/10 bg-slate-950/20 p-4">
             <div className="mb-2 flex items-center gap-2 text-emerald-300">
               <Users className="h-4 w-4" />
-              <span className="text-sm font-semibold">Tong thi sinh</span>
+              <span className="text-sm font-semibold">Tổng thí sinh</span>
             </div>
             <p className="text-2xl font-bold text-white">
               {payload?.summary.totalParticipants || 0}
@@ -170,7 +170,7 @@ export function ResultsDashboardPanel({ quizId }: ResultsDashboardPanelProps) {
           <div className="rounded-xl border border-white/10 bg-slate-950/20 p-4">
             <div className="mb-2 flex items-center gap-2 text-sky-300">
               <Trophy className="h-4 w-4" />
-              <span className="text-sm font-semibold">Da nop bai</span>
+              <span className="text-sm font-semibold">Đã nộp bài</span>
             </div>
             <p className="text-2xl font-bold text-white">
               {payload?.summary.submittedCount || 0}
@@ -179,7 +179,7 @@ export function ResultsDashboardPanel({ quizId }: ResultsDashboardPanelProps) {
           <div className="rounded-xl border border-white/10 bg-slate-950/20 p-4">
             <div className="mb-2 flex items-center gap-2 text-amber-300">
               <Timer className="h-4 w-4" />
-              <span className="text-sm font-semibold">Dang lam bai</span>
+              <span className="text-sm font-semibold">Đang làm bài</span>
             </div>
             <p className="text-2xl font-bold text-white">
               {payload?.summary.inProgressCount || 0}
@@ -193,16 +193,16 @@ export function ResultsDashboardPanel({ quizId }: ResultsDashboardPanelProps) {
             <Card className="border-white/10 bg-slate-950/20 shadow-none">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold text-slate-200">
-                  Ty le Dung / Sai toan he thong
+                  Tỷ lệ Đúng / Sai toàn hệ thống
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-400">
-                  Tong hop theo tat ca thi sinh da nop bai
+                  Tổng hợp theo tất cả thí sinh đã nộp bài
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between text-xs font-medium">
-                    <span className="text-emerald-400">Dung ({payload.summary.overallRatio.correctRate}%)</span>
+                    <span className="text-emerald-400">Đúng ({payload.summary.overallRatio.correctRate}%)</span>
                     <span className="text-rose-400">Sai ({payload.summary.overallRatio.incorrectRate}%)</span>
                   </div>
                   <div className="flex h-4 w-full overflow-hidden rounded-full bg-slate-800">
@@ -210,8 +210,8 @@ export function ResultsDashboardPanel({ quizId }: ResultsDashboardPanelProps) {
                     <div className="bg-rose-500 transition-all" style={{ width: `${payload.summary.overallRatio.incorrectRate}%` }} />
                   </div>
                   <div className="flex justify-between text-xs text-slate-400">
-                    <span>{payload.summary.overallRatio.correct} cau</span>
-                    <span>{payload.summary.overallRatio.incorrect} cau</span>
+                    <span>{payload.summary.overallRatio.correct} câu</span>
+                    <span>{payload.summary.overallRatio.incorrect} câu</span>
                   </div>
                 </div>
               </CardContent>
@@ -220,10 +220,10 @@ export function ResultsDashboardPanel({ quizId }: ResultsDashboardPanelProps) {
             <Card className="border-white/10 bg-slate-950/20 shadow-none">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold text-slate-200">
-                  Pho diem (Histogram)
+                  Phổ điểm (Histogram)
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-400">
-                  Phan bo diem so cua thi sinh hoan thanh
+                  Phân bố điểm số của thí sinh hoàn thành
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -255,7 +255,7 @@ export function ResultsDashboardPanel({ quizId }: ResultsDashboardPanelProps) {
             <Input
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
-              placeholder="Tim theo ten, email, ma hoc sinh"
+              placeholder="Tìm theo tên, email, mã học sinh"
               className="border-white/10 bg-slate-950/20 pl-9 text-slate-100 placeholder:text-slate-400"
             />
           </div>
@@ -265,10 +265,10 @@ export function ResultsDashboardPanel({ quizId }: ResultsDashboardPanelProps) {
             onChange={(event) => setScoreFilter(event.target.value)}
             className="h-10 rounded-lg border border-white/10 bg-slate-950/20 px-3 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-emerald-400"
           >
-            <option value="all">Loc theo diem</option>
-            <option value="high">Tu 8 diem tro len</option>
-            <option value="medium">Tu 5 den duoi 8</option>
-            <option value="low">Duoi 5 diem</option>
+            <option value="all">Lọc theo điểm</option>
+            <option value="high">Từ 8 điểm trở lên</option>
+            <option value="medium">Từ 5 đến dưới 8</option>
+            <option value="low">Dưới 5 điểm</option>
           </select>
 
           <select
@@ -276,11 +276,11 @@ export function ResultsDashboardPanel({ quizId }: ResultsDashboardPanelProps) {
             onChange={(event) => setTimeFilter(event.target.value)}
             className="h-10 rounded-lg border border-white/10 bg-slate-950/20 px-3 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-emerald-400"
           >
-            <option value="all">Loc theo thoi gian</option>
-            <option value="fast">Nhanh duoi 30 phut</option>
-            <option value="normal">Tu 30 den 60 phut</option>
-            <option value="slow">Tren 60 phut</option>
-            <option value="na">Chua co thoi gian</option>
+            <option value="all">Lọc theo thời gian</option>
+            <option value="fast">Nhanh dưới 30 phút</option>
+            <option value="normal">Từ 30 đến 60 phút</option>
+            <option value="slow">Trên 60 phút</option>
+            <option value="na">Chưa có thời gian</option>
           </select>
 
           <div className="flex gap-3">
@@ -289,9 +289,9 @@ export function ResultsDashboardPanel({ quizId }: ResultsDashboardPanelProps) {
               onChange={(event) => setStatusFilter(event.target.value)}
               className="h-10 flex-1 rounded-lg border border-white/10 bg-slate-950/20 px-3 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-emerald-400"
             >
-              <option value="all">Loc theo trang thai</option>
-              <option value="SUBMITTED">Da nop bai</option>
-              <option value="IN_PROGRESS">Dang lam bai</option>
+              <option value="all">Lọc theo trạng thái</option>
+              <option value="SUBMITTED">Đã nộp bài</option>
+              <option value="IN_PROGRESS">Đang làm bài</option>
             </select>
             <Button
               type="button"
@@ -313,7 +313,7 @@ export function ResultsDashboardPanel({ quizId }: ResultsDashboardPanelProps) {
         {isLoading ? (
           <div className="flex min-h-[240px] flex-col items-center justify-center text-slate-300">
             <Loader2 className="mb-4 h-10 w-10 animate-spin" />
-            <p>Dang tai dashboard ket qua...</p>
+            <p>Đang tải bảng kết quả...</p>
           </div>
         ) : error ? (
           <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-rose-100">
@@ -324,14 +324,14 @@ export function ResultsDashboardPanel({ quizId }: ResultsDashboardPanelProps) {
             <table className="w-full text-left text-sm">
               <thead className="bg-white/5 text-xs uppercase tracking-wider text-slate-400">
                 <tr>
-                  <th className="px-4 py-3">Thi sinh</th>
-                  <th className="px-4 py-3">Ma hoc sinh</th>
-                  <th className="px-4 py-3">Diem</th>
-                  <th className="px-4 py-3">Thoi gian</th>
-                  <th className="px-4 py-3">Trang thai</th>
-                  <th className="px-4 py-3">Dung/Sai</th>
-                  <th className="px-4 py-3">So lan thi</th>
-                  <th className="px-4 py-3">Hoan thanh</th>
+                  <th className="px-4 py-3">Thí sinh</th>
+                  <th className="px-4 py-3">Mã học sinh</th>
+                  <th className="px-4 py-3">Điểm</th>
+                  <th className="px-4 py-3">Thời gian</th>
+                  <th className="px-4 py-3">Trạng thái</th>
+                  <th className="px-4 py-3">Đúng/Sai</th>
+                  <th className="px-4 py-3">Số lần thi</th>
+                  <th className="px-4 py-3">Hoàn thành</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
@@ -360,7 +360,7 @@ export function ResultsDashboardPanel({ quizId }: ResultsDashboardPanelProps) {
                             : "bg-amber-500/20 text-amber-300"
                         }`}
                       >
-                        {item.submission_status}
+                        {item.submission_status === "SUBMITTED" ? "Đã nộp" : "Đang làm"}
                       </span>
                     </td>
                     <td className="px-4 py-4 text-slate-300">
@@ -379,7 +379,7 @@ export function ResultsDashboardPanel({ quizId }: ResultsDashboardPanelProps) {
           </div>
         ) : (
           <div className="rounded-xl border border-dashed border-white/10 bg-slate-950/20 px-6 py-12 text-center text-slate-400">
-            Khong co thi sinh nao phu hop voi bo loc hien tai.
+            Không có thí sinh nào phù hợp với bộ lọc hiện tại.
           </div>
         )}
       </CardContent>

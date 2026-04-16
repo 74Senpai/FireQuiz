@@ -76,7 +76,7 @@ export function QuestionAnalytics() {
           setSearchParams({ quizId: String(items[0].id) });
         }
       } catch (err: any) {
-        setError(err.response?.data?.message || "Khong the tai danh sach quiz.");
+        setError(err.response?.data?.message || "Không thể tải danh sách bộ câu hỏi.");
       }
     };
 
@@ -99,7 +99,7 @@ export function QuestionAnalytics() {
         setPayload(response);
       } catch (err: any) {
         setPayload(null);
-        setError(err.response?.data?.message || "Khong the tai thong ke cau hoi.");
+        setError(err.response?.data?.message || "Không thể tải thống kê câu hỏi.");
       } finally {
         setIsLoading(false);
       }
@@ -134,10 +134,10 @@ export function QuestionAnalytics() {
           </Button>
           <div>
             <h2 className="bg-gradient-to-r from-cyan-200 via-sky-300 to-indigo-300 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent">
-              Thong ke chuyen sau cau hoi
+              Thống kê chuyên sâu câu hỏi
             </h2>
             <p className="mt-1 text-slate-400">
-              Phan tich ty le dung sai cua tung cau hoi de danh gia do kho.
+              Phân tích tỷ lệ đúng sai của từng câu hỏi để đánh giá độ khó.
             </p>
           </div>
         </div>
@@ -146,9 +146,9 @@ export function QuestionAnalytics() {
           <select
             value={selectedQuizId}
             onChange={(event) => setSearchParams({ quizId: event.target.value })}
-            className="h-10 min-w-72 rounded-lg border border-white/10 bg-slate-900 px-3 text-sm text-white outline-none focus:ring-2 focus:ring-sky-400"
+            className="h-10 min-w-72 rounded-lg border border-white/10 bg-slate-950 px-3 text-sm text-white outline-none focus:ring-2 focus:ring-sky-400"
           >
-            <option value="">Chon quiz de xem thong ke</option>
+            <option value="">Chọn bộ câu hỏi để xem thống kê</option>
             {quizzes.map((quiz) => (
               <option key={quiz.id} value={quiz.id}>
                 {quiz.title}
@@ -161,7 +161,7 @@ export function QuestionAnalytics() {
       {isLoading ? (
         <div className="flex min-h-[320px] flex-col items-center justify-center text-slate-300">
           <Loader2 className="mb-4 h-10 w-10 animate-spin" />
-          <p>Dang tai thong ke cau hoi...</p>
+          <p>Đang tải thống kê câu hỏi...</p>
         </div>
       ) : error ? (
         <Card className="border-rose-500/30 bg-rose-500/10 text-rose-100 shadow-none hover:translate-y-0 hover:shadow-none">
@@ -170,7 +170,7 @@ export function QuestionAnalytics() {
       ) : !selectedQuizId ? (
         <Card className="border-dashed border-white/10 bg-white/5 text-slate-300 shadow-none hover:translate-y-0 hover:shadow-none">
           <CardContent className="p-10 text-center">
-            Chon mot quiz de hien thi thong ke.
+            Chọn một bộ câu hỏi để hiển thị thống kê.
           </CardContent>
         </Card>
       ) : (
@@ -179,14 +179,14 @@ export function QuestionAnalytics() {
             <CardHeader>
               <CardTitle className="text-white">{payload?.quiz.title}</CardTitle>
               <CardDescription className="text-slate-300">
-                Ty le duoc tinh tren tong so luot thi da hoan thanh cua quiz.
+                Tỷ lệ được tính trên tổng số lượt thi đã hoàn thành của bộ câu hỏi.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-3">
               <div className="rounded-xl border border-white/10 bg-slate-950/30 p-4">
                 <div className="mb-2 flex items-center gap-2 text-sky-300">
                   <Users className="h-4 w-4" />
-                  <span className="text-sm font-semibold">Tong luot thi</span>
+                  <span className="text-sm font-semibold">Tổng lượt thi</span>
                 </div>
                 <p className="text-2xl font-bold text-white">
                   {payload?.summary.totalAttempts || 0}
@@ -195,7 +195,7 @@ export function QuestionAnalytics() {
               <div className="rounded-xl border border-white/10 bg-slate-950/30 p-4">
                 <div className="mb-2 flex items-center gap-2 text-indigo-300">
                   <BarChart3 className="h-4 w-4" />
-                  <span className="text-sm font-semibold">Tong cau hoi</span>
+                  <span className="text-sm font-semibold">Tổng câu hỏi</span>
                 </div>
                 <p className="text-2xl font-bold text-white">
                   {payload?.summary.totalQuestions || 0}
@@ -204,10 +204,10 @@ export function QuestionAnalytics() {
               <div className="rounded-xl border border-white/10 bg-slate-950/30 p-4">
                 <div className="mb-2 flex items-center gap-2 text-emerald-300">
                   <Target className="h-4 w-4" />
-                  <span className="text-sm font-semibold">Muc tieu</span>
+                  <span className="text-sm font-semibold">Mục tiêu</span>
                 </div>
                 <p className="text-sm text-slate-300">
-                  So sanh dung, sai va khong phan hoi cho moi cau hoi.
+                  So sánh đúng, sai và không phản hồi cho từng câu hỏi.
                 </p>
               </div>
             </CardContent>
@@ -218,14 +218,14 @@ export function QuestionAnalytics() {
               <CardHeader>
                 <div className="flex items-center gap-2 text-rose-300">
                   <TrendingDown className="h-4 w-4" />
-                  <span className="text-sm font-semibold">Cau hoi kho nhat</span>
+                  <span className="text-sm font-semibold">Câu hỏi khó nhất</span>
                 </div>
                 <CardTitle className="text-white">
-                  {hardestQuestion?.content || "Chua co du lieu"}
+                  {hardestQuestion?.content || "Chưa có dữ liệu"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-slate-200">
-                Ty le dung: {hardestQuestion ? `${hardestQuestion.correct_rate}%` : "--"}
+                Tỷ lệ đúng: {hardestQuestion ? `${hardestQuestion.correct_rate}%` : "--"}
               </CardContent>
             </Card>
 
@@ -233,23 +233,23 @@ export function QuestionAnalytics() {
               <CardHeader>
                 <div className="flex items-center gap-2 text-emerald-300">
                   <TrendingUp className="h-4 w-4" />
-                  <span className="text-sm font-semibold">Cau hoi de nhat</span>
+                  <span className="text-sm font-semibold">Câu hỏi dễ nhất</span>
                 </div>
                 <CardTitle className="text-white">
-                  {easiestQuestion?.content || "Chua co du lieu"}
+                  {easiestQuestion?.content || "Chưa có dữ liệu"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-slate-200">
-                Ty le dung: {easiestQuestion ? `${easiestQuestion.correct_rate}%` : "--"}
+                Tỷ lệ đúng: {easiestQuestion ? `${easiestQuestion.correct_rate}%` : "--"}
               </CardContent>
             </Card>
           </div>
 
           <Card className="border-white/10 bg-white/5 text-white shadow-none hover:translate-y-0 hover:shadow-none">
             <CardHeader>
-              <CardTitle className="text-white">Bieu do theo tung cau hoi</CardTitle>
+              <CardTitle className="text-white">Biểu đồ theo từng câu hỏi</CardTitle>
               <CardDescription className="text-slate-300">
-                Xanh la ty le dung, hong la ty le sai, xam la phan khong co phan hoi.
+                Xanh lá là tỷ lệ đúng, hồng là tỷ lệ sai, xám là phần không có phản hồi.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -268,7 +268,7 @@ export function QuestionAnalytics() {
                       <div className="mb-3 flex items-start justify-between gap-4">
                         <div>
                           <p className="mb-1 text-xs font-bold uppercase tracking-wider text-sky-300">
-                            Cau hoi {index + 1}
+                            Câu hỏi {index + 1}
                           </p>
                           <h3 className="text-base font-semibold text-white">
                             {item.content}
@@ -299,7 +299,7 @@ export function QuestionAnalytics() {
                       <div className="mt-4 grid gap-3 md:grid-cols-3">
                         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3">
                           <p className="text-xs uppercase tracking-wider text-emerald-300">
-                            Dung
+                            Đúng
                           </p>
                           <p className="mt-1 text-lg font-bold text-white">
                             {item.correct_rate}% ({item.correct_responses})
@@ -315,7 +315,7 @@ export function QuestionAnalytics() {
                         </div>
                         <div className="rounded-xl border border-slate-500/20 bg-slate-700/20 p-3">
                           <p className="text-xs uppercase tracking-wider text-slate-300">
-                            Phan hoi
+                            Phản hồi
                           </p>
                           <p className="mt-1 text-lg font-bold text-white">
                             {item.response_rate}% ({item.total_responses}/{item.total_attempts})
@@ -327,7 +327,7 @@ export function QuestionAnalytics() {
                 })
               ) : (
                 <div className="rounded-xl border border-dashed border-white/10 bg-slate-950/20 px-6 py-12 text-center text-slate-400">
-                  Chua co du lieu thong ke cho quiz nay.
+                  Chưa có dữ liệu thống kê cho bộ câu hỏi này.
                 </div>
               )}
             </CardContent>
