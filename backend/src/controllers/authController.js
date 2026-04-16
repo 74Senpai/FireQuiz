@@ -84,7 +84,7 @@ export const resetPassword = asyncHandler(async (req, res) => {
   const { resetToken, newPassword } = req.body;
 
   if (!resetToken || !newPassword) {
-    throw new AppError("Thiếu dữ liệu", 400);
+    throw new AppError("Thiếu resetToken hoặc mật khẩu mới", 400);
   }
 
   const response = await authService.resetPassword(resetToken, newPassword);
