@@ -180,3 +180,38 @@
     animation: glow 2s ease-in-out infinite;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   PRINT STYLES
+   Ẩn toàn bộ giao diện web tối, chỉ hiển thị bản in sạch
+═══════════════════════════════════════════════════════════ */
+@media print {
+  @page {
+    margin: 1.5cm 2cm;
+    size: A4 portrait;
+  }
+
+  /* Ẩn toàn bộ giao diện web khi in */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Hiển thị nội dung chỉ dành cho in ấn */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Reset nền tối về trắng */
+  html,
+  body {
+    background: white !important;
+    background-image: none !important;
+    color: #000 !important;
+  }
+
+  /* Đảm bảo màu border/text được in đúng */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
