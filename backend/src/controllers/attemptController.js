@@ -99,7 +99,10 @@ export const exportAttemptReview = asyncHandler(async (req, res) => {
   }
 
   let result;
-  if (type === 'review') {
+  if (type === 'slip') {
+    const { buildAttemptReviewSlipPdf } = await import('../services/quizReportService.js');
+    result = await buildAttemptReviewSlipPdf(attemptId, user);
+  } else if (type === 'review') {
     result = format === 'pdf' 
       ? await buildAttemptReviewPdf(attemptId, user)
       : await buildAttemptReviewExcel(attemptId, user);

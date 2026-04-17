@@ -57,7 +57,8 @@ export const getResultsDashboard = asyncHandler(async (req, res) => {
 export const exportQuizResultsExcel = asyncHandler(async (req, res) => {
   const id = req.params.id;
   const user = req.user;
-  const report = await quizReportService.buildExcelReport(id, user);
+  const { advanced = 'false' } = req.query;
+  const report = await quizReportService.buildExcelReport(id, user, { advanced: advanced === 'true' });
   return sendReport(res, report);
 });
 

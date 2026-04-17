@@ -70,7 +70,7 @@ const getQuizContentData = async (quizId, user, isParticipantScan = false) => {
 /**
  * PUBLIC EXPORT METHODS - EXCEL
  */
-export const buildExcelReport = async (quizId, user) => {
+export const buildExcelReport = async (quizId, user, options = {}) => {
   const { quiz, rows, generatedAt, generatedBy, summary } = await getReportData(quizId, user);
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Báo cáo kết quả");
@@ -93,10 +93,16 @@ export const buildExcelReport = async (quizId, user) => {
   excelGenerator.setupCommonHeader(worksheet, quiz.title, generatedBy, generatedAt, summary, quiz);
   excelGenerator.writeResultTable(worksheet, rows, 9, summary);
 
+  if (options.advanced) {
+    const analyticsData = await attemptAggregationService.getQuestionAnalyticsDataByQuizId(quizId);
+    const analyticsSheet = workbook.addWorksheet("Phân tích chi tiết");
+    excelGenerator.writeAnalyticsSheet(analyticsSheet, analyticsData);
+  }
+
   const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
   return {
     buffer,
-    fileName: utils.buildFileName(quiz.title, "xlsx"),
+    fileName: utils.buildFileName(`${quiz.title}-report${options.advanced ? '-ADV' : ''}`, "xlsx"),
     contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   };
 };
@@ -199,9 +205,10 @@ export const buildQuizContentPdf = async (quizId, user, { type = 'all', randomiz
       const count = Math.max(1, Math.min(10, parseInt(versionCount)));
       for (let v = 0; v < count; v++) {
         const questions = utils.prepareQuestionsForExport(originalQuestions, randomize);
-        if (type === 'all' || type === 'paper') {
-          pdfGenerator.drawHeader(doc, `ĐỀ THI: ${quiz.title}`);
-          for(let i=0; i<questions.length; i++) await pdfGenerator.drawQuestionCard(doc, questions[i], i);
+        if (type === 'all' || type === 'paper' || type === 'key') {
+          const isKey = type === 'key';
+          pdfGenerator.drawHeader(doc, isKey ? `ĐÁP ÁN: ${quiz.title}` : `ĐỀ THI: ${quiz.title}`);
+          for(let i=0; i<questions.length; i++) await pdfGenerator.drawQuestionCard(doc, questions[i], i, { showCorrect: isKey });
           if (v < count - 1 || type === 'all') doc.addPage();
         }
         if (type === 'all' || type === 'solutions') {
@@ -253,6 +260,23 @@ export const buildAttemptReviewPdf = async (attemptId, user) => {
   });
 
   return { buffer, fileName: utils.buildFileName(`review-${attempt.quiz_title}`, "pdf"), contentType: "application/pdf" };
+};
+
+export const buildAttemptReviewSlipPdf = async (attemptId, user) => {
+  const { getMyAttemptReviewDetail } = await import('./attemptService.js');
+  const { attempt, questions } = await getMyAttemptReviewDetail(user, attemptId);
+  const doc = new PDFDocument({ margin: 50, size: "A4", layout: "portrait" });
+  const chunks = [];
+
+  const buffer = await new Promise((resolve, reject) => {
+    doc.on("data", (chunk) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+
+    pdfGenerator.drawSubmissionSlip(doc, attempt, user, questions).then(() => doc.end()).catch(reject);
+  });
+
+  return { buffer, fileName: utils.buildFileName(`slip-${attempt.quiz_title}`, "pdf"), contentType: "application/pdf" };
 };
 
 export const buildAttemptReviewExcel = async (attemptId, user) => {

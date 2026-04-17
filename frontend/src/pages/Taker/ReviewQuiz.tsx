@@ -15,11 +15,13 @@ import {
   ZoomIn,
   X,
   FileText,
-  Download,
   FileSpreadsheet,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getAttemptReview, exportAttemptReview } from "@/services/attemptServices";
+import {
+  getAttemptReview,
+  exportAttemptReview,
+} from "@/services/attemptServices";
 import { cn } from "@/lib/utils";
 
 function formatDt(value: any) {
@@ -102,9 +104,12 @@ export function ReviewQuiz() {
     };
   }, [attemptId]);
 
-  const handleDownload = async (format: 'pdf' | 'excel', type: 'review' | 'paper' | 'solutions') => {
+  const handleDownload = async (
+    format: "pdf" | "excel",
+    type: "review" | "paper" | "solutions" | "slip",
+  ) => {
     if (!attemptId) return;
-    
+
     try {
       await exportAttemptReview(attemptId, format, type);
     } catch (err: any) {
@@ -178,9 +183,7 @@ export function ReviewQuiz() {
         : "Đang làm dở";
 
   return (
-    <>
-      {/* ══ Giao diện web — ẩn khi in ══ */}
-      <div className="no-print max-w-5xl mx-auto px-4 py-8 space-y-10 animate-fade-in">
+    <div className="max-w-5xl mx-auto px-4 py-8 space-y-10 animate-fade-in">
       {/* Image Zoom Modal */}
       <AnimatePresence>
         {zoomedImage && (
@@ -247,8 +250,16 @@ export function ReviewQuiz() {
           <div className="flex bg-slate-900 border border-white/10 rounded-lg overflow-hidden">
             <Button
               variant="ghost"
+              className="text-indigo-400 hover:bg-indigo-500/10 gap-2 border-r border-white/10 px-3 h-9"
+              onClick={() => handleDownload("pdf", "slip")}
+              title="In phiếu điểm"
+            >
+              <FileText className="w-4 h-4" /> In Phiếu Điểm
+            </Button>
+            <Button
+              variant="ghost"
               className="text-emerald-400 hover:bg-emerald-500/10 gap-2 border-r border-white/10 px-3 h-9"
-              onClick={() => handleDownload('pdf', 'review')}
+              onClick={() => handleDownload("pdf", "review")}
               title="Tải tài liệu ôn tập PDF (có giải thích)"
             >
               <FileText className="w-4 h-4" /> Ôn tập (PDF)
@@ -256,7 +267,7 @@ export function ReviewQuiz() {
             <Button
               variant="ghost"
               className="text-emerald-400 hover:bg-emerald-500/10 px-3 h-9"
-              onClick={() => handleDownload('excel', 'review')}
+              onClick={() => handleDownload("excel", "review")}
               title="Tải bảng kê ôn tập Excel"
             >
               <FileSpreadsheet className="w-4 h-4" />
@@ -268,7 +279,7 @@ export function ReviewQuiz() {
             <Button
               variant="ghost"
               className="text-indigo-400 hover:bg-indigo-500/10 gap-2 border-r border-white/10 px-3 h-9"
-              onClick={() => handleDownload('pdf', 'paper')}
+              onClick={() => handleDownload("pdf", "paper")}
               title="Tạo đề thi trắng (để tự luyện tập)"
             >
               <FileText className="w-4 h-4" /> Tạo đề (PDF)
@@ -276,7 +287,7 @@ export function ReviewQuiz() {
             <Button
               variant="ghost"
               className="text-indigo-400 hover:bg-indigo-500/10 px-3 h-9"
-              onClick={() => handleDownload('excel', 'paper')}
+              onClick={() => handleDownload("excel", "paper")}
               title="Tạo đề thi trắng Excel"
             >
               <FileSpreadsheet className="w-4 h-4" />
@@ -288,7 +299,7 @@ export function ReviewQuiz() {
             <Button
               variant="ghost"
               className="text-amber-400 hover:bg-amber-500/10 gap-2 border-r border-white/10 px-3 h-9"
-              onClick={() => handleDownload('pdf', 'solutions')}
+              onClick={() => handleDownload("pdf", "solutions")}
               title="Tải bộ đáp án & lời giải gốc"
             >
               <FileText className="w-4 h-4" /> Đáp án (PDF)
@@ -296,20 +307,12 @@ export function ReviewQuiz() {
             <Button
               variant="ghost"
               className="text-amber-400 hover:bg-amber-500/10 px-3 h-9"
-              onClick={() => handleDownload('excel', 'solutions')}
+              onClick={() => handleDownload("excel", "solutions")}
               title="Tải bộ đáp án Excel"
             >
               <FileSpreadsheet className="w-4 h-4" />
             </Button>
           </div>
-
-          <Button
-            variant="outline"
-            className="bg-slate-900 border-white/10 text-slate-300 hover:bg-white/5 h-9"
-            onClick={() => window.print()}
-          >
-            In nhanh
-          </Button>
 
           <Link to="/dashboard">
             <Button className="bg-slate-800 hover:bg-slate-700 text-white h-9">
@@ -487,30 +490,43 @@ export function ReviewQuiz() {
                     {/* Media Display in ReviewQuiz */}
                     {question.media_url && (
                       <div className="mt-4 rounded-xl overflow-hidden border border-white/10 bg-black/20 max-w-2xl">
-                        {(question.media_url.match(/\.(jpeg|jpg|gif|png|webp)/i) || question.media_url.includes('image')) && (
-                          <div 
+                        {(question.media_url.match(
+                          /\.(jpeg|jpg|gif|png|webp)/i,
+                        ) ||
+                          question.media_url.includes("image")) && (
+                          <div
                             className="relative group/media cursor-zoom-in overflow-hidden rounded-lg"
                             onClick={() => setZoomedImage(question.media_url)}
                           >
-                            <img 
-                              src={question.media_url} 
-                              className="w-full h-auto max-h-96 object-contain transition-transform duration-300 group-hover/media:scale-[1.02]" 
-                              alt="Question media" 
+                            <img
+                              src={question.media_url}
+                              className="w-full h-auto max-h-96 object-contain transition-transform duration-300 group-hover/media:scale-[1.02]"
+                              alt="Question media"
                             />
                             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/media:opacity-100 transition-opacity flex items-center justify-center">
-                                <div className="bg-white/20 backdrop-blur-md p-2 rounded-full border border-white/30">
-                                    <ZoomIn className="w-6 h-6 text-white" />
-                                </div>
+                              <div className="bg-white/20 backdrop-blur-md p-2 rounded-full border border-white/30">
+                                <ZoomIn className="w-6 h-6 text-white" />
+                              </div>
                             </div>
                           </div>
                         )}
-                        {(question.media_url.match(/\.(mp4|webm)/i) || question.media_url.includes('video')) && (
-                          <video src={question.media_url} controls className="w-full h-auto max-h-96" />
+                        {(question.media_url.match(/\.(mp4|webm)/i) ||
+                          question.media_url.includes("video")) && (
+                          <video
+                            src={question.media_url}
+                            controls
+                            className="w-full h-auto max-h-96"
+                          />
                         )}
-                        {(question.media_url.match(/\.(mp3|wav|ogg)/i) || question.media_url.includes('audio')) && (
+                        {(question.media_url.match(/\.(mp3|wav|ogg)/i) ||
+                          question.media_url.includes("audio")) && (
                           <div className="p-6 flex flex-col items-center gap-4">
                             <FileAudio className="w-10 h-10 text-indigo-400" />
-                            <audio src={question.media_url} controls className="w-full max-w-md" />
+                            <audio
+                              src={question.media_url}
+                              controls
+                              className="w-full max-w-md"
+                            />
                           </div>
                         )}
                       </div>
@@ -619,218 +635,7 @@ export function ReviewQuiz() {
           })}
         </div>
       </div>
-      </div>
-
-      {/* ══════════════════════════════════════════════════
-           PRINT ONLY SECTION — chỉ hiển thị khi in
-      ══════════════════════════════════════════════════ */}
-      <div
-        className="print-only"
-        style={{
-          display: 'none',
-          fontFamily: 'Arial, Helvetica, sans-serif',
-          color: '#111',
-          background: '#fff',
-          fontSize: '10.5pt',
-          lineHeight: '1.7',
-          padding: '30px 40px', /* Thay vì padding: 0 để đảm bảo lề trong an toàn */
-          maxWidth: '850px',
-          margin: '0 auto',
-        }}
-      >
-        {/* ── TIÊU ĐỀ ── */}
-        <div style={{ textAlign: 'center', borderBottom: '3px double #000', paddingBottom: '12px', marginBottom: '20px' }}>
-          <div style={{ fontSize: '20pt', fontWeight: 'bold', letterSpacing: '3px' }}>🔥 FIREQUIZ</div>
-          <div style={{ fontSize: '13pt', fontWeight: 'bold', marginTop: '4px' }}>KẾT QUẢ BÀI TRẮC NGHIỆM</div>
-        </div>
-
-        {/* ── THÔNG TIN BÀI LÀM ── */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '24px' }}>
-          <tbody>
-            {[
-              { label: 'Tên bài',        value: attempt.quiz_title },
-              { label: 'Bắt đầu',        value: formatDt(attempt.started_at) },
-              { label: 'Hoàn thành',     value: formatDt(attempt.finished_at) },
-              { label: 'Thời gian làm',  value: durationLabel },
-              { label: 'Điểm số',        value: scoreLabel(attempt.score) },
-            ].map(({ label, value }) => (
-              <tr key={label}>
-                <td style={{ width: '150px', padding: '3px 12px 3px 0', fontWeight: 'bold', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
-                  {label}:
-                </td>
-                <td style={{ padding: '3px 0', fontWeight: label === 'Điểm số' ? 'bold' : 'normal', fontSize: label === 'Điểm số' ? '12pt' : '10.5pt' }}>
-                  {value}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {/* ── I. TỔNG KẾT ── */}
-        <div style={{ marginBottom: '26px' }}>
-          <div style={{ fontSize: '11.5pt', fontWeight: 'bold', borderBottom: '2px solid #000', paddingBottom: '3px', marginBottom: '10px' }}>
-            I. TỔNG KẾT
-          </div>
-          <table style={{ borderCollapse: 'collapse', width: '60%' }}>
-            <thead>
-              <tr style={{ background: '#ebebeb' }}>
-                <th style={{ padding: '5px 16px', border: '1px solid #aaa', textAlign: 'left', fontWeight: 'bold' }}>Chỉ số</th>
-                <th style={{ padding: '5px 16px', border: '1px solid #aaa', textAlign: 'center', fontWeight: 'bold' }}>Số lượng</th>
-                <th style={{ padding: '5px 16px', border: '1px solid #aaa', textAlign: 'center', fontWeight: 'bold' }}>Tỉ lệ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { label: '✓  Câu đúng',     count: summary.correct },
-                { label: '✗  Câu sai',      count: summary.incorrect },
-                { label: '—  Chưa trả lời', count: summary.unanswered },
-              ].map(({ label, count }) => {
-                const total = payload.questions?.length ?? 0;
-                const pct = total > 0 ? ((count / total) * 100).toFixed(1) : '0.0';
-                return (
-                  <tr key={label}>
-                    <td style={{ padding: '4px 16px', border: '1px solid #ccc' }}>{label}</td>
-                    <td style={{ padding: '4px 16px', border: '1px solid #ccc', textAlign: 'center', fontWeight: 'bold' }}>
-                      {count} / {total}
-                    </td>
-                    <td style={{ padding: '4px 16px', border: '1px solid #ccc', textAlign: 'center' }}>
-                      {pct}%
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* ── II. CHI TIẾT TỪNG CÂU HỎI ── */}
-        <div>
-          <div style={{ fontSize: '11.5pt', fontWeight: 'bold', borderBottom: '2px solid #000', paddingBottom: '3px', marginBottom: '16px' }}>
-            II. CHI TIẾT TỪNG CÂU HỎI
-          </div>
-
-          {payload.questions?.map((question: any, qi: number) => {
-            const ev = evaluateQuestion(question);
-            const status = !ev.hasResponse ? 'unanswered' : ev.isCorrect ? 'correct' : 'incorrect';
-            const statusLabel =
-              status === 'correct' ? '✓ ĐÚNG' : status === 'incorrect' ? '✗ SAI' : '— CHƯA LÀM';
-            const leftBorderColor =
-              status === 'correct' ? '#16a34a' : status === 'incorrect' ? '#dc2626' : '#9ca3af';
-            const statusColor =
-              status === 'correct' ? '#166534' : status === 'incorrect' ? '#991b1b' : '#555';
-            const qType = (question.type ?? '').trim().toUpperCase();
-            const qTypeLabel =
-              qType.startsWith('MULTIPLE') || qType.startsWith('MULTI') ? 'Chọn nhiều' :
-              qType === 'TRUE_FALSE' ? 'Đúng/Sai' :
-              qType === 'TEXT'       ? 'Tự luận'  : 'Chọn một';
-
-            return (
-              <div
-                key={question.id}
-                style={{
-                  marginBottom: '18px',
-                  paddingLeft: '12px',
-                  paddingBottom: '6px',
-                  borderLeft: `4px solid ${leftBorderColor}`,
-                  pageBreakInside: 'avoid',
-                }}
-              >
-                {/* Số câu + trạng thái */}
-                <div style={{ marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 'bold', fontSize: '11pt' }}>Câu {qi + 1}.</span>
-                  {' '}
-                  <span style={{ fontWeight: 'bold', color: statusColor, fontSize: '9.5pt' }}>
-                    [{statusLabel}]
-                  </span>
-                  {' '}
-                  <span style={{ fontSize: '9pt', color: '#666', fontStyle: 'italic' }}>
-                    ({qTypeLabel})
-                  </span>
-                </div>
-
-                {/* Nội dung câu hỏi */}
-                <div style={{ fontWeight: 'bold', marginBottom: '6px', paddingLeft: '16px' }}>
-                  {question.content}
-                </div>
-
-                {/* Câu tự luận */}
-                {question.type === 'TEXT' ? (
-                  <div style={{ paddingLeft: '16px', fontSize: '10pt' }}>
-                    <div style={{ marginBottom: '3px' }}>
-                      <strong>Câu trả lời của bạn:</strong>{' '}
-                      {question.options?.[0]?.answer?.text_answer || '(Không có câu trả lời)'}
-                    </div>
-                    <div>
-                      <strong>Đáp án mẫu:</strong>{' '}
-                      {question.options?.[0]?.content || '(Không có đáp án mẫu)'}
-                    </div>
-                  </div>
-                ) : (
-                  /* Câu trắc nghiệm — 2 cột: ký hiệu + nội dung */
-                  <table style={{ width: '100%', borderCollapse: 'collapse', paddingLeft: '16px', fontSize: '10pt' }}>
-                    <tbody>
-                      {question.options?.map((opt: any, oi: number) => {
-                        const letter = String.fromCharCode(65 + oi);
-                        const userPicked = Boolean(opt.selected);
-                        const isCorrect  = Boolean(opt.is_correct);
-
-                        // Ký hiệu trạng thái (rõ ràng, không bị cắt)
-                        const icon =
-                          userPicked && isCorrect  ? '[✓]' :
-                          userPicked && !isCorrect ? '[✗]' :
-                          isCorrect                ? '[ ]' : '   ';
-
-                        // Ghi chú cuối (chỉ khi cần thiết)
-                        const note =
-                          userPicked && isCorrect  ? ' ← bạn chọn, đúng' :
-                          userPicked && !isCorrect ? ' ← bạn chọn, sai'  :
-                          isCorrect                ? ' ← đáp án đúng'    : '';
-
-                        const textColor =
-                          userPicked && isCorrect  ? '#166534' :
-                          userPicked && !isCorrect ? '#991b1b' :
-                          isCorrect                ? '#166534' : '#333';
-
-                        return (
-                          <tr key={opt.id} style={{ color: textColor, fontWeight: (userPicked || isCorrect) ? 'bold' : 'normal' }}>
-                            <td style={{ width: '28px', verticalAlign: 'top', padding: '1px 0', fontFamily: 'monospace' }}>
-                              {icon}
-                            </td>
-                            <td style={{ width: '22px', verticalAlign: 'top', padding: '1px 4px' }}>
-                              {letter}.
-                            </td>
-                            <td style={{ verticalAlign: 'top', padding: '1px 0' }}>
-                              {opt.content}
-                              {note && (
-                                <span style={{ fontStyle: 'italic', fontWeight: 'normal', color: textColor, fontSize: '9pt' }}>
-                                  {note}
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                )}
-
-                {/* Giải thích (nếu có) */}
-                {question.explanation && (
-                  <div style={{ marginTop: '6px', marginLeft: '16px', padding: '5px 10px', borderLeft: '3px solid #888', fontSize: '9.5pt', fontStyle: 'italic', color: '#333' }}>
-                    <strong style={{ fontStyle: 'normal' }}>Giải thích:</strong>{' '}{question.explanation}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── FOOTER ── */}
-        <div style={{ marginTop: '32px', borderTop: '1px solid #bbb', paddingTop: '8px', textAlign: 'center', fontSize: '9pt', color: '#666' }}>
-          Được tạo bởi <strong>🔥 FireQuiz</strong> — In lúc: {new Date().toLocaleString('vi-VN')}
-        </div>
-      </div>
-    </>
+    </div>
   );
 }
 

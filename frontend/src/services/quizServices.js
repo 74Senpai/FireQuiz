@@ -57,8 +57,9 @@ export const getQuizResultsDashboard = (id) =>
 /**
  * Export Excel kết quả
  */
-export const exportQuizResultsExcel = (id, config = {}) =>
+export const exportQuizResultsExcel = (id, params = {}, config = {}) =>
   axios.get(`/quiz/${id}/export/excel`, {
+    params,
     responseType: "blob",
     ...config,
   });

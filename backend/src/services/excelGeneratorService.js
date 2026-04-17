@@ -196,3 +196,62 @@ export const writeInteractiveReview = (worksheet, questions) => {
     }
   });
 };
+
+export const writeAnalyticsSheet = (worksheet, analyticsData) => {
+  worksheet.columns = [
+    { header: "STT", key: "index", width: 6 },
+    { header: "Nội dung câu hỏi", key: "content", width: 45 },
+    { header: "Loại", key: "type", width: 15 },
+    { header: "Tổng lượt làm", key: "total_attempts", width: 15 },
+    { header: "Số người trả lời", key: "total_responses", width: 15 },
+    { header: "Số câu đúng", key: "correct_responses", width: 12 },
+    { header: "Tỉ lệ đúng (%)", key: "correct_rate", width: 15, style: { numFmt: '0.00' } },
+    { header: "Tỉ lệ sai (%)", key: "incorrect_rate", width: 15, style: { numFmt: '0.00' } },
+  ];
+
+  analyticsData.forEach((item, idx) => {
+    worksheet.addRow({
+      index: idx + 1,
+      content: item.content,
+      type: item.type === 'MULTI_ANSWERS' ? 'Nhiều đáp án' : 
+            item.type === 'TEXT' ? 'Tự luận' : 
+            item.type === 'TRUE_FALSE' ? 'Đúng/Sai' : '1 Đáp án',
+      total_attempts: item.total_attempts,
+      total_responses: item.total_responses,
+      correct_responses: item.correct_responses,
+      correct_rate: item.correct_rate,
+      incorrect_rate: item.incorrect_rate,
+    });
+  });
+
+  // Header Styling
+  const headerRow = worksheet.getRow(1);
+  headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+  headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: utils.REPORT_THEME.primary } };
+  headerRow.alignment = { horizontal: "center", vertical: "middle" };
+  headerRow.height = 25;
+
+  // Data Styling & Borders
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber > 1) {
+      row.alignment = { vertical: 'middle', wrapText: true };
+      row.eachCell((cell) => {
+        cell.border = {
+          top: { style: "thin", color: { argb: utils.REPORT_THEME.slateLine } },
+          left: { style: "thin", color: { argb: utils.REPORT_THEME.slateLine } },
+          bottom: { style: "thin", color: { argb: utils.REPORT_THEME.slateLine } },
+          right: { style: "thin", color: { argb: utils.REPORT_THEME.slateLine } },
+        };
+      });
+
+      // Conditional Formatting logic for rates
+      const correctRateCell = row.getCell("correct_rate");
+      const val = Number(correctRateCell.value);
+      if (val < 40) {
+        correctRateCell.font = { bold: true, color: { argb: utils.REPORT_THEME.danger } };
+      } else if (val >= 80) {
+        correctRateCell.font = { bold: true, color: { argb: utils.REPORT_THEME.success } };
+      }
+    }
+  });
+};

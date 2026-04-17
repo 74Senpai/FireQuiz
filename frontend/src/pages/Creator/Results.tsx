@@ -8,7 +8,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Download, Search, FileSpreadsheet, Loader2, ChevronDown, ClipboardList, BookOpen, FileCheck, Layers, FileType, Shuffle } from "lucide-react";
+import {
+  Download,
+  Search,
+  FileSpreadsheet,
+  Loader2,
+  ChevronDown,
+  ClipboardList,
+  BookOpen,
+  FileCheck,
+  Layers,
+  FileType,
+  Shuffle,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import * as quizService from "@/services/quizServices";
 import { ResultsDashboardPanel } from "@/components/ui/ResultsDashboardPanel";
@@ -35,7 +47,8 @@ export function Results() {
   const [versionCount, setVersionCount] = useState(1);
   const [isSeparateFiles, setIsSeparateFiles] = useState(false);
   const [exportStatus, setExportStatus] = useState<ExportStatus | null>(null);
-  const isAnyExporting = isExportingExcel || isExportingPdf || isExportingContent;
+  const isAnyExporting =
+    isExportingExcel || isExportingPdf || isExportingContent;
 
   useEffect(() => {
     const fetchQuizzes = async () => {
@@ -89,11 +102,14 @@ export function Results() {
   const getExportLabel = (kind: ExportKind) =>
     kind === "excel" ? "Excel" : "PDF";
 
+  const [isAdvancedReport, setIsAdvancedReport] = useState(false);
+
   const handleExportReport = async (kind: ExportKind) => {
     if (!selectedQuizId) return;
 
     const isPdf = kind === "pdf";
-    const exportLabel = getExportLabel(kind);
+    const exportLabel =
+      isAdvancedReport && !isPdf ? "Excel Nâng cao" : getExportLabel(kind);
     const request = isPdf
       ? quizService.exportQuizResultsPdf
       : quizService.exportQuizResultsExcel;
@@ -112,31 +128,42 @@ export function Results() {
     });
 
     try {
-      const response = await request(selectedQuizId, {
-        onDownloadProgress: (event: import("axios").AxiosProgressEvent) => {
-          if (event?.total) {
-            const progress = Math.max(
-              20,
-              Math.min(95, Math.round((event.loaded / event.total) * 100)),
-            );
+      const response = await (isPdf
+        ? request(selectedQuizId)
+        : ((request as any)(
+            selectedQuizId,
+            { advanced: isAdvancedReport },
+            {
+              onDownloadProgress: (
+                event: import("axios").AxiosProgressEvent,
+              ) => {
+                if (event?.total) {
+                  const progress = Math.max(
+                    20,
+                    Math.min(
+                      95,
+                      Math.round((event.loaded / event.total) * 100),
+                    ),
+                  );
 
-            setExportStatus({
-              kind,
-              stage: "downloading",
-              progress,
-              message: `Đang tải báo cáo ${exportLabel}... ${progress}%`,
-            });
-            return;
-          }
+                  setExportStatus({
+                    kind,
+                    stage: "downloading",
+                    progress,
+                    message: `Đang tải báo cáo ${exportLabel}... ${progress}%`,
+                  });
+                  return;
+                }
 
-          setExportStatus({
-            kind,
-            stage: "downloading",
-            progress: 60,
-            message: `Đang tải tệp ${exportLabel}, vui lòng đợi trong giây lát...`,
-          });
-        },
-      });
+                setExportStatus({
+                  kind,
+                  stage: "downloading",
+                  progress: 60,
+                  message: `Đang tải tệp ${exportLabel}, vui lòng đợi trong giây lát...`,
+                });
+              },
+            },
+          ) as any));
 
       const fileName =
         parseFileNameFromDisposition(response.headers["content-disposition"]) ||
@@ -152,9 +179,12 @@ export function Results() {
       });
     } catch (error: any) {
       console.error(`Không thể xuất báo cáo ${exportLabel}:`, error);
-      
+
       let errorMessage = `Không thể xuất báo cáo ${exportLabel}. Vui lòng thử lại.`;
-      if (error.response?.data instanceof Blob && error.response.data.type === "application/json") {
+      if (
+        error.response?.data instanceof Blob &&
+        error.response.data.type === "application/json"
+      ) {
         try {
           const errorText = await error.response.data.text();
           const errorJson = JSON.parse(errorText);
@@ -178,10 +208,20 @@ export function Results() {
       }
     }
   };
-  const handleExportContent = async (type: "paper" | "key" | "solutions" | "all", format: "excel" | "pdf") => {
+  const handleExportContent = async (
+    type: "paper" | "key" | "solutions" | "all",
+    format: "excel" | "pdf",
+  ) => {
     if (!selectedQuizId) return;
 
-    const label = type === "paper" ? "Đề thi" : type === "key" ? "Đáp án" : type === "solutions" ? "Lời giải" : "Trọn bộ";
+    const label =
+      type === "paper"
+        ? "Đề thi"
+        : type === "key"
+          ? "Đáp án"
+          : type === "solutions"
+            ? "Lời giải"
+            : "Trọn bộ";
     const formatLabel = format.toUpperCase();
     const kind: ExportKind = format === "excel" ? "excel" : "pdf";
 
@@ -194,28 +234,36 @@ export function Results() {
     });
 
     try {
-      const response = await quizService.exportQuizContent(selectedQuizId, { 
-        type, 
-        format,
-        randomize: isRandomize,
-        versionCount,
-        separateFiles: isSeparateFiles
-      }, {
-        onDownloadProgress: (event: any) => {
-          if (event?.total) {
-            const progress = Math.min(95, Math.round((event.loaded / event.total) * 100));
-            setExportStatus({
-              kind,
-              stage: "downloading",
-              progress,
-              message: `Đang tải bản ${label}... ${progress}%`,
-            });
-          }
-        }
-      });
+      const response = await quizService.exportQuizContent(
+        selectedQuizId,
+        {
+          type,
+          format,
+          randomize: isRandomize,
+          versionCount,
+          separateFiles: isSeparateFiles,
+        },
+        {
+          onDownloadProgress: (event: any) => {
+            if (event?.total) {
+              const progress = Math.min(
+                95,
+                Math.round((event.loaded / event.total) * 100),
+              );
+              setExportStatus({
+                kind,
+                stage: "downloading",
+                progress,
+                message: `Đang tải bản ${label}... ${progress}%`,
+              });
+            }
+          },
+        },
+      );
 
-      const fileName = parseFileNameFromDisposition(response.headers["content-disposition"]) || 
-                       `quiz-${selectedQuizId}-${type}.${format}`;
+      const fileName =
+        parseFileNameFromDisposition(response.headers["content-disposition"]) ||
+        `quiz-${selectedQuizId}-${type}.${format}`;
 
       downloadFile(response.data, fileName);
       setExportStatus({
@@ -322,43 +370,61 @@ export function Results() {
               Xuất bộ đề 3 bản
               <ChevronDown className="h-4 w-4 opacity-50" />
             </Button>
-            
+
             {showExportMenu && (
               <>
-                <div 
-                  className="fixed inset-0 z-10" 
+                <div
+                  className="fixed inset-0 z-10"
                   onClick={() => setShowExportMenu(false)}
                 />
                 <div className="absolute right-0 top-12 z-20 w-96 rounded-xl border border-white/20 bg-slate-900/95 p-4 backdrop-blur-xl shadow-2xl animate-fade-in">
                   <div className="mb-4">
-                    <h4 className="font-bold text-white uppercase tracking-wider text-xs opacity-70">Lựa chọn xuất bộ đề</h4>
-                    <p className="text-[10px] text-slate-400 mt-1">Chọn phiên bản nội dung và định dạng bạn muốn tải.</p>
+                    <h4 className="font-bold text-white uppercase tracking-wider text-xs opacity-70">
+                      Lựa chọn xuất bộ đề
+                    </h4>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Chọn phiên bản nội dung và định dạng bạn muốn tải.
+                    </p>
                   </div>
 
                   <div className="mb-6 p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Shuffle className="h-4 w-4 text-indigo-300" />
-                        <label htmlFor="randomize" className="text-xs font-medium text-indigo-100 cursor-pointer select-none">Xáo trộn câu hỏi & đáp án</label>
+                        <label
+                          htmlFor="randomize"
+                          className="text-xs font-medium text-indigo-100 cursor-pointer select-none"
+                        >
+                          Xáo trộn câu hỏi & đáp án
+                        </label>
                       </div>
-                      <input 
+                      <input
                         type="checkbox"
-                        id="randomize" 
-                        checked={isRandomize} 
+                        id="randomize"
+                        checked={isRandomize}
                         onChange={(e) => setIsRandomize(e.target.checked)}
                         className="h-4 w-4 rounded border-indigo-400 bg-slate-800 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer"
                       />
                     </div>
-                    
+
                     {isRandomize && (
                       <div className="flex items-center justify-between pt-2 border-t border-indigo-500/10 animate-slide-up">
-                        <label className="text-[10px] text-indigo-200">Số lượng mã đề (1-10):</label>
-                        <input 
-                          type="number" 
-                          min={1} 
-                          max={10} 
+                        <label className="text-[10px] text-indigo-200">
+                          Số lượng mã đề (1-10):
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={10}
                           value={versionCount}
-                          onChange={(e) => setVersionCount(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
+                          onChange={(e) =>
+                            setVersionCount(
+                              Math.max(
+                                1,
+                                Math.min(10, parseInt(e.target.value) || 1),
+                              ),
+                            )
+                          }
                           className="w-12 h-6 bg-slate-800 border border-indigo-500/30 rounded text-center text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                         />
                       </div>
@@ -367,12 +433,17 @@ export function Results() {
                     <div className="flex items-center justify-between pt-2 border-t border-indigo-500/10">
                       <div className="flex items-center gap-2">
                         <Download className="h-4 w-4 text-emerald-300" />
-                        <label htmlFor="separateFiles" className="text-xs font-medium text-emerald-100 cursor-pointer select-none">Tách thành tệp nén (Zip)</label>
+                        <label
+                          htmlFor="separateFiles"
+                          className="text-xs font-medium text-emerald-100 cursor-pointer select-none"
+                        >
+                          Tách thành tệp nén (Zip)
+                        </label>
                       </div>
-                      <input 
+                      <input
                         type="checkbox"
-                        id="separateFiles" 
-                        checked={isSeparateFiles} 
+                        id="separateFiles"
+                        checked={isSeparateFiles}
                         onChange={(e) => setIsSeparateFiles(e.target.checked)}
                         className="h-4 w-4 rounded border-emerald-400 bg-slate-800 text-emerald-600 focus:ring-emerald-500 focus:ring-offset-slate-900 cursor-pointer"
                       />
@@ -380,42 +451,58 @@ export function Results() {
                   </div>
 
                   <div className="space-y-3">
-                    <ExportOption 
-                      title="Bản Đề thi" 
+                    <ExportOption
+                      title="Bản Đề thi"
                       desc="Không có đáp án, có header Họ tên/Lớp"
-                      icon={BookOpen} 
-                      type="paper" 
+                      icon={BookOpen}
+                      type="paper"
                     />
-                    <ExportOption 
-                      title="Bản Đáp án" 
+                    <ExportOption
+                      title="Bản Đáp án"
                       desc="Bảng đối chiếu đáp án đúng nhanh"
-                      icon={ClipboardList} 
-                      type="key" 
+                      icon={ClipboardList}
+                      type="key"
                     />
-                    <ExportOption 
-                      title="Bản Lời giải" 
+                    <ExportOption
+                      title="Bản Lời giải"
                       desc="Đầy đủ nội dung và giải thích chi tiết"
-                      icon={FileCheck} 
-                      type="solutions" 
+                      icon={FileCheck}
+                      type="solutions"
                     />
-                    <ExportOption 
-                      title="Bản Ôn tập" 
+                    <ExportOption
+                      title="Bản Ôn tập"
                       desc="File Excel tương tác có chấm điểm"
-                      icon={ClipboardList} 
-                      type="review" 
+                      icon={ClipboardList}
+                      type="review"
                     />
                     <div className="pt-2 border-t border-white/10">
-                      <ExportOption 
-                        title="Trọn bộ (3 trong 1)" 
+                      <ExportOption
+                        title="Trọn bộ (3 trong 1)"
                         desc="Gộp cả 3 loại vào cùng 1 tệp tin"
-                        icon={Layers} 
-                        type="all" 
+                        icon={Layers}
+                        type="all"
                       />
                     </div>
                   </div>
                 </div>
               </>
             )}
+          </div>
+
+          <div className="flex items-center gap-2 mr-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+            <input
+              type="checkbox"
+              id="advanced-report"
+              checked={isAdvancedReport}
+              onChange={(e) => setIsAdvancedReport(e.target.checked)}
+              className="h-4 w-4 rounded border-indigo-400 bg-slate-800 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+            />
+            <label
+              htmlFor="advanced-report"
+              className="text-xs font-medium text-slate-300 cursor-pointer select-none"
+            >
+              Nâng cao (Excel)
+            </label>
           </div>
 
           <Button
