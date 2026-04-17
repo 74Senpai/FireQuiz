@@ -1,22 +1,54 @@
 import React, { useState, useEffect } from "react";
-import { User, Lock, Trash2, Save, Camera, Mail, Info, ShieldCheck, AlertCircle, TrendingUp } from "lucide-react";
+import {
+  User,
+  Lock,
+  Trash2,
+  Save,
+  Camera,
+  Mail,
+  Info,
+  ShieldCheck,
+  AlertCircle,
+  TrendingUp,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useAuthStore } from "@/stores/authStore";
 import { useNavigate } from "react-router-dom";
 import * as userServices from "@/services/userServices";
 import * as authServices from "@/services/authServices";
 import * as uploadService from "@/services/uploadService";
 import * as attemptServices from "@/services/attemptServices";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
 
 export function Profile() {
   const navigate = useNavigate();
   const { user, logout, updateUser } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<"info" | "security" | "stats" | "danger">("info");
+  const [activeTab, setActiveTab] = useState<
+    "info" | "security" | "stats" | "danger"
+  >("info");
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error", text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
   const [historyStats, setHistoryStats] = useState<any[]>([]);
 
   // Form states
@@ -24,13 +56,13 @@ export function Profile() {
     fullName: user?.full_name || "",
     email: user?.email || "",
     role: user?.role || "",
-    bio: user?.bio || ""
+    bio: user?.bio || "",
   });
 
   const [passwordData, setPasswordData] = useState({
     oldPassword: "",
     newPassword: "",
-    confirmPassword: ""
+    confirmPassword: "",
   });
 
   // Photo state
@@ -42,7 +74,7 @@ export function Profile() {
         fullName: user.full_name || "",
         email: user.email || "",
         role: user.role || "",
-        bio: user.bio || ""
+        bio: user.bio || "",
       });
     }
   }, [user]);
@@ -51,11 +83,13 @@ export function Profile() {
     const fetchStats = async () => {
       try {
         const statsRes = await attemptServices.getMyStats();
-        const formattedStats = (statsRes.data || statsRes || []).map((s: any) => ({
-          name: `${s.quiz_title} (${new Date(s.finished_at).toLocaleDateString('vi-VN')})`,
-          score: Number(s.score),
-          date: new Date(s.finished_at).toLocaleDateString('vi-VN')
-        }));
+        const formattedStats = (statsRes.data || statsRes || []).map(
+          (s: any) => ({
+            name: `${s.quiz_title} (${new Date(s.finished_at).toLocaleDateString("vi-VN")})`,
+            score: Number(s.score),
+            date: new Date(s.finished_at).toLocaleDateString("vi-VN"),
+          }),
+        );
         setHistoryStats(formattedStats);
       } catch (err) {
         console.error("Lỗi lấy thống kê:", err);
@@ -72,16 +106,19 @@ export function Profile() {
       await userServices.updateProfile({
         fullName: formData.fullName,
         email: formData.email,
-        bio: formData.bio
+        bio: formData.bio,
       });
       updateUser({
         full_name: formData.fullName,
         email: formData.email,
-        bio: formData.bio
+        bio: formData.bio,
       });
       setMessage({ type: "success", text: "Cập nhật hồ sơ thành công!" });
     } catch (err: any) {
-      setMessage({ type: "error", text: err.response?.data?.message || "Lỗi cập nhật hồ sơ" });
+      setMessage({
+        type: "error",
+        text: err.response?.data?.message || "Lỗi cập nhật hồ sơ",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -96,11 +133,21 @@ export function Profile() {
     setIsLoading(true);
     setMessage(null);
     try {
-      await authServices.changePassword(passwordData.oldPassword, passwordData.newPassword);
+      await authServices.changePassword(
+        passwordData.oldPassword,
+        passwordData.newPassword,
+      );
       setMessage({ type: "success", text: "Đổi mật khẩu thành công!" });
-      setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      setPasswordData({
+        oldPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
     } catch (err: any) {
-      setMessage({ type: "error", text: err.response?.data?.message || "Lỗi thay đổi mật khẩu" });
+      setMessage({
+        type: "error",
+        text: err.response?.data?.message || "Lỗi thay đổi mật khẩu",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -119,7 +166,10 @@ export function Profile() {
       if (newUrl) {
         await userServices.updateAvatar(newUrl);
         updateUser({ avatar_url: newUrl });
-        setMessage({ type: "success", text: "Cập nhật ảnh đại diện thành công!" });
+        setMessage({
+          type: "success",
+          text: "Cập nhật ảnh đại diện thành công!",
+        });
       }
     } catch (err: any) {
       setMessage({ type: "error", text: "Không thể tải ảnh lên" });
@@ -129,7 +179,11 @@ export function Profile() {
   };
 
   const handleDeleteAccount = async () => {
-    if (window.confirm("CẢNH BÁO: Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác.")) {
+    if (
+      window.confirm(
+        "CẢNH BÁO: Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác.",
+      )
+    ) {
       setIsLoading(true);
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -148,13 +202,24 @@ export function Profile() {
           <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-indigo-300 to-purple-300 bg-[length:200%_auto] animate-gradient-shift drop-shadow-lg inline-block">
             Tài khoản cá nhân
           </h2>
-          <p className="text-slate-400 mt-1">Quản lý danh tính và bảo mật của bạn trên FireQuiz.</p>
+          <p className="text-slate-400 mt-1">
+            Quản lý danh tính và bảo mật của bạn trên FireQuiz.
+          </p>
         </div>
 
         {message && (
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium animate-slide-in ${message.type === "success" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-            }`}>
-            {message.type === "success" ? <ShieldCheck className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          <div
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium animate-slide-in ${
+              message.type === "success"
+                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+            }`}
+          >
+            {message.type === "success" ? (
+              <ShieldCheck className="w-4 h-4" />
+            ) : (
+              <AlertCircle className="w-4 h-4" />
+            )}
             {message.text}
           </div>
         )}
@@ -167,7 +232,11 @@ export function Profile() {
             <div className="aspect-square relative flex items-center justify-center p-6 bg-gradient-to-br from-indigo-500/10 to-purple-500/10">
               <div className="w-full h-full rounded-2xl overflow-hidden border-2 border-white/20 relative group/avatar shadow-inner">
                 {user?.avatar_url ? (
-                  <img src={user.avatar_url} alt="Avatar" className="w-full h-full object-cover transition-transform duration-500 group-hover/avatar:scale-110" />
+                  <img
+                    src={user.avatar_url}
+                    alt="Avatar"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover/avatar:scale-110"
+                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-500">
                     <User className="w-20 h-20 opacity-20" />
@@ -176,8 +245,16 @@ export function Profile() {
 
                 <label className="absolute inset-0 bg-black/60 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer">
                   <Camera className="w-8 h-8 text-white mb-2 transform -translate-y-2 group-hover/avatar:translate-y-0 transition-transform" />
-                  <span className="text-xs text-white font-medium">Thay đổi ảnh</span>
-                  <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} disabled={uploadingAvatar} />
+                  <span className="text-xs text-white font-medium">
+                    Thay đổi ảnh
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    disabled={uploadingAvatar}
+                  />
                 </label>
 
                 {uploadingAvatar && (
@@ -188,38 +265,45 @@ export function Profile() {
               </div>
             </div>
             <div className="p-4 text-center border-t border-white/5 bg-white/[0.02]">
-              <h3 className="font-bold text-white truncate">{user?.full_name}</h3>
-              <p className="text-xs text-slate-500 uppercase tracking-widest mt-1 font-semibold">{user?.role}</p>
+              <h3 className="font-bold text-white truncate">
+                {user?.full_name}
+              </h3>
+              <p className="text-xs text-slate-500 uppercase tracking-widest mt-1 font-semibold">
+                {user?.role}
+              </p>
             </div>
           </Card>
 
           <nav className="flex flex-col space-y-1 p-2 rounded-2xl bg-slate-900/40 backdrop-blur-md border border-white/10 shadow-xl">
             <button
               onClick={() => setActiveTab("info")}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${activeTab === "info"
-                ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/30"
-                : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-                }`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
+                activeTab === "info"
+                  ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/30"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+              }`}
             >
               <User className="w-5 h-5" />
               <span className="text-sm font-semibold">Cài đặt cá nhân</span>
             </button>
             <button
               onClick={() => setActiveTab("security")}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${activeTab === "security"
-                ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/30"
-                : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-                }`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
+                activeTab === "security"
+                  ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/30"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+              }`}
             >
               <Lock className="w-5 h-5" />
               <span className="text-sm font-semibold">Đổi mật khẩu</span>
             </button>
             <button
               onClick={() => setActiveTab("stats")}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${activeTab === "stats"
-                ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/30"
-                : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-                }`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
+                activeTab === "stats"
+                  ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/30"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+              }`}
             >
               <TrendingUp className="w-5 h-5" />
               <span className="text-sm font-semibold">Thống kê thi cử</span>
@@ -229,7 +313,6 @@ export function Profile() {
               onClick={() => navigate("/dashboard/history")}
               className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all"
             >
-
               <span className="text-sm font-semibold">Lịch sử hoạt động</span>
             </button>
           </nav>
@@ -247,7 +330,8 @@ export function Profile() {
                   Hồ sơ công khai
                 </CardTitle>
                 <CardDescription className="text-slate-400">
-                  Thông tin này sẽ giúp giáo viên và các học sinh khác nhận ra bạn.
+                  Thông tin này sẽ giúp giáo viên và các học sinh khác nhận ra
+                  bạn.
                 </CardDescription>
               </CardHeader>
               <form onSubmit={handleInfoSubmit}>
@@ -259,7 +343,9 @@ export function Profile() {
                       </label>
                       <Input
                         value={formData.fullName}
-                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, fullName: e.target.value })
+                        }
                         className="bg-slate-900/50 border-white/10 text-white focus:ring-indigo-500 hover:bg-white/5 transition-all h-12 rounded-xl"
                         placeholder="Nhập tên của bạn..."
                         required
@@ -272,7 +358,9 @@ export function Profile() {
                       <Input
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
                         className="bg-slate-900/50 border-white/10 text-white focus:ring-indigo-500 hover:bg-white/5 transition-all h-12 rounded-xl"
                         placeholder="example@gmail.com"
                         required
@@ -282,25 +370,44 @@ export function Profile() {
 
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <label className="text-sm font-bold text-slate-300">Tiểu sử cá nhân (Bio)</label>
-                      <span className="text-[10px] text-slate-500 font-mono uppercase">Tối đa 500 ký tự</span>
+                      <label className="text-sm font-bold text-slate-300">
+                        Tiểu sử cá nhân (Bio)
+                      </label>
+                      <span className="text-[10px] text-slate-500 font-mono uppercase">
+                        Tối đa 500 ký tự
+                      </span>
                     </div>
                     <textarea
                       value={formData.bio}
-                      onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, bio: e.target.value })
+                      }
                       className="w-full bg-slate-900/50 border border-white/10 rounded-2xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 hover:bg-white/5 transition-all min-h-[140px] text-sm leading-relaxed"
                       placeholder="Chia sẻ một chút về trình độ hoặc mục tiêu học tập của bạn..."
                     />
                   </div>
                 </CardContent>
                 <CardFooter className="bg-white/5 p-6 flex justify-end gap-4 border-t border-white/5">
-                  <Button type="button" variant="ghost" onClick={() => navigate("/dashboard")} className="text-slate-400 hover:text-white">Hủy bỏ</Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => navigate("/dashboard")}
+                    className="text-slate-400 hover:text-white"
+                  >
+                    Hủy bỏ
+                  </Button>
                   <Button
                     type="submit"
                     disabled={isLoading}
                     className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-xl shadow-indigo-500/20 rounded-xl px-8 h-12 font-bold"
                   >
-                    {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <><Save className="w-4 h-4" /> Cập nhật hồ sơ</>}
+                    {isLoading ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" /> Cập nhật hồ sơ
+                      </>
+                    )}
                   </Button>
                 </CardFooter>
               </form>
@@ -324,11 +431,18 @@ export function Profile() {
               <form onSubmit={handlePasswordSubmit}>
                 <CardContent className="space-y-8 p-8 max-w-2xl">
                   <div className="space-y-3">
-                    <label className="text-sm font-bold text-slate-300">Mật khẩu hiện tại</label>
+                    <label className="text-sm font-bold text-slate-300">
+                      Mật khẩu hiện tại
+                    </label>
                     <Input
                       type="password"
                       value={passwordData.oldPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
+                      onChange={(e) =>
+                        setPasswordData({
+                          ...passwordData,
+                          oldPassword: e.target.value,
+                        })
+                      }
                       className="bg-slate-900/50 border-white/10 text-white focus:ring-emerald-500 h-12 rounded-xl"
                       placeholder="••••••••"
                       required
@@ -337,22 +451,36 @@ export function Profile() {
                   <div className="h-px bg-white/5"></div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                      <label className="text-sm font-bold text-slate-300">Mật khẩu mới</label>
+                      <label className="text-sm font-bold text-slate-300">
+                        Mật khẩu mới
+                      </label>
                       <Input
                         type="password"
                         value={passwordData.newPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                        onChange={(e) =>
+                          setPasswordData({
+                            ...passwordData,
+                            newPassword: e.target.value,
+                          })
+                        }
                         className="bg-slate-900/50 border-white/10 text-white focus:ring-emerald-500 h-12 rounded-xl"
                         placeholder="••••••••"
                         required
                       />
                     </div>
                     <div className="space-y-3">
-                      <label className="text-sm font-bold text-slate-300">Xác nhận mật khẩu</label>
+                      <label className="text-sm font-bold text-slate-300">
+                        Xác nhận mật khẩu
+                      </label>
                       <Input
                         type="password"
                         value={passwordData.confirmPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                        onChange={(e) =>
+                          setPasswordData({
+                            ...passwordData,
+                            confirmPassword: e.target.value,
+                          })
+                        }
                         className="bg-slate-900/50 border-white/10 text-white focus:ring-emerald-500 h-12 rounded-xl"
                         placeholder="••••••••"
                         required
@@ -366,7 +494,11 @@ export function Profile() {
                     disabled={isLoading}
                     className="gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-xl shadow-emerald-500/20 rounded-xl px-8 h-12 font-bold"
                   >
-                    {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : "Cập nhật mật khẩu"}
+                    {isLoading ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                      "Cập nhật mật khẩu"
+                    )}
                   </Button>
                 </CardFooter>
               </form>
@@ -390,9 +522,18 @@ export function Profile() {
               <CardContent className="p-8 h-[450px]">
                 {historyStats.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={historyStats} layout="vertical" margin={{ left: 40, right: 40 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#ffffff05" />
-                      <XAxis type="number" domain={[0, 'dataMax + 2']} hide />
+                    <BarChart
+                      data={historyStats}
+                      layout="vertical"
+                      margin={{ left: 40, right: 40 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        horizontal={true}
+                        vertical={false}
+                        stroke="#ffffff05"
+                      />
+                      <XAxis type="number" domain={[0, "dataMax + 2"]} hide />
                       <YAxis
                         dataKey="name"
                         type="category"
@@ -403,17 +544,20 @@ export function Profile() {
                         axisLine={false}
                       />
                       <Tooltip
-                        cursor={{ fill: '#ffffff05' }}
-                        contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid #ffffff10' }}
-                        itemStyle={{ color: '#ec4899' }}
+                        cursor={{ fill: "#ffffff05" }}
+                        contentStyle={{
+                          backgroundColor: "#0f172a",
+                          borderRadius: "12px",
+                          border: "1px solid #ffffff10",
+                        }}
+                        itemStyle={{ color: "#ec4899" }}
                       />
-                      <Bar
-                        dataKey="score"
-                        radius={[0, 4, 4, 0]}
-                        barSize={30}
-                      >
+                      <Bar dataKey="score" radius={[0, 4, 4, 0]} barSize={30}>
                         {historyStats.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#ec4899' : '#818cf8'} />
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={index % 2 === 0 ? "#ec4899" : "#818cf8"}
+                          />
                         ))}
                       </Bar>
                     </BarChart>
@@ -439,9 +583,13 @@ export function Profile() {
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-5">
-                  <h4 className="text-rose-400 font-semibold mb-2">Hành động này không thể hoàn tác</h4>
+                  <h4 className="text-rose-400 font-semibold mb-2">
+                    Hành động này không thể hoàn tác
+                  </h4>
                   <p className="text-sm text-slate-400">
-                    Khi bạn xóa tài khoản, toàn bộ dữ liệu lịch sử bài kiểm tra, điểm số và thông tin cá nhân sẽ bị xóa vĩnh viễn khỏi hệ thống. Vui lòng chắc chắn trước khi thực hiện.
+                    Khi bạn xóa tài khoản, toàn bộ dữ liệu lịch sử bài kiểm tra,
+                    điểm số và thông tin cá nhân sẽ bị xóa vĩnh viễn khỏi hệ
+                    thống. Vui lòng chắc chắn trước khi thực hiện.
                   </p>
                 </div>
               </CardContent>
@@ -452,7 +600,13 @@ export function Profile() {
                   variant="destructive"
                   className="gap-2 bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-500/25 rounded-xl px-6"
                 >
-                  {isLoading ? "Đang xóa..." : <><Trash2 className="w-4 h-4" /> Xóa tài khoản vĩnh viễn</>}
+                  {isLoading ? (
+                    "Đang xóa..."
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" /> Xóa tài khoản vĩnh viễn
+                    </>
+                  )}
                 </Button>
               </CardFooter>
             </Card>
@@ -462,4 +616,3 @@ export function Profile() {
     </div>
   );
 }
-

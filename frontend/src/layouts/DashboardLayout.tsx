@@ -137,8 +137,15 @@ export function DashboardLayout() {
                 {user ? user.role : "Khách"}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110 transition-all duration-300 cursor-pointer border border-white/20">
-              {user ? getInitial(user.full_name) : "?"}
+            <div 
+              onClick={() => navigate("/dashboard/profile")}
+              className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110 transition-all duration-300 cursor-pointer border border-white/20 overflow-hidden"
+            >
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                user ? getInitial(user.full_name) : "?"
+              )}
             </div>
           </div>
         </header>

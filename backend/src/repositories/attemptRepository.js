@@ -1,6 +1,32 @@
 import pool from '../db/db.js';
 
 /**
+ * Lấy toàn bộ attempt_options của một attempt (dùng cho finishAttempt bulk-mode)
+ */
+export const getAllOptionsByAttemptId = async (conn, attemptId) => {
+  const [rows] = await conn.execute(
+    `SELECT ao.id, ao.attempt_question_id
+     FROM attempt_options ao
+     JOIN attempt_questions aq ON ao.attempt_question_id = aq.id
+     WHERE aq.quiz_attempt_id = ?`,
+    [attemptId]
+  );
+  return rows;
+};
+
+/**
+ * Xóa hàng loạt đáp án theo danh sách option IDs (1 câu DELETE duy nhất)
+ */
+export const bulkDeleteAttemptAnswersByOptionIds = async (conn, optionIds) => {
+  if (!optionIds || optionIds.length === 0) return;
+  const placeholders = optionIds.map(() => '?').join(',');
+  await conn.execute(
+    `DELETE FROM attempt_answers WHERE attempt_option_id IN (${placeholders})`,
+    optionIds
+  );
+};
+
+/**
  * Xoá đáp án tạm thời của một câu hỏi trong một bài làm
  */
 export const deleteAttemptAnswers = async (conn, attemptQuestionId) => {
@@ -180,7 +206,7 @@ export const getAttemptScoreData = async (attemptId) => {
     `SELECT COUNT(*) as total FROM attempt_questions WHERE quiz_attempt_id = ?`,
     [attemptId]
   );
-  
+
   const [correctRows] = await pool.execute(
     `SELECT COUNT(*) as correct
      FROM attempt_answers aa
@@ -228,6 +254,17 @@ export const countQuizAttemptsByUserId = async (userId) => {
 };
 
 /**
+ * Đếm số lần tham gia của một User cho một Quiz cụ thể
+ */
+export const countQuizAttemptsByUserAndQuiz = async (userId, quizId) => {
+  const [rows] = await pool.execute(
+    `SELECT COUNT(*) AS total FROM quiz_attempts WHERE user_id = ? AND quiz_id = ?`,
+    [userId, quizId]
+  );
+  return Number(rows[0]?.total) || 0;
+};
+
+/**
  * Lấy danh sách lịch sử thi của User (phân trang)
  */
 export const listQuizAttemptsByUserIdPaginated = async (userId, limit, offset) => {
@@ -248,12 +285,31 @@ export const listQuizAttemptsByUserIdPaginated = async (userId, limit, offset) =
 };
 
 /**
+ * Lấy thống kê điểm số theo thời gian để vẽ biểu đồ
+ */
+export const getHistoryStatsByUserId = async (userId) => {
+  const sql = `
+    SELECT 
+      quiz_title, 
+      score, 
+      finished_at 
+    FROM quiz_attempts 
+    WHERE user_id = ? AND finished_at IS NOT NULL 
+    ORDER BY finished_at ASC;
+  `;
+  const [rows] = await pool.execute(sql, [userId]);
+  return rows;
+};
+
+
+/**
  * Lấy một lần thi cụ thể để review
  */
 export const getQuizAttemptByIdAndUserId = async (attemptId, userId) => {
   const sql = `
     SELECT
-      qa.id, qa.user_id, qa.quiz_id, qa.quiz_title, qa.score, qa.started_at, qa.finished_at,
+      qa.id, qa.user_id, qa.quiz_id, qa.quiz_title, qa.score,
+      qa.started_at, qa.finished_at, qa.tab_violations,
       CASE
         WHEN qa.finished_at IS NULL THEN NULL
         ELSE TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at)
@@ -311,7 +367,7 @@ export const getAttemptAnswersByOptionIds = async (optionIds) => {
 export const getFinishedAttemptsByQuizId = async (quizId) => {
   const sql = `
     SELECT 
-      id, user_id, quiz_id, score, started_at, finished_at,
+      id, user_id, quiz_id, score, started_at, finished_at, tab_violations,
       TIMESTAMPDIFF(SECOND, started_at, finished_at) AS duration_seconds
     FROM quiz_attempts
     WHERE quiz_id = ? AND finished_at IS NOT NULL
@@ -328,6 +384,7 @@ export const getLatestAttemptsByQuizId = async (quizId) => {
   const sql = `
     SELECT 
       qa.id, qa.user_id, qa.quiz_id, qa.score, qa.started_at, qa.finished_at,
+      qa.tab_violations,
       CASE 
         WHEN qa.finished_at IS NULL THEN NULL
         ELSE TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at)
@@ -358,18 +415,3 @@ export const getUserAttemptCountsByQuizId = async (quizId) => {
   const [rows] = await pool.execute(sql, [quizId]);
   return rows;
 };
-
-/**
- * Lấy dữ liệu thống kê lịch sử thi của User (Dùng cho biểu đồ)
- */
-export const getHistoryStatsByUserId = async (userId) => {
-  const sql = `
-    SELECT quiz_title, score, finished_at
-    FROM quiz_attempts
-    WHERE user_id = ? AND finished_at IS NOT NULL
-    ORDER BY finished_at ASC;
-  `;
-  const [rows] = await pool.execute(sql, [userId]);
-  return rows;
-};
-

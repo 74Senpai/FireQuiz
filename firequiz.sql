@@ -40,6 +40,8 @@ CREATE TABLE quizzes (
     available_from DATETIME,
     available_until DATETIME,
     max_attempts INT,
+    max_tab_violations INT DEFAULT 2,
+    max_attempts_per_user INT DEFAULT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_quiz_creator FOREIGN KEY (creator_id) REFERENCES users (id)

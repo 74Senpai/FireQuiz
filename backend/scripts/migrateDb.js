@@ -9,7 +9,10 @@ const alterQueries = [
   "ALTER TABLE users ADD COLUMN bio TEXT;",
   "ALTER TABLE quizzes ADD COLUMN thumbnail_url VARCHAR(255);",
   "ALTER TABLE questions ADD COLUMN media_url VARCHAR(255);",
-  "ALTER TABLE attempt_questions ADD COLUMN media_url VARCHAR(255);"
+  "ALTER TABLE attempt_questions ADD COLUMN media_url VARCHAR(255);",
+  "ALTER TABLE quizzes ADD COLUMN max_tab_violations INT DEFAULT 2;",
+  "ALTER TABLE users ADD COLUMN bio TEXT;",
+  "ALTER TABLE quizzes ADD COLUMN max_attempts_per_user INT DEFAULT NULL;"
 ];
 
 const migrate = async () => {
@@ -19,6 +22,10 @@ const migrate = async () => {
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
+    ssl: {
+      minVersion: "TLSv1.2",
+      rejectUnauthorized: true
+    }
   });
 
   console.log('Bắt đầu cập nhật cấu trúc database...');

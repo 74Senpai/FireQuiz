@@ -145,12 +145,13 @@ export const buildExcelReport = async (quizId, user) => {
     { header: "Thoi gian", key: "duration", width: 14 },
     { header: "Dung", key: "correct_count", width: 10 },
     { header: "Sai", key: "incorrect_count", width: 10 },
+    { header: "Vi pham tab", key: "tab_violations", width: 14 },
     { header: "Bat dau", key: "started_at", width: 22 },
     { header: "Hoan thanh", key: "finished_at", width: 22 },
   ];
 
   worksheet.addRow([]);
-  worksheet.mergeCells("A1:J1");
+  worksheet.mergeCells("A1:K1");
   worksheet.getCell("A1").value = `Bao cao ket qua - ${quiz.title}`;
   worksheet.getCell("A1").font = { size: 16, bold: true };
   worksheet.getCell("A1").alignment = { horizontal: "center" };
@@ -173,6 +174,7 @@ export const buildExcelReport = async (quizId, user) => {
       duration: formatDuration(row.duration_seconds),
       correct_count: row.correct_count,
       incorrect_count: row.incorrect_count,
+      tab_violations: row.tab_violations ?? 0,
       started_at: formatDateTime(row.started_at),
       finished_at: formatDateTime(row.finished_at),
     });
@@ -247,7 +249,7 @@ export const buildPdfReport = async (quizId, user) => {
           `Ma hoc sinh: USER${String(row.user_id).padStart(4, "0")} | Diem: ${Number(row.score ?? 0).toFixed(2)} | Thoi gian: ${formatDuration(row.duration_seconds)}`,
         );
       doc.text(
-        `Dung/Sai: ${row.correct_count}/${row.incorrect_count} | Bat dau: ${formatDateTime(row.started_at)} | Hoan thanh: ${formatDateTime(row.finished_at)}`,
+        `Dung/Sai: ${row.correct_count}/${row.incorrect_count} | Vi pham tab: ${row.tab_violations ?? 0} | Bat dau: ${formatDateTime(row.started_at)} | Hoan thanh: ${formatDateTime(row.finished_at)}`,
       );
       doc.moveDown(0.6);
       doc.strokeColor("#D1D5DB").moveTo(40, doc.y).lineTo(555, doc.y).stroke();
