@@ -186,6 +186,7 @@ export const getAttemptSnapshot = async (attemptId) => {
       text: q.content,
       type: q.type,
       media_url: q.media_url,
+      explanation: q.explanation,
       options: optionsData,
       selectedOptionIds: selectedOptionIds,
       textAnswer: textAnswer
