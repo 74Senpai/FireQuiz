@@ -62,7 +62,7 @@ const formatDuration = (seconds: number | null) => {
 
   const minutes = Math.floor(seconds / 60);
   const remainSeconds = seconds % 60;
-  return `${minutes}m ${String(remainSeconds).padStart(2, "0")}s`;
+  return `${minutes} phút ${String(remainSeconds).padStart(2, "0")} giây`;
 };
 
 const formatDateTime = (value: string | null) => {
