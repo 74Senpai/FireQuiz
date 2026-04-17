@@ -9,15 +9,84 @@ import * as questionRepository from '../repositories/questionRepository.js';
 import * as answerRepository from '../repositories/answerRepository.js';
 import * as attemptAggregationService from '../services/attemptAggregationService.js';
 import AppError from '../errors/AppError.js';
+import QRCode from 'qrcode';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+/**
+ * Phân tách câu hỏi Tự luận (TEXT) và câu hỏi trắc nghiệm.
+ * Câu tự luận luôn được dồn về cuối.
+ */
+const prepareQuestionsForExport = (questions, randomize = false) => {
+  let sortedQuestions = [...questions];
+  
+  if (randomize) {
+    sortedQuestions = shuffleArray(sortedQuestions).map(q => ({
+      ...q,
+      answers: shuffleArray(q.answers || [])
+    }));
+  }
+
+  const objectiveQuestions = sortedQuestions.filter(q => q.type !== 'TEXT');
+  const subjectiveQuestions = sortedQuestions.filter(q => q.type === 'TEXT');
+
+  return [...objectiveQuestions, ...subjectiveQuestions];
+};
+
+/**
+ * Tải media từ URL về Buffer.
+ */
+const downloadMediaBuffer = async (url) => {
+  if (!url) return null;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  } catch (error) {
+    console.error('Error downloading media:', error);
+    return null;
+  }
+};
+
+/**
+ * Tạo QR Code Buffer từ text.
+ */
+const generateQRCodeBuffer = async (text) => {
+  try {
+    return await QRCode.toBuffer(text, {
+      margin: 1,
+      width: 100,
+      color: { dark: '#000000', light: '#ffffff' }
+    });
+  } catch (err) {
+    console.error('QR Code error:', err);
+    return null;
+  }
+};
+
+/**
+ * Kiểm tra xem URL có phải là ảnh không dựa vào extension.
+ */
+const isImageUrl = (url) => {
+  if (!url) return false;
+  return /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(url.split('?')[0]);
+};
+
+/**
+ * Lấy link Redirect cho media để QR Code và Excel sử dụng.
+ */
+const getMediaViewUrl = (path, bucket) => {
+  const baseUrl = process.env.BACKEND_URL || 'http://localhost:8080';
+  const encodedPath = encodeURIComponent(path);
+  return `${baseUrl}/api/v1/media/view?path=${encodedPath}${bucket ? `&bucket=${bucket}` : ''}`;
+};
 const PDF_FONT_REGULAR = 'report-regular';
 const PDF_FONT_BOLD = 'report-bold';
 const EXCEL_TABLE_HEADER_ROW = 9;
 const REPORT_THEME = {
   primary: 'FF1D4ED8',
-  primarySoft: 'FFDBEAFE',
   success: 'FF059669',
   successSoft: 'FFD1FAE5',
   warning: 'FFD97706',
@@ -26,7 +95,6 @@ const REPORT_THEME = {
   dangerSoft: 'FFFEE2E2',
   slateSoft: 'FFF8FAFC',
   slateLine: 'FFE2E8F0',
-  slateText: 'FF0F172A',
   mutedText: 'FF475569',
 };
 
@@ -411,7 +479,7 @@ export const buildExcelReport = async (quizId, user) => {
 
 export const buildPdfReport = async (quizId, user) => {
   const { quiz, rows, generatedAt, generatedBy, summary } = await getReportData(quizId, user);
-  const doc = new PDFDocument({ margin: 36, size: "A4", layout: "landscape" });
+  const doc = new PDFDocument({ margin: 40, size: "A4", layout: "portrait" });
   const chunks = [];
 
   const buffer = await new Promise((resolve, reject) => {
@@ -423,19 +491,16 @@ export const buildPdfReport = async (quizId, user) => {
     const drawHeader = () => {
       doc
         .strokeColor("#E2E8F0")
-        .lineWidth(1)
-        .moveTo(36, 28)
-        .lineTo(doc.page.width - 36, 28)
+        .lineWidth(0.5)
+        .moveTo(40, 30)
+        .lineTo(doc.page.width - 40, 30)
         .stroke();
       doc
         .font(PDF_FONT_REGULAR)
-        .fontSize(9)
-        .fillColor("#475569")
-        .text("FireQuiz - Báo cáo kết quả bộ câu hỏi", 36, 14, {
-          width: 260,
-          align: "left",
-        });
-      doc.y = 46;
+        .fontSize(8)
+        .fillColor("#64748B")
+        .text("FireQuiz - Report", 40, 18, { width: 200, align: "left" });
+      doc.y = 50;
     };
 
     const drawRowCard = (row, index) => {
@@ -444,14 +509,13 @@ export const buildPdfReport = async (quizId, user) => {
         ? (Number(row.correct_count ?? 0) * 100) / totalResponses
         : 0;
 
-      // Tính toán chiều cao linh hoạt dựa trên số lượng câu hỏi
       const evaluations = row.evaluations || [];
-      const boxesPerRow = 20;
+      const boxesPerRow = 15;
       const evaluationRows = Math.ceil(evaluations.length / boxesPerRow);
-      const evaluationSectionHeight = evaluations.length > 0 ? (evaluationRows * 18) + 10 : 0;
-      const cardHeight = 64 + evaluationSectionHeight;
+      const evaluationSectionHeight = evaluations.length > 0 ? (evaluationRows * 16) + 8 : 0;
+      const cardHeight = 54 + evaluationSectionHeight;
 
-      if (doc.y + cardHeight > doc.page.height - 36) {
+      if (doc.y + cardHeight > doc.page.height - 40) {
         doc.addPage();
         drawHeader();
       }
@@ -465,143 +529,109 @@ export const buildPdfReport = async (quizId, user) => {
             ? "#D97706"
             : "#DC2626";
 
+      // Chỉ vẽ viền mỏng, không tô nền (tránh cháy sáng)
       doc
-        .roundedRect(36, cardTop, doc.page.width - 72, cardHeight, 8)
-        .fillAndStroke(index % 2 === 0 ? "#FFFFFF" : "#F8FAFC", "#E2E8F0");
+        .roundedRect(40, cardTop, doc.page.width - 80, cardHeight, 4)
+        .strokeColor("#F1F5F9")
+        .lineWidth(0.5)
+        .stroke();
 
       doc
         .font(PDF_FONT_BOLD)
-        .fontSize(11)
-        .fillColor("#0F172A")
-        .text(`#${index + 1} ${row.full_name}`, 50, cardTop + 10, {
-          width: 240,
-          align: "left",
-        });
+        .fontSize(10)
+        .fillColor("#1E293B")
+        .text(`#${index + 1} ${row.full_name}`, 50, cardTop + 8, { width: 300 });
+      
       doc
         .font(PDF_FONT_REGULAR)
-        .fontSize(9)
-        .fillColor("#475569")
-        .text(row.email, 50, cardTop + 28, {
-          width: 240,
-          align: "left",
-        });
-      doc
-        .text(`Mã học sinh: USER${String(row.user_id).padStart(4, "0")}`, 50, cardTop + 42, {
-          width: 240,
-          align: "left",
-        });
+        .fontSize(8)
+        .fillColor("#64748B")
+        .text(`${row.email} | USER${String(row.user_id).padStart(4, "0")}`, 50, cardTop + 24);
 
+      // Điểm số bên phải
       doc
         .font(PDF_FONT_BOLD)
-        .fontSize(16)
+        .fontSize(14)
         .fillColor(scoreColor)
-        .text(Number(row.score ?? 0).toFixed(2), 310, cardTop + 16, {
-          width: 70,
-          align: "center",
-        });
+        .text(Number(row.score ?? 0).toFixed(2), doc.page.width - 120, cardTop + 10, { width: 60, align: 'right' });
+      
+      doc
+        .font(PDF_FONT_REGULAR)
+        .fontSize(8)
+        .fillColor("#94A3B8")
+        .text(`/${summary.gradingScale}`, doc.page.width - 120, cardTop + 28, { width: 60, align: 'right' });
+
+      // Thống kê chi tiết
       doc
         .font(PDF_FONT_REGULAR)
         .fontSize(8)
         .fillColor("#475569")
-        .text(`/${summary.gradingScale}`, 310, cardTop + 36, {
-          width: 70,
-          align: "center",
-        });
+        .text(`Đúng/Sai: ${row.correct_count}/${row.incorrect_count}`, 50, cardTop + 38, { width: 120 })
+        .text(`Tỉ lệ: ${formatPercentage(accuracyRate)}`, 180, cardTop + 38, { width: 100 })
+        .text(`Thời gian: ${formatDuration(row.duration_seconds)}`, 300, cardTop + 38, { width: 100 });
 
-      doc
-        .font(PDF_FONT_REGULAR)
-        .fontSize(9)
-        .fillColor("#0F172A")
-        .text(`Dung/Sai: ${row.correct_count}/${row.incorrect_count}`, 410, cardTop + 14, {
-          width: 130,
-          align: "left",
-        });
-      doc.text(`Tỷ lệ đúng: ${formatPercentage(accuracyRate)}`, 410, cardTop + 32, {
-        width: 130,
-        align: "left",
-      });
-
-      doc.text(`Thời gian: ${formatDuration(row.duration_seconds)}`, 570, cardTop + 14, {
-        width: 180,
-        align: "left",
-      });
-      doc.text(`Hoàn thành: ${formatDateTime(row.finished_at)}`, 570, cardTop + 32, {
-        width: 180,
-        align: "left",
-      });
-
-      // Vẽ lưới câu trả lời chi tiết
+      // Vẽ lưới kết quả chi tiết
       if (evaluations.length > 0) {
-        doc.strokeColor("#E2E8F0").lineWidth(0.5).moveTo(50, cardTop + 60).lineTo(doc.page.width - 50, cardTop + 60).stroke();
-        
         evaluations.forEach((evaluation, eIdx) => {
-          const rowIdx = Math.floor(eIdx / boxesPerRow);
-          const colIdx = eIdx % boxesPerRow;
-          const boxX = 50 + colIdx * 35;
-          const boxY = cardTop + 68 + rowIdx * 18;
+          const rIdx = Math.floor(eIdx / boxesPerRow);
+          const cIdx = eIdx % boxesPerRow;
+          const boxX = 50 + cIdx * 34;
+          const boxY = cardTop + 52 + rIdx * 16;
 
           doc
-            .roundedRect(boxX, boxY, 30, 14, 2)
-            .fill(evaluation.is_correct ? REPORT_THEME.successSoft : REPORT_THEME.dangerSoft);
+            .roundedRect(boxX, boxY, 30, 12, 1)
+            .fillAndStroke(evaluation.is_correct ? "#F0FDF4" : "#FEF2F2", evaluation.is_correct ? "#DCFCE7" : "#FEE2E2");
           
           doc
             .font(PDF_FONT_BOLD)
-            .fontSize(7)
-            .fillColor(evaluation.is_correct ? REPORT_THEME.success : REPORT_THEME.danger)
-            .text(`C${eIdx + 1}: ${evaluation.is_correct ? 'Đ' : 'S'}`, boxX, boxY + 3, {
-              width: 30,
-              align: 'center'
-            });
+            .fontSize(6)
+            .fillColor(evaluation.is_correct ? "#15803D" : "#B91C1C")
+            .text(`C${eIdx + 1}:${evaluation.is_correct ? 'Đ' : 'S'}`, boxX, boxY + 3, { width: 30, align: 'center' });
         });
       }
 
-      doc.y = cardTop + cardHeight + 10;
+      doc.y = cardTop + cardHeight + 8;
     };
 
     drawHeader();
 
-    doc.font(PDF_FONT_BOLD).fontSize(20).fillColor("#0F172A").text("Báo cáo kết quả bộ câu hỏi");
-    doc.font(PDF_FONT_REGULAR).fontSize(14).fillColor("#1D4ED8").text(quiz.title);
-    doc.moveDown(0.6);
-    doc.font(PDF_FONT_REGULAR).fontSize(10).fillColor("#475569");
-    doc.text(`Người xuất: ${generatedBy}`);
-    doc.text(`Ngày xuất: ${formatDateTime(generatedAt)}`);
-    doc.text(`Lịch mở: ${getScheduleText(quiz)}`);
-    doc.text(`Thời gian giới hạn: ${formatDuration(quiz.time_limit_seconds)}`);
-    doc.moveDown(0.8);
+    // Tiêu đề chính
+    doc.font(PDF_FONT_BOLD).fontSize(18).fillColor("#0F172A").text("Báo cáo kết quả bộ câu hỏi", { align: 'center' });
+    doc.font(PDF_FONT_REGULAR).fontSize(12).fillColor("#2563EB").text(quiz.title, { align: 'center' });
+    doc.moveDown(1);
 
-    doc
-      .roundedRect(36, doc.y, doc.page.width - 72, 58, 8)
-      .fillAndStroke("#F8FAFC", "#E2E8F0");
-    const summaryTop = doc.y + 12;
-    doc
-      .font(PDF_FONT_BOLD)
-      .fontSize(10)
-      .fillColor("#0F172A")
-      .text(`Tổng thí sinh: ${summary.totalParticipants}`, 52, summaryTop, { width: 160 })
-      .text(`Điểm trung bình: ${summary.averageScore.toFixed(2)}/${summary.gradingScale}`, 220, summaryTop, { width: 180 })
-      .text(`Tỷ lệ đúng: ${formatPercentage(summary.accuracyRate)}`, 430, summaryTop, { width: 130 })
-      .text(`TB thời gian: ${formatDuration(summary.averageDurationSeconds)}`, 580, summaryTop, { width: 160 });
-    doc
-      .font(PDF_FONT_REGULAR)
-      .fontSize(9)
-      .fillColor("#475569")
-      .text(`Tổng đúng / sai: ${summary.totalCorrect} / ${summary.totalIncorrect}`, 52, summaryTop + 22, { width: 220 })
-      .text(`Điểm cao nhất: ${summary.highestScore.toFixed(2)}/${summary.gradingScale}`, 320, summaryTop + 22, { width: 220 });
-    doc.y += 74;
+    // Thông tin chung
+    const infoY = doc.y;
+    doc.font(PDF_FONT_REGULAR).fontSize(9).fillColor("#475569");
+    doc.text(`Người xuất: ${generatedBy}`, 40, infoY);
+    doc.text(`Ngày xuất: ${formatDateTime(generatedAt)}`, 40, infoY + 14);
+    doc.text(`Lịch mở: ${getScheduleText(quiz)}`, 220, infoY);
+    doc.text(`Giới hạn: ${formatDuration(quiz.time_limit_seconds)}`, 220, infoY + 14);
+    doc.moveDown(2.5);
 
-    doc.font(PDF_FONT_BOLD).fontSize(12).fillColor("#0F172A").text("Chi tiết thí sinh");
-    doc.moveDown(0.4);
+    // Tóm tắt chỉ số (Grid)
+    const summaryY = doc.y;
+    doc.roundedRect(40, summaryY, doc.page.width - 80, 50, 4).fill("#F8FAFC");
+    
+    doc.font(PDF_FONT_BOLD).fontSize(9).fillColor("#1E293B");
+    doc.text("Tổng thí sinh", 60, summaryY + 12, { width: 100 });
+    doc.text("Điểm trung bình", 180, summaryY + 12, { width: 100 });
+    doc.text("Tỷ lệ đúng", 300, summaryY + 12, { width: 100 });
+    doc.text("TB thời gian", 420, summaryY + 12, { width: 100 });
+
+    doc.font(PDF_FONT_REGULAR).fontSize(11).fillColor("#0F172A");
+    doc.text(summary.totalParticipants, 60, summaryY + 26);
+    doc.text(`${summary.averageScore.toFixed(2)}/${summary.gradingScale}`, 180, summaryY + 26);
+    doc.text(formatPercentage(summary.accuracyRate), 300, summaryY + 26);
+    doc.text(formatDuration(summary.averageDurationSeconds), 420, summaryY + 26);
+    
+    doc.y = summaryY + 65;
+
+    doc.font(PDF_FONT_BOLD).fontSize(11).fillColor("#1E293B").text("Chi tiết theo từng thí sinh");
+    doc.moveDown(0.5);
 
     if (!rows.length) {
-      doc
-        .roundedRect(36, doc.y, doc.page.width - 72, 54, 8)
-        .fillAndStroke("#F8FAFC", "#E2E8F0");
-      doc
-        .font(PDF_FONT_REGULAR)
-        .fontSize(10)
-        .fillColor("#475569")
-        .text("Chưa có dữ liệu nộp bài để xuất báo cáo.", 52, doc.y + 18);
+      doc.font(PDF_FONT_REGULAR).fontSize(10).fillColor("#94A3B8").text("Chưa có dữ liệu nộp bài.", { align: 'center' });
     } else {
       rows.forEach(drawRowCard);
     }
@@ -750,32 +780,76 @@ const writeExcelReviewContent = (worksheet, questions) => {
   });
 };
 
-const writeExcelQuestionContent = (worksheet, questions, showCorrect = false, showExplanation = false) => {
+const writeExcelQuestionContent = async (workbook, worksheet, questions, showCorrect = false, showExplanation = false) => {
   let currentRow = worksheet.lastRow ? worksheet.lastRow.number + 1 : 1;
 
-  questions.forEach((q, qIdx) => {
+  for (let qIdx = 0; qIdx < questions.length; qIdx++) {
+    const q = questions[qIdx];
     const qLabel = `Câu ${qIdx + 1}: ${q.content}`;
     const row = worksheet.getRow(currentRow++);
     row.getCell(1).value = qLabel;
     row.getCell(1).font = { bold: true };
+    row.getCell(1).alignment = { wrapText: true, vertical: 'top' };
 
-    q.answers.forEach((a, aIdx) => {
-      const label = getOptionLabel(aIdx);
-      const optionRow = worksheet.getRow(currentRow++);
-      optionRow.getCell(1).value = `${label}. ${a.content}`;
-      if (showCorrect && a.is_correct) {
-        optionRow.getCell(1).font = { bold: true, color: { argb: REPORT_THEME.success } };
+    // Xử lý Media trong Excel
+    if (q.media_url) {
+      if (isImageUrl(q.media_url)) {
+        const imageBuffer = await downloadMediaBuffer(q.media_url);
+        if (imageBuffer) {
+          try {
+            const extension = q.media_url.split('.').pop().split('?')[0] || 'png';
+            const imageId = workbook.addImage({
+              buffer: imageBuffer,
+              extension: extension,
+            });
+            worksheet.addImage(imageId, {
+              tl: { col: 0.1, row: currentRow - 0.9 },
+              ext: { width: 140, height: 100 }
+            });
+            worksheet.getRow(currentRow).height = 80; // Tăng chiều cao để chứa ảnh
+            currentRow++;
+          } catch (err) {
+            console.error('Excel Image Error:', err);
+          }
+        }
       }
-    });
+      
+      // Luôn thêm link redirect để dự phòng/truy cập video
+      const redirectRow = worksheet.getRow(currentRow++);
+      redirectRow.getCell(1).value = {
+        text: "[Xem phương tiện kĩ thuật số]",
+        hyperlink: getMediaViewUrl(q.media_url),
+        tooltip: 'Click để mở media'
+      };
+      redirectRow.getCell(1).font = { color: { argb: 'FF0000FF' }, underline: true };
+    }
+
+    if (q.type !== 'TEXT') {
+      q.answers.forEach((a, aIdx) => {
+        const label = getOptionLabel(aIdx);
+        const optionRow = worksheet.getRow(currentRow++);
+        optionRow.getCell(1).value = `${label}. ${a.content}`;
+        optionRow.getCell(1).alignment = { wrapText: true };
+        if (showCorrect && a.is_correct) {
+          optionRow.getCell(1).font = { bold: true, color: { argb: 'FF059669' } };
+        }
+      });
+    } else {
+      const hintRow = worksheet.getRow(currentRow++);
+      hintRow.getCell(1).value = "[Học sinh trả lời vào phần bên dưới]";
+      hintRow.getCell(1).font = { italic: true, color: { argb: 'FF94A3B8' } };
+      currentRow += 2; // Thêm khoảng trống cho tự luận
+    }
 
     if (showExplanation && q.explanation) {
       const expRow = worksheet.getRow(currentRow++);
       expRow.getCell(1).value = `Giải thích: ${q.explanation}`;
-      expRow.getCell(1).font = { italic: true, color: { argb: REPORT_THEME.primary } };
+      expRow.getCell(1).font = { italic: true, color: { argb: 'FF2563EB' } };
+      expRow.getCell(1).alignment = { wrapText: true };
     }
 
     currentRow++; // Space between questions
-  });
+  }
 };
 
 export const buildQuizContentExcel = async (quizId, user, { type = 'all', randomize = false, versionCount = 1 } = {}) => {
@@ -787,14 +861,7 @@ export const buildQuizContentExcel = async (quizId, user, { type = 'all', random
   for (let v = 0; v < count; v++) {
     const versionCode = 101 + v;
     const suffix = count > 1 ? ` - Mã ${versionCode}` : "";
-    
-    let questions = originalQuestions;
-    if (randomize) {
-      questions = shuffleArray(originalQuestions).map(q => ({
-        ...q,
-        answers: shuffleArray(q.answers)
-      }));
-    }
+    const questions = prepareQuestionsForExport(originalQuestions, randomize);
 
     // 1. Bản Đề thi
     if (type === 'all' || type === 'paper') {
@@ -804,7 +871,8 @@ export const buildQuizContentExcel = async (quizId, user, { type = 'all', random
       if (count > 1) ws.getCell("C1").value = `Mã đề: ${versionCode}`;
       ws.getCell("A2").value = "Họ và tên: ........................................................... Lớp: .....................";
       ws.getRow(4).values = ["Nội dung câu hỏi"];
-      writeExcelQuestionContent(ws, questions, false, false);
+      ws.getRow(4).font = { bold: true };
+      await writeExcelQuestionContent(workbook, ws, questions, false, false);
       ws.getColumn(1).width = 100;
     }
 
@@ -822,7 +890,7 @@ export const buildQuizContentExcel = async (quizId, user, { type = 'all', random
           .map((a, idx) => (a.is_correct ? getOptionLabel(idx) : null))
           .filter(Boolean)
           .join(", ");
-        ws.addRow([i + 1, correctOptions]);
+        ws.addRow([i + 1, correctOptions || "---"]);
       });
       ws.getColumn(1).width = 10;
       ws.getColumn(2).width = 30;
@@ -834,7 +902,7 @@ export const buildQuizContentExcel = async (quizId, user, { type = 'all', random
       ws.getCell("A1").value = `LỜI GIẢI CHI TIẾT: ${quiz.title}`;
       ws.getCell("A1").font = { size: 14, bold: true };
       if (count > 1) ws.getCell("C1").value = `Mã đề: ${versionCode}`;
-      writeExcelQuestionContent(ws, questions, true, true);
+      await writeExcelQuestionContent(workbook, ws, questions, true, true);
       ws.getColumn(1).width = 100;
     }
 
@@ -858,7 +926,7 @@ export const buildQuizContentExcel = async (quizId, user, { type = 'all', random
 
 export const buildQuizContentPdf = async (quizId, user, { type = 'all', randomize = false, versionCount = 1 } = {}) => {
   const { quiz, questions: originalQuestions } = await getQuizContentData(quizId, user);
-  const doc = new PDFDocument({ margin: 50, size: "A4" });
+  const doc = new PDFDocument({ margin: 50, size: "A4", layout: "portrait" });
   const chunks = [];
 
   const buffer = await new Promise((resolve, reject) => {
@@ -869,57 +937,80 @@ export const buildQuizContentPdf = async (quizId, user, { type = 'all', randomiz
     registerPdfFonts(doc);
 
     const drawSectionHeader = (title, versionCode = null) => {
-      doc.font(PDF_FONT_BOLD).fontSize(16).fillColor(REPORT_THEME.primary).text(title, { align: 'center' });
+      doc.font(PDF_FONT_BOLD).fontSize(16).fillColor("#1E293B").text(title, { align: 'center' });
       if (versionCode) {
-        doc.fontSize(12).fillColor(REPORT_THEME.danger).text(`Mã đề: ${versionCode}`, { align: 'right' });
+        doc.fontSize(12).fillColor("#DC2626").text(`Mã đề: ${versionCode}`, { align: 'right' });
       }
       doc.moveDown(1);
     };
 
     const drawStudentHeader = () => {
-      doc.font(PDF_FONT_REGULAR).fontSize(11).fillColor(REPORT_THEME.slateText);
-      
+      doc.font(PDF_FONT_REGULAR).fontSize(10).fillColor("#475569");
       const leftCol = 50;
       const rightCol = 320;
       const startY = doc.y;
 
       doc.text(`Môn học: ...........................................................`, leftCol, startY);
-      doc.text(`Cấp độ: .......................................`, rightCol, startY);
+      doc.text(`Người tạo: ${getCreatorDisplayName(user)}`, rightCol, startY);
       
       doc.moveDown(0.5);
-      doc.text(`Người tạo: ${getCreatorDisplayName(user)}`, leftCol);
-      doc.text(`Mã học sinh: ..............................`, rightCol, doc.y - 14); // Align with Người tạo
-
-      doc.moveDown(0.5);
-      doc.text(`Thời gian làm bài: ${quiz.time_limit_seconds ? Math.floor(quiz.time_limit_seconds / 60) + ' phút' : 'Không giới hạn'}`, leftCol);
-      doc.text(`Lớp: ...........................................`, rightCol, doc.y - 14);
+      doc.text(`Thời gian: ${quiz.time_limit_seconds ? Math.floor(quiz.time_limit_seconds / 60) + ' phút' : 'Không giới hạn'}`, leftCol);
+      doc.text(`Lớp: ...........................................`, rightCol, doc.y - 12);
 
       doc.moveDown(0.5);
       doc.text("Họ và tên: ................................................................................................................................", leftCol);
       
-      doc.moveDown(1);
-      doc.strokeColor("#E2E8F0").lineWidth(0.5).moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).stroke();
+      doc.moveDown(0.8);
+      doc.strokeColor("#F1F5F9").lineWidth(0.5).moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).stroke();
       doc.moveDown(1);
     };
 
-    const drawQuestion = (q, index, showCorrect = false, showExplanation = false) => {
-      if (doc.y > 650) doc.addPage();
+    const drawQuestion = async (q, index, showCorrect = false, showExplanation = false) => {
+      // Ước tính chiều cao: câu hỏi (20) + đáp án (15*4) + media (nếu có)
+      const estimatedHeight = q.media_url ? 200 : 100;
+      if (doc.y + estimatedHeight > doc.page.height - 50) doc.addPage();
 
-      let typeLabel = '(Câu hỏi 1 lời giải)';
-      if (q.type === 'MULTI_ANSWERS') typeLabel = '(Câu hỏi nhiều lời giải)';
-      if (q.type === 'TEXT') typeLabel = '(Câu hỏi tự luận)';
-      if (q.type === 'TRUE_FALSE') typeLabel = '(Câu hỏi Đúng/Sai)';
+      let typeLabel = q.type === 'MULTI_ANSWERS' ? '(Nhiều đáp án)' : 
+                       q.type === 'TEXT' ? '(Tự luận)' : 
+                       q.type === 'TRUE_FALSE' ? '(Đúng/Sai)' : '(Một đáp án)';
 
-      doc.font(PDF_FONT_BOLD).fontSize(11).fillColor("#0F172A").text(`Câu ${index + 1}: ${q.content} `);
-      doc.font(PDF_FONT_REGULAR).fontSize(9).fillColor("#64748B").text(typeLabel, { indent: 0 });
+      doc.font(PDF_FONT_BOLD).fontSize(11).fillColor("#0F172A").text(`Câu ${index + 1}: `, { continued: true });
+      doc.font(PDF_FONT_REGULAR).fontSize(11).text(q.content);
+      doc.font(PDF_FONT_REGULAR).fontSize(8).fillColor("#94A3B8").text(typeLabel);
       doc.moveDown(0.3);
 
+      // Xử lý Media
+      if (q.media_url) {
+        const mediaPath = q.media_url; 
+        if (isImageUrl(mediaPath)) {
+          // Là ảnh -> Embed trực tiếp
+          const imageBuffer = await downloadMediaBuffer(mediaPath);
+          if (imageBuffer) {
+            try {
+              doc.image(imageBuffer, { fit: [250, 150], align: 'center' });
+              doc.moveDown(0.5);
+            } catch (err) {
+              console.error('PDF Image Error:', err);
+            }
+          }
+        } else {
+          // Video/Audio -> QR Code
+          const redirectUrl = getMediaViewUrl(mediaPath);
+          const qrBuffer = await generateQRCodeBuffer(redirectUrl);
+          if (qrBuffer) {
+            const currentY = doc.y;
+            doc.image(qrBuffer, doc.page.width - 120, currentY - 20, { width: 60 });
+            doc.font(PDF_FONT_REGULAR).fontSize(7).fillColor("#2563EB")
+               .text("[Quét để xem media]", doc.page.width - 125, currentY + 42, { width: 70, align: 'center' });
+          }
+        }
+      }
+
       if (q.type === 'TEXT') {
-        const lines = 4;
-        const lineContent = "..................................................................................................................................................";
+        doc.moveDown(0.5);
         doc.font(PDF_FONT_REGULAR).fontSize(10).fillColor("#E2E8F0");
-        for (let i = 0; i < lines; i++) {
-          doc.text(lineContent, { indent: 20 });
+        for (let i = 0; i < 4; i++) {
+          doc.text("..................................................................................................................................................", { indent: 10 });
           doc.moveDown(0.4);
         }
       } else {
@@ -929,78 +1020,62 @@ export const buildQuizContentPdf = async (quizId, user, { type = 'all', randomiz
           
           doc.font(isCorrect ? PDF_FONT_BOLD : PDF_FONT_REGULAR)
              .fontSize(10)
-             .fillColor(isCorrect ? "#059669" : "#475569")
-             .text(`${label}. ${a.content}`, { indent: 20 });
+             .fillColor(isCorrect ? "#16A34A" : "#334155")
+             .text(`${label}. ${a.content}`, { indent: 15 });
         });
       }
 
       if (showExplanation && q.explanation) {
         doc.moveDown(0.2);
-        doc.font(PDF_FONT_REGULAR).fontSize(9).fillColor("#1D4ED8").text(`Giải thích: ${q.explanation}`, { indent: 20 });
+        doc.font(PDF_FONT_REGULAR).fontSize(9).fillColor("#2563EB").text(`Giải thích: ${q.explanation}`, { indent: 15 });
       }
 
       doc.moveDown(1);
     };
 
-    const count = Math.max(1, Math.min(10, parseInt(versionCount)));
+    const run = async () => {
+      const count = Math.max(1, Math.min(10, parseInt(versionCount)));
+      for (let v = 0; v < count; v++) {
+        const versionCode = 101 + v;
+        const questions = prepareQuestionsForExport(originalQuestions, randomize);
 
-    for (let v = 0; v < count; v++) {
-      const versionCode = 101 + v;
-      
-      let questions = originalQuestions;
-      
-      const objectiveQuestions = questions.filter(q => q.type !== 'TEXT');
-      const subjectiveQuestions = questions.filter(q => q.type === 'TEXT');
+        // 1. Bản Đề thi
+        if (type === 'all' || type === 'paper') {
+          drawSectionHeader(`ĐỀ THI: ${quiz.title}`, count > 1 ? versionCode : null);
+          drawStudentHeader();
+          for(let i=0; i<questions.length; i++) await drawQuestion(questions[i], i, false, false);
+          if (v < count - 1 || type === 'all') doc.addPage();
+        }
 
-      if (randomize) {
-        const shuffledObjective = shuffleArray(objectiveQuestions).map(q => ({
-          ...q,
-          answers: shuffleArray(q.answers)
-        }));
-        const shuffledSubjective = shuffleArray(subjectiveQuestions);
-        questions = [...shuffledObjective, ...shuffledSubjective];
-      } else {
-        questions = [...objectiveQuestions, ...subjectiveQuestions];
-      }
-
-      // 1. Bản Đề thi
-      if (type === 'all' || type === 'paper') {
-        drawSectionHeader(`ĐỀ THI: ${quiz.title}`, count > 1 ? versionCode : null);
-        drawStudentHeader();
-        questions.forEach((q, i) => drawQuestion(q, i, false, false));
-        doc.addPage();
-      }
-
-      // 2. Bản Đáp án
-      if (type === 'all' || type === 'key') {
-        drawSectionHeader(`ĐÁP ÁN: ${quiz.title}`, count > 1 ? versionCode : null);
-        const tableTop = doc.y;
-        doc.font(PDF_FONT_BOLD).fontSize(10).text("Câu", 50, tableTop).text("Đáp án đúng", 100, tableTop);
-        doc.moveDown(0.5);
-        
-        questions.forEach((q, i) => {
-          if (doc.y > 750) doc.addPage();
-          const correctOptions = q.answers
-            .map((a, idx) => (a.is_correct ? getOptionLabel(idx) : null))
-            .filter(Boolean)
-            .join(", ");
-          
-          const y = doc.y;
-          doc.font(PDF_FONT_REGULAR).fontSize(10).text(i + 1, 50, y).text(correctOptions, 100, y);
+        // 2. Bản Đáp án
+        if (type === 'all' || type === 'key') {
+          drawSectionHeader(`ĐÁP ÁN: ${quiz.title}`, count > 1 ? versionCode : null);
+          doc.font(PDF_FONT_BOLD).fontSize(10).text("Câu", 50, doc.y).text("Đáp án đúng", 100, doc.y - 12);
           doc.moveDown(0.5);
-        });
-        doc.addPage();
-      }
+          
+          questions.forEach((q, i) => {
+            if (doc.y > 750) doc.addPage();
+            const correctOptions = q.answers
+              .map((a, idx) => (a.is_correct ? getOptionLabel(idx) : null))
+              .filter(Boolean).join(", ");
+            
+            doc.font(PDF_FONT_REGULAR).fontSize(10).text(i + 1, 50, doc.y).text(correctOptions || "---", 100, doc.y - 12);
+            doc.moveDown(0.4);
+          });
+          if (type === 'all' || v < count - 1) doc.addPage();
+        }
 
-      // 3. Bản Lời giải chi tiết
-      if (type === 'all' || type === 'solutions') {
-        drawSectionHeader(`LỜI GIẢI CHI TIẾT: ${quiz.title}`, count > 1 ? versionCode : null);
-        questions.forEach((q, i) => drawQuestion(q, i, true, true));
-        if (v < count - 1) doc.addPage();
+        // 3. Bản Lời giải chi tiết
+        if (type === 'all' || type === 'solutions') {
+          drawSectionHeader(`LỜI GIẢI CHI TIẾT: ${quiz.title}`, count > 1 ? versionCode : null);
+          for(let i=0; i<questions.length; i++) await drawQuestion(questions[i], i, true, true);
+          if (v < count - 1) doc.addPage();
+        }
       }
-    }
+      doc.end();
+    };
 
-    doc.end();
+    run().catch(reject);
   });
 
   let fileSuffix = type === 'all' ? 'full-pack' : type;

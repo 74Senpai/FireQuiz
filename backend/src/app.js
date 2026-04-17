@@ -9,6 +9,7 @@ import quizRoute from './routes/quizRoute.js';
 import questionRoute from './routes/questionRoute.js';
 import attemptRoute from './routes/attemptRoute.js';
 import uploadRoute from './routes/uploadRoute.js';
+import mediaRoute from './routes/mediaRoutes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import cookieParser from 'cookie-parser';
 import { protectedRoute } from './middlewares/authMiddleware.js';
@@ -54,6 +55,7 @@ async function startServer() {
 app.use('/api/auth', authRoute);
 app.use('/api/quiz', quizRoute);
 app.use('/api/question', questionRoute);
+app.use('/api/media', mediaRoute);
 
 // private route
 app.use(protectedRoute);

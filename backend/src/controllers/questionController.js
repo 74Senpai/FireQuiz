@@ -20,30 +20,6 @@ export const createQuestion = asyncHandler(async (req, res) => {
 });
 
 
-export const changeType = asyncHandler(async (req, res) => {
-  const questionId = req.params.id;
-  
-  const user = req.user;
-  
-  const { type } = req.body;
-  
-  await questionService.changeType(questionId, user.id, type);
- 
-  return res.status(204).send();
-});
-
-export const changeContent = asyncHandler(async (req, res) => {
-  const questionId = req.params.id;
-  
-  const user = req.user;
-
-  const { content } = req.body;
-
-  await questionService.changeContent(questionId, user.id, content);
-
-  return res.status(204).send();
-});
-
 export const deleteQuestion = asyncHandler(async (req, res) => {
   const questionId = req.params.id;
 

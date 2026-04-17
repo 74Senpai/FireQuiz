@@ -30,6 +30,7 @@
     "node-cache": "^5.1.2",
     "nodemailer": "^8.0.2",
     "pdfkit": "^0.18.0",
+    "qrcode": "^1.5.4",
     "winston": "^3.19.0"
   },
   "devDependencies": {

@@ -62,7 +62,7 @@ export const updatePasswordByEmail = async (email, hashedPassword) => {
   return result.affectedRows > 0;
 };
 
-export const updateAvatarUrl = async (id, avatarUrl) => {
+export const updateAvatar = async (id, avatarUrl) => {
   const sql = "UPDATE users SET avatar_url = ? WHERE id = ? AND is_active = 1;";
   const [result] = await pool.execute(sql, [avatarUrl, id]);
   return result.affectedRows > 0;

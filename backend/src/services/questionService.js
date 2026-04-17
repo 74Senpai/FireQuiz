@@ -227,16 +227,3 @@ export const getQuestionById = async (questionId, user) => {
   return hydrated;
 };
 
-// Các hàm legacy (giữ lại để tương thích)
-export const changeType = async (questionId, userId, type) => {
-  await checkQuestionExistAndOwner(questionId, userId);
-  if (type) {
-    if (!ALLOWED_TYPES.includes(type)) throw new AppError('Loại câu hỏi không hợp lệ', 400);
-    await questionRepository.changeType(questionId, type);
-  }
-};
-
-export const changeContent = async (questionId, userId, content) => {
-  await checkQuestionExistAndOwner(questionId, userId);
-  await questionRepository.changeContent(questionId, content);
-};

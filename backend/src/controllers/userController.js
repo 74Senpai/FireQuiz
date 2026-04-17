@@ -1,6 +1,7 @@
 import { asyncHandler } from '../utils/asyncHandler.js'
 import logger from '../utils/logger.js';
 import * as userService from '../services/userService.js';
+import AppError from '../errors/AppError.js';
 
 export const getMyInfo = asyncHandler(async (req, res) => {
   logger.debug(`userController.js - Current User ID: ${req.user.id}`);
