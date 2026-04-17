@@ -33,6 +33,7 @@ export function Results() {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [isRandomize, setIsRandomize] = useState(false);
   const [versionCount, setVersionCount] = useState(1);
+  const [isSeparateFiles, setIsSeparateFiles] = useState(false);
   const [exportStatus, setExportStatus] = useState<ExportStatus | null>(null);
   const isAnyExporting = isExportingExcel || isExportingPdf || isExportingContent;
 
@@ -197,7 +198,8 @@ export function Results() {
         type, 
         format,
         randomize: isRandomize,
-        versionCount
+        versionCount,
+        separateFiles: isSeparateFiles
       }, {
         onDownloadProgress: (event: any) => {
           if (event?.total) {
@@ -361,6 +363,20 @@ export function Results() {
                         />
                       </div>
                     )}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-indigo-500/10">
+                      <div className="flex items-center gap-2">
+                        <Download className="h-4 w-4 text-emerald-300" />
+                        <label htmlFor="separateFiles" className="text-xs font-medium text-emerald-100 cursor-pointer select-none">Tách thành tệp nén (Zip)</label>
+                      </div>
+                      <input 
+                        type="checkbox"
+                        id="separateFiles" 
+                        checked={isSeparateFiles} 
+                        onChange={(e) => setIsSeparateFiles(e.target.checked)}
+                        className="h-4 w-4 rounded border-emerald-400 bg-slate-800 text-emerald-600 focus:ring-emerald-500 focus:ring-offset-slate-900 cursor-pointer"
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -381,6 +397,12 @@ export function Results() {
                       desc="Đầy đủ nội dung và giải thích chi tiết"
                       icon={FileCheck} 
                       type="solutions" 
+                    />
+                    <ExportOption 
+                      title="Bản Ôn tập" 
+                      desc="File Excel tương tác có chấm điểm"
+                      icon={ClipboardList} 
+                      type="review" 
                     />
                     <div className="pt-2 border-t border-white/10">
                       <ExportOption 

@@ -681,51 +681,59 @@ const writeExcelReviewContent = (worksheet, questions) => {
     const fullContent = `${q.content}\n${q.answers.map((a, idx) => `${getOptionLabel(idx)}. ${a.content}`).join("\n")}`;
 
     const row = worksheet.getRow(rowNumber);
+    const isText = q.type === 'TEXT';
+    
     row.values = {
       index: qIdx + 1,
       content: fullContent,
-      selection: correctOptions, // Điền sẵn đáp án đúng như yêu cầu
+      selection: isText ? "[Nhập câu trả lời]" : correctOptions,
       correct: correctOptions,
-      result: { formula: `IF(C${rowNumber}=D${rowNumber}, "ĐÚNG", "SAI")` },
+      result: isText ? { formula: `""` } : { formula: `IF(C${rowNumber}=D${rowNumber}, "ĐÚNG", "SAI")` },
       explanation: q.explanation || "",
     };
+
+    if (isText) {
+      row.getCell("result").value = "TỰ ĐÁNH GIÁ";
+    }
 
     row.getCell("content").alignment = { wrapText: true, vertical: "top" };
     row.getCell("explanation").alignment = { wrapText: true, vertical: "top" };
     row.alignment = { vertical: "middle" };
 
-    // 1. Data Validation (Dropdown)
-    row.getCell("selection").dataValidation = {
-      type: "list",
-      allowBlank: true,
-      formulae: [`"${optionsList}"`],
-      showErrorMessage: true,
-      errorTitle: "Lựa chọn không hợp lệ",
-      error: "Vui lòng chọn đáp án từ danh sách (A, B, C...)",
-    };
+    // 1. Data Validation (Dropdown) - Chỉ cho câu không phải TEXT
+    if (!isText) {
+      row.getCell("selection").dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: [`"${optionsList}"`],
+        showErrorMessage: false, // Để cho phép nhập MULTI (vd: A, C)
+      };
+    }
 
-    // 2. Conditional Formatting (Đổi màu theo kết quả) - Xanh khi đúng, Đỏ khi sai
-    worksheet.addConditionalFormatting({
-      ref: `C${rowNumber}`,
-      rules: [
-        {
-          type: "expression",
-          formulae: [`C${rowNumber}=D${rowNumber}`],
-          style: {
-            fill: { type: "pattern", pattern: "solid", bgColor: { argb: REPORT_THEME.successSoft } },
-            font: { color: { argb: REPORT_THEME.success }, bold: true },
+    // 2. Conditional Formatting (Đổi màu theo kết quả)
+    if (!isText) {
+      worksheet.addConditionalFormatting({
+        ref: `C${rowNumber}`,
+        rules: [
+          {
+            type: "expression",
+            formulae: [`C${rowNumber}=D${rowNumber}`],
+            style: {
+              fill: { type: "pattern", pattern: "solid", bgColor: { argb: REPORT_THEME.successSoft } },
+              font: { color: { argb: REPORT_THEME.success }, bold: true },
+            },
           },
-        },
-        {
-          type: "expression",
-          formulae: [`AND(NOT(ISBLANK(C${rowNumber})), C${rowNumber}<>D${rowNumber})`],
-          style: {
-            fill: { type: "pattern", pattern: "solid", bgColor: { argb: REPORT_THEME.dangerSoft } },
-            font: { color: { argb: REPORT_THEME.danger }, bold: true },
+          {
+            type: "expression",
+            formulae: [`AND(NOT(ISBLANK(C${rowNumber})), C${rowNumber}<>D${rowNumber})`],
+            style: {
+              fill: { type: "pattern", pattern: "solid", bgColor: { argb: REPORT_THEME.dangerSoft } },
+              font: { color: { argb: REPORT_THEME.danger }, bold: true },
+            },
           },
-        },
-      ],
-    });
+        ],
+      });
+    }
   });
 
   worksheet.eachRow((row, rowNumber) => {
@@ -895,23 +903,36 @@ export const buildQuizContentPdf = async (quizId, user, { type = 'all', randomiz
     };
 
     const drawQuestion = (q, index, showCorrect = false, showExplanation = false) => {
-      if (doc.y > 680) doc.addPage();
+      if (doc.y > 650) doc.addPage();
 
-      const typeLabel = q.type === 'MULTIPLE_CHOICE' ? '(Câu hỏi nhiều lời giải)' : '(Câu hỏi 1 lời giải)';
+      let typeLabel = '(Câu hỏi 1 lời giải)';
+      if (q.type === 'MULTI_ANSWERS') typeLabel = '(Câu hỏi nhiều lời giải)';
+      if (q.type === 'TEXT') typeLabel = '(Câu hỏi tự luận)';
+      if (q.type === 'TRUE_FALSE') typeLabel = '(Câu hỏi Đúng/Sai)';
+
       doc.font(PDF_FONT_BOLD).fontSize(11).fillColor("#0F172A").text(`Câu ${index + 1}: ${q.content} `);
-      const lastY = doc.y;
       doc.font(PDF_FONT_REGULAR).fontSize(9).fillColor("#64748B").text(typeLabel, { indent: 0 });
       doc.moveDown(0.3);
 
-      q.answers.forEach((a, aIdx) => {
-        const label = getOptionLabel(aIdx);
-        const isCorrect = showCorrect && a.is_correct;
-        
-        doc.font(isCorrect ? PDF_FONT_BOLD : PDF_FONT_REGULAR)
-           .fontSize(10)
-           .fillColor(isCorrect ? "#059669" : "#475569")
-           .text(`${label}. ${a.content}`, { indent: 20 });
-      });
+      if (q.type === 'TEXT') {
+        const lines = 4;
+        const lineContent = "..................................................................................................................................................";
+        doc.font(PDF_FONT_REGULAR).fontSize(10).fillColor("#E2E8F0");
+        for (let i = 0; i < lines; i++) {
+          doc.text(lineContent, { indent: 20 });
+          doc.moveDown(0.4);
+        }
+      } else {
+        q.answers.forEach((a, aIdx) => {
+          const label = getOptionLabel(aIdx);
+          const isCorrect = showCorrect && a.is_correct;
+          
+          doc.font(isCorrect ? PDF_FONT_BOLD : PDF_FONT_REGULAR)
+             .fontSize(10)
+             .fillColor(isCorrect ? "#059669" : "#475569")
+             .text(`${label}. ${a.content}`, { indent: 20 });
+        });
+      }
 
       if (showExplanation && q.explanation) {
         doc.moveDown(0.2);
@@ -925,12 +946,21 @@ export const buildQuizContentPdf = async (quizId, user, { type = 'all', randomiz
 
     for (let v = 0; v < count; v++) {
       const versionCode = 101 + v;
+      
       let questions = originalQuestions;
+      
+      const objectiveQuestions = questions.filter(q => q.type !== 'TEXT');
+      const subjectiveQuestions = questions.filter(q => q.type === 'TEXT');
+
       if (randomize) {
-        questions = shuffleArray(originalQuestions).map(q => ({
+        const shuffledObjective = shuffleArray(objectiveQuestions).map(q => ({
           ...q,
           answers: shuffleArray(q.answers)
         }));
+        const shuffledSubjective = shuffleArray(subjectiveQuestions);
+        questions = [...shuffledObjective, ...shuffledSubjective];
+      } else {
+        questions = [...objectiveQuestions, ...subjectiveQuestions];
       }
 
       // 1. Bản Đề thi

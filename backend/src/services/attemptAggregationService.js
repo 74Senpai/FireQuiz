@@ -282,6 +282,8 @@ export const getResultReportDataByQuizId = async (quizId) => {
         incorrect_count: 0,
       };
 
+      const evaluations = questionEvaluations.filter(e => e.attempt_id === attempt.id);
+
       return {
         attempt_id: attempt.id,
         user_id: attempt.user_id,
@@ -294,6 +296,7 @@ export const getResultReportDataByQuizId = async (quizId) => {
         tab_violations: attempt.tab_violations || 0,
         correct_count: attemptSummary.correct_count,
         incorrect_count: attemptSummary.incorrect_count,
+        evaluations: evaluations, // Chi tiết từng câu
       };
     });
 };
