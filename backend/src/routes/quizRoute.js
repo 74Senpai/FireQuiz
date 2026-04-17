@@ -28,6 +28,7 @@ router.get('/:id/results-dashboard', protectedRoute, quizController.getResultsDa
 // Routes có :id — Export
 router.get('/:id/export/excel', protectedRoute, quizController.exportQuizResultsExcel);
 router.get('/:id/export/pdf', protectedRoute, quizController.exportQuizResultsPdf);
+router.get('/:id/export/content', protectedRoute, quizController.exportQuizContent);
 
 // Routes có :id — PIN
 router.post('/:id/generate-pin', protectedRoute, quizController.generatePin);

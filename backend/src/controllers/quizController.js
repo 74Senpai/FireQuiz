@@ -68,6 +68,27 @@ export const exportQuizResultsPdf = asyncHandler(async (req, res) => {
   return sendReport(res, report);
 });
 
+export const exportQuizContent = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const user = req.user;
+  const { type = 'all', format = 'excel', randomize = 'false', versionCount = '1' } = req.query;
+
+  let report;
+  const options = { 
+    type, 
+    randomize: randomize === 'true', 
+    versionCount: parseInt(versionCount) 
+  };
+
+  if (format === 'pdf') {
+    report = await quizReportService.buildQuizContentPdf(id, user, options);
+  } else {
+    report = await quizReportService.buildQuizContentExcel(id, user, options);
+  }
+
+  return sendReport(res, report);
+});
+
 export const setStatus = asyncHandler(async (req, res) => {
   const user = req.user;
   const id = req.params.id;

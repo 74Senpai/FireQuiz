@@ -4,6 +4,8 @@ import path from 'path';
 import PDFDocument from 'pdfkit';
 import { fileURLToPath } from 'url';
 import * as quizRepository from '../repositories/quizRepository.js';
+import * as questionRepository from '../repositories/questionRepository.js';
+import * as answerRepository from '../repositories/answerRepository.js';
 import * as attemptAggregationService from '../services/attemptAggregationService.js';
 import AppError from '../errors/AppError.js';
 
@@ -578,6 +580,253 @@ export const buildPdfReport = async (quizId, user) => {
   return {
     buffer,
     fileName: buildFileName(quiz.title, "pdf"),
+    contentType: "application/pdf",
+  };
+};
+
+const getQuizContentData = async (quizId, user) => {
+  const quiz = await quizRepository.getQuizById(quizId);
+  checkQuizExistAndOwner(quiz, user);
+
+  const questions = await questionRepository.getListQuestionByQuizId(quizId);
+  const answers = await answerRepository.getAnswersByQuestionIds(
+    questions.map((q) => q.id),
+  );
+
+  const answersByQuestionId = answers.reduce((acc, answer) => {
+    if (!acc.has(answer.question_id)) acc.set(answer.question_id, []);
+    acc.get(answer.question_id).push(answer);
+    return acc;
+  }, new Map());
+
+  const questionsWithAnswers = questions.map((q) => ({
+    ...q,
+    answers: answersByQuestionId.get(q.id) || [],
+  }));
+
+  return { quiz, questions: questionsWithAnswers };
+};
+
+const shuffleArray = (array) => {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+};
+
+const getOptionLabel = (index) => String.fromCharCode(65 + index); // A, B, C, D...
+
+const writeExcelQuestionContent = (worksheet, questions, showCorrect = false, showExplanation = false) => {
+  let currentRow = worksheet.lastRow ? worksheet.lastRow.number + 1 : 1;
+
+  questions.forEach((q, qIdx) => {
+    const qLabel = `Câu ${qIdx + 1}: ${q.content}`;
+    const row = worksheet.getRow(currentRow++);
+    row.getCell(1).value = qLabel;
+    row.getCell(1).font = { bold: true };
+
+    q.answers.forEach((a, aIdx) => {
+      const label = getOptionLabel(aIdx);
+      const optionRow = worksheet.getRow(currentRow++);
+      optionRow.getCell(1).value = `${label}. ${a.content}`;
+      if (showCorrect && a.is_correct) {
+        optionRow.getCell(1).font = { bold: true, color: { argb: REPORT_THEME.success } };
+      }
+    });
+
+    if (showExplanation && q.explanation) {
+      const expRow = worksheet.getRow(currentRow++);
+      expRow.getCell(1).value = `Giải thích: ${q.explanation}`;
+      expRow.getCell(1).font = { italic: true, color: { argb: REPORT_THEME.primary } };
+    }
+
+    currentRow++; // Space between questions
+  });
+};
+
+export const buildQuizContentExcel = async (quizId, user, { type = 'all', randomize = false, versionCount = 1 } = {}) => {
+  const { quiz, questions: originalQuestions } = await getQuizContentData(quizId, user);
+  const workbook = new ExcelJS.Workbook();
+
+  const count = Math.max(1, Math.min(10, parseInt(versionCount)));
+
+  for (let v = 0; v < count; v++) {
+    const versionCode = 101 + v;
+    const suffix = count > 1 ? ` - Mã ${versionCode}` : "";
+    
+    let questions = originalQuestions;
+    if (randomize) {
+      questions = shuffleArray(originalQuestions).map(q => ({
+        ...q,
+        answers: shuffleArray(q.answers)
+      }));
+    }
+
+    // 1. Bản Đề thi
+    if (type === 'all' || type === 'paper') {
+      const ws = workbook.addWorksheet(`Đề thi${suffix}`);
+      ws.getCell("A1").value = `ĐỀ THI: ${quiz.title}`;
+      ws.getCell("A1").font = { size: 14, bold: true };
+      if (count > 1) ws.getCell("C1").value = `Mã đề: ${versionCode}`;
+      ws.getCell("A2").value = "Họ và tên: ........................................................... Lớp: .....................";
+      ws.getRow(4).values = ["Nội dung câu hỏi"];
+      writeExcelQuestionContent(ws, questions, false, false);
+      ws.getColumn(1).width = 100;
+    }
+
+    // 2. Bản Đáp án
+    if (type === 'all' || type === 'key') {
+      const ws = workbook.addWorksheet(`Đáp án${suffix}`);
+      ws.getCell("A1").value = `ĐÁP ÁN: ${quiz.title}`;
+      ws.getCell("A1").font = { size: 14, bold: true };
+      if (count > 1) ws.getCell("C1").value = `Mã đề: ${versionCode}`;
+      ws.getRow(3).values = ["Câu", "Đáp án đúng"];
+      ws.getRow(3).font = { bold: true };
+      
+      questions.forEach((q, i) => {
+        const correctOptions = q.answers
+          .map((a, idx) => (a.is_correct ? getOptionLabel(idx) : null))
+          .filter(Boolean)
+          .join(", ");
+        ws.addRow([i + 1, correctOptions]);
+      });
+      ws.getColumn(1).width = 10;
+      ws.getColumn(2).width = 30;
+    }
+
+    // 3. Bản Lời giải chi tiết
+    if (type === 'all' || type === 'solutions') {
+      const ws = workbook.addWorksheet(`Lời giải${suffix}`);
+      ws.getCell("A1").value = `LỜI GIẢI CHI TIẾT: ${quiz.title}`;
+      ws.getCell("A1").font = { size: 14, bold: true };
+      if (count > 1) ws.getCell("C1").value = `Mã đề: ${versionCode}`;
+      writeExcelQuestionContent(ws, questions, true, true);
+      ws.getColumn(1).width = 100;
+    }
+  }
+
+  const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+  let fileSuffix = type === 'all' ? 'full-pack' : type;
+  if (randomize) fileSuffix += '-randomized';
+  
+  return {
+    buffer,
+    fileName: `${buildFileName(quiz.title, "").replace("-report.", "")}-${fileSuffix}.xlsx`,
+    contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  };
+};
+
+export const buildQuizContentPdf = async (quizId, user, { type = 'all', randomize = false, versionCount = 1 } = {}) => {
+  const { quiz, questions: originalQuestions } = await getQuizContentData(quizId, user);
+  const doc = new PDFDocument({ margin: 50, size: "A4" });
+  const chunks = [];
+
+  const buffer = await new Promise((resolve, reject) => {
+    doc.on("data", (chunk) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+
+    registerPdfFonts(doc);
+
+    const drawSectionHeader = (title, versionCode = null) => {
+      doc.font(PDF_FONT_BOLD).fontSize(16).fillColor(REPORT_THEME.primary).text(title, { align: 'center' });
+      if (versionCode) {
+        doc.fontSize(12).fillColor(REPORT_THEME.danger).text(`Mã đề: ${versionCode}`, { align: 'right' });
+      }
+      doc.moveDown(1);
+    };
+
+    const drawStudentHeader = () => {
+      doc.font(PDF_FONT_REGULAR).fontSize(11).fillColor(REPORT_THEME.slateText);
+      doc.text("Họ và tên: ........................................................... Lớp: .....................", { align: 'left' });
+      doc.text(`Ngày thi: ....../....../20......`, { align: 'left' });
+      doc.moveDown(1.5);
+    };
+
+    const drawQuestion = (q, index, showCorrect = false, showExplanation = false) => {
+      if (doc.y > 680) doc.addPage();
+
+      doc.font(PDF_FONT_BOLD).fontSize(11).fillColor("#0F172A").text(`Câu ${index + 1}: ${q.content}`);
+      doc.moveDown(0.3);
+
+      q.answers.forEach((a, aIdx) => {
+        const label = getOptionLabel(aIdx);
+        const isCorrect = showCorrect && a.is_correct;
+        
+        doc.font(isCorrect ? PDF_FONT_BOLD : PDF_FONT_REGULAR)
+           .fontSize(10)
+           .fillColor(isCorrect ? "#059669" : "#475569")
+           .text(`${label}. ${a.content}`, { indent: 20 });
+      });
+
+      if (showExplanation && q.explanation) {
+        doc.moveDown(0.2);
+        doc.font(PDF_FONT_REGULAR).fontSize(9).fillColor("#1D4ED8").text(`Giải thích: ${q.explanation}`, { indent: 20 });
+      }
+
+      doc.moveDown(1);
+    };
+
+    const count = Math.max(1, Math.min(10, parseInt(versionCount)));
+
+    for (let v = 0; v < count; v++) {
+      const versionCode = 101 + v;
+      let questions = originalQuestions;
+      if (randomize) {
+        questions = shuffleArray(originalQuestions).map(q => ({
+          ...q,
+          answers: shuffleArray(q.answers)
+        }));
+      }
+
+      // 1. Bản Đề thi
+      if (type === 'all' || type === 'paper') {
+        drawSectionHeader(`ĐỀ THI: ${quiz.title}`, count > 1 ? versionCode : null);
+        drawStudentHeader();
+        questions.forEach((q, i) => drawQuestion(q, i, false, false));
+        doc.addPage();
+      }
+
+      // 2. Bản Đáp án
+      if (type === 'all' || type === 'key') {
+        drawSectionHeader(`ĐÁP ÁN: ${quiz.title}`, count > 1 ? versionCode : null);
+        const tableTop = doc.y;
+        doc.font(PDF_FONT_BOLD).fontSize(10).text("Câu", 50, tableTop).text("Đáp án đúng", 100, tableTop);
+        doc.moveDown(0.5);
+        
+        questions.forEach((q, i) => {
+          if (doc.y > 750) doc.addPage();
+          const correctOptions = q.answers
+            .map((a, idx) => (a.is_correct ? getOptionLabel(idx) : null))
+            .filter(Boolean)
+            .join(", ");
+          
+          const y = doc.y;
+          doc.font(PDF_FONT_REGULAR).fontSize(10).text(i + 1, 50, y).text(correctOptions, 100, y);
+          doc.moveDown(0.5);
+        });
+        doc.addPage();
+      }
+
+      // 3. Bản Lời giải chi tiết
+      if (type === 'all' || type === 'solutions') {
+        drawSectionHeader(`LỜI GIẢI CHI TIẾT: ${quiz.title}`, count > 1 ? versionCode : null);
+        questions.forEach((q, i) => drawQuestion(q, i, true, true));
+        if (v < count - 1) doc.addPage();
+      }
+    }
+
+    doc.end();
+  });
+
+  let fileSuffix = type === 'all' ? 'full-pack' : type;
+  if (randomize) fileSuffix += '-randomized';
+
+  return {
+    buffer,
+    fileName: `${buildFileName(quiz.title, "").replace("-report.", "")}-${fileSuffix}.pdf`,
     contentType: "application/pdf",
   };
 };
