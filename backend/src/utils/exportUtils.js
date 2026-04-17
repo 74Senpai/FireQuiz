@@ -96,9 +96,9 @@ export const isImageUrl = (url) => {
  * Lấy link Redirect cho media.
  */
 export const getMediaViewUrl = (path, bucket) => {
-  const baseUrl = process.env.BACKEND_URL || 'http://localhost:8080';
+  const frontEndUrl = process.env.FRONT_END_URL || 'http://localhost:3000';
   const encodedPath = encodeURIComponent(path);
-  return `${baseUrl}/api/v1/media/view?path=${encodedPath}${bucket ? `&bucket=${bucket}` : ''}`;
+  return `${frontEndUrl}/view-media?path=${encodedPath}${bucket ? `&bucket=${bucket}` : ''}`;
 };
 
 /**

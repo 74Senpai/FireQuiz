@@ -27,6 +27,7 @@ const History = lazy(() => import("../pages/Taker/History").then(m => ({ default
 
 const Profile = lazy(() => import("../pages/Profile").then(m => ({ default: m.Profile })));
 const PublicExplore = lazy(() => import("../pages/PublicExplore").then(m => ({ default: m.PublicExplore })));
+const MediaViewer = lazy(() => import("../pages/MediaViewer").then(m => ({ default: m.MediaViewer })));
 
 // Loading Component để tránh nháy giật trắng màn hình khi Lazy Load các chunk file
 const GlobalLoader = () => (
@@ -44,6 +45,7 @@ export default function AppRouter() {
       <Routes>
         <Route path="/" element={<HomeRedirect />} />
         <Route path="/explore" element={<PublicExplore />} />
+        <Route path="/view-media" element={<MediaViewer />} />
 
         <Route element={<PublicRoute />}>
           <Route element={<AuthLayout />}>

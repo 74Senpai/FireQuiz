@@ -34,3 +34,31 @@ export const submitAttempt = (attemptId, answers = {}, textAnswers = {}) =>
 export const getMyStats = () =>
   axios.get("/attempt/stats/my").then((res) => res.data);
 
+/** Xuất báo cáo / Tài liệu ôn tập (Blob) */
+export const exportAttemptReview = async (attemptId, format, type) => {
+  const res = await axios.get(`/attempt/${attemptId}/export-review`, {
+    params: { format, type },
+    responseType: 'blob'
+  });
+  
+  // Trích xuất tên file từ Content-Disposition nếu có
+  let fileName = `${type}-${attemptId}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
+  const disposition = res.headers['content-disposition'];
+  if (disposition && disposition.indexOf('filename=') !== -1) {
+    const matches = disposition.match(/filename="(.+)"/);
+    if (matches != null && matches[1]) fileName = matches[1];
+  }
+
+  // Thực hiện download
+  const url = window.URL.createObjectURL(new Blob([res.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', fileName);
+  document.body.appendChild(link);
+  link.click();
+  
+  link.remove();
+  window.URL.revokeObjectURL(url);
+  return true;
+};
+

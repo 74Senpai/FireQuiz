@@ -19,7 +19,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getAttemptReview } from "@/services/attemptServices";
+import { getAttemptReview, exportAttemptReview } from "@/services/attemptServices";
 import { cn } from "@/lib/utils";
 
 function formatDt(value: any) {
@@ -104,11 +104,13 @@ export function ReviewQuiz() {
 
   const handleDownload = async (format: 'pdf' | 'excel', type: 'review' | 'paper' | 'solutions') => {
     if (!attemptId) return;
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
-    const url = `${baseUrl}/attempts/${attemptId}/export-review?format=${format}&type=${type}`;
     
-    // Mở tab mới để tải xuống (BE đã set headers Attachment)
-    window.open(url, '_blank');
+    try {
+      await exportAttemptReview(attemptId, format, type);
+    } catch (err: any) {
+      console.error("Download error:", err);
+      alert("Không thể tải xuống tài liệu. Vui lòng thử lại sau.");
+    }
   };
 
   const summary = useMemo(() => {

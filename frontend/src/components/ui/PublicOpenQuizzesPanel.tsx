@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, Play, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { getPublicOpenQuizzes } from "@/services/quizServices";
+import { cn } from "@/lib/utils";
 
 export type PublicQuizRow = {
   id: number;

@@ -78,7 +78,7 @@ export const exportQuizContent = asyncHandler(async (req, res) => {
     type, 
     format,
     randomize: randomize === 'true', 
-    versionCount: parseInt(versionCount) 
+    versionCount: parseInt(versionCount)
   };
 
   if (separateFiles === 'true') {
