@@ -73,6 +73,18 @@ export const exportQuizResultsPdf = (id, config = {}) =>
   });
 
 /**
+ * Export nội dung Quiz (Đề thi, Đáp án, Lời giải)
+ * type: 'paper' | 'key' | 'solutions' | 'all'
+ * format: 'excel' | 'pdf'
+ */
+export const exportQuizContent = (id, params = {}, config = {}) =>
+  axios.get(`/quiz/${id}/export/content`, {
+    params,
+    responseType: "blob",
+    ...config,
+  });
+
+/**
  * Cập nhật trạng thái Quiz (PUBLIC, PRIVATE, DRAFT)
  */
 export const updateQuizStatus = (id, status) =>
