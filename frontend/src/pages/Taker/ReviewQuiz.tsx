@@ -14,6 +14,9 @@ import {
   FileAudio,
   ZoomIn,
   X,
+  FileText,
+  Download,
+  FileSpreadsheet,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAttemptReview } from "@/services/attemptServices";
@@ -98,6 +101,15 @@ export function ReviewQuiz() {
       cancelled = true;
     };
   }, [attemptId]);
+
+  const handleDownload = async (format: 'pdf' | 'excel', type: 'review' | 'paper' | 'solutions') => {
+    if (!attemptId) return;
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+    const url = `${baseUrl}/attempts/${attemptId}/export-review?format=${format}&type=${type}`;
+    
+    // Mở tab mới để tải xuống (BE đã set headers Attachment)
+    window.open(url, '_blank');
+  };
 
   const summary = useMemo(() => {
     if (!payload?.questions?.length) {
@@ -228,16 +240,77 @@ export function ReviewQuiz() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2">
+          {/* Ôn tập cá nhân */}
+          <div className="flex bg-slate-900 border border-white/10 rounded-lg overflow-hidden">
+            <Button
+              variant="ghost"
+              className="text-emerald-400 hover:bg-emerald-500/10 gap-2 border-r border-white/10 px-3 h-9"
+              onClick={() => handleDownload('pdf', 'review')}
+              title="Tải tài liệu ôn tập PDF (có giải thích)"
+            >
+              <FileText className="w-4 h-4" /> Ôn tập (PDF)
+            </Button>
+            <Button
+              variant="ghost"
+              className="text-emerald-400 hover:bg-emerald-500/10 px-3 h-9"
+              onClick={() => handleDownload('excel', 'review')}
+              title="Tải bảng kê ôn tập Excel"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Đề thi trắng */}
+          <div className="flex bg-slate-900 border border-white/10 rounded-lg overflow-hidden">
+            <Button
+              variant="ghost"
+              className="text-indigo-400 hover:bg-indigo-500/10 gap-2 border-r border-white/10 px-3 h-9"
+              onClick={() => handleDownload('pdf', 'paper')}
+              title="Tạo đề thi trắng (để tự luyện tập)"
+            >
+              <FileText className="w-4 h-4" /> Tạo đề (PDF)
+            </Button>
+            <Button
+              variant="ghost"
+              className="text-indigo-400 hover:bg-indigo-500/10 px-3 h-9"
+              onClick={() => handleDownload('excel', 'paper')}
+              title="Tạo đề thi trắng Excel"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Đáp án gốc */}
+          <div className="flex bg-slate-900 border border-white/10 rounded-lg overflow-hidden">
+            <Button
+              variant="ghost"
+              className="text-amber-400 hover:bg-amber-500/10 gap-2 border-r border-white/10 px-3 h-9"
+              onClick={() => handleDownload('pdf', 'solutions')}
+              title="Tải bộ đáp án & lời giải gốc"
+            >
+              <FileText className="w-4 h-4" /> Đáp án (PDF)
+            </Button>
+            <Button
+              variant="ghost"
+              className="text-amber-400 hover:bg-amber-500/10 px-3 h-9"
+              onClick={() => handleDownload('excel', 'solutions')}
+              title="Tải bộ đáp án Excel"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+            </Button>
+          </div>
+
           <Button
             variant="outline"
-            className="bg-slate-900 border-white/10 text-slate-300 hover:bg-white/5"
+            className="bg-slate-900 border-white/10 text-slate-300 hover:bg-white/5 h-9"
             onClick={() => window.print()}
           >
-            In kết quả
+            In nhanh
           </Button>
+
           <Link to="/dashboard">
-            <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
+            <Button className="bg-slate-800 hover:bg-slate-700 text-white h-9">
               Về trang chủ
             </Button>
           </Link>
