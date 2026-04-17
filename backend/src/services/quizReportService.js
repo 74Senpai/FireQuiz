@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs';
 import fs from 'fs';
 import path from 'path';
 import PDFDocument from 'pdfkit';
+import AdmZip from 'adm-zip';
 import { fileURLToPath } from 'url';
 import * as quizRepository from '../repositories/quizRepository.js';
 import * as questionRepository from '../repositories/questionRepository.js';
@@ -443,13 +444,19 @@ export const buildPdfReport = async (quizId, user) => {
         ? (Number(row.correct_count ?? 0) * 100) / totalResponses
         : 0;
 
-      if (doc.y > 505) {
+      // Tính toán chiều cao linh hoạt dựa trên số lượng câu hỏi
+      const evaluations = row.evaluations || [];
+      const boxesPerRow = 20;
+      const evaluationRows = Math.ceil(evaluations.length / boxesPerRow);
+      const evaluationSectionHeight = evaluations.length > 0 ? (evaluationRows * 18) + 10 : 0;
+      const cardHeight = 64 + evaluationSectionHeight;
+
+      if (doc.y + cardHeight > doc.page.height - 36) {
         doc.addPage();
         drawHeader();
       }
 
       const cardTop = doc.y;
-      const cardHeight = 64;
       const scoreTone = getScoreTone(Number(row.score ?? 0), summary.gradingScale);
       const scoreColor =
         scoreTone.font === REPORT_THEME.success
@@ -522,6 +529,31 @@ export const buildPdfReport = async (quizId, user) => {
         width: 180,
         align: "left",
       });
+
+      // Vẽ lưới câu trả lời chi tiết
+      if (evaluations.length > 0) {
+        doc.strokeColor("#E2E8F0").lineWidth(0.5).moveTo(50, cardTop + 60).lineTo(doc.page.width - 50, cardTop + 60).stroke();
+        
+        evaluations.forEach((evaluation, eIdx) => {
+          const rowIdx = Math.floor(eIdx / boxesPerRow);
+          const colIdx = eIdx % boxesPerRow;
+          const boxX = 50 + colIdx * 35;
+          const boxY = cardTop + 68 + rowIdx * 18;
+
+          doc
+            .roundedRect(boxX, boxY, 30, 14, 2)
+            .fill(evaluation.is_correct ? REPORT_THEME.successSoft : REPORT_THEME.dangerSoft);
+          
+          doc
+            .font(PDF_FONT_BOLD)
+            .fontSize(7)
+            .fillColor(evaluation.is_correct ? REPORT_THEME.success : REPORT_THEME.danger)
+            .text(`C${eIdx + 1}: ${evaluation.is_correct ? 'Đ' : 'S'}`, boxX, boxY + 3, {
+              width: 30,
+              align: 'center'
+            });
+        });
+      }
 
       doc.y = cardTop + cardHeight + 10;
     };
@@ -618,6 +650,106 @@ const shuffleArray = (array) => {
 
 const getOptionLabel = (index) => String.fromCharCode(65 + index); // A, B, C, D...
 
+const writeExcelReviewContent = (worksheet, questions) => {
+  // Cấu hình Header
+  const headerRow = worksheet.getRow(1);
+  headerRow.values = ["STT", "Nội dung câu hỏi", "Thí sinh chọn", "Đáp án đúng", "Kết quả", "Giải thích"];
+  headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+  headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: REPORT_THEME.primary } };
+  headerRow.alignment = { horizontal: "center", vertical: "middle" };
+  headerRow.height = 25;
+
+  worksheet.columns = [
+    { key: "index", width: 6 },
+    { key: "content", width: 50 },
+    { key: "selection", width: 15 },
+    { key: "correct", width: 15 },
+    { key: "result", width: 15 },
+    { key: "explanation", width: 40 },
+  ];
+
+  questions.forEach((q, qIdx) => {
+    const rowNumber = qIdx + 2;
+    const correctOptions = q.answers
+      .map((a, idx) => (a.is_correct ? getOptionLabel(idx) : null))
+      .filter(Boolean)
+      .join(", ");
+
+    const optionsList = q.answers.map((_, idx) => getOptionLabel(idx)).join(",");
+    
+    // Câu hỏi đầy đủ (gồm các phương án)
+    const fullContent = `${q.content}\n${q.answers.map((a, idx) => `${getOptionLabel(idx)}. ${a.content}`).join("\n")}`;
+
+    const row = worksheet.getRow(rowNumber);
+    const isText = q.type === 'TEXT';
+    
+    row.values = {
+      index: qIdx + 1,
+      content: fullContent,
+      selection: isText ? "[Nhập câu trả lời]" : correctOptions,
+      correct: correctOptions,
+      result: isText ? { formula: `""` } : { formula: `IF(C${rowNumber}=D${rowNumber}, "ĐÚNG", "SAI")` },
+      explanation: q.explanation || "",
+    };
+
+    if (isText) {
+      row.getCell("result").value = "TỰ ĐÁNH GIÁ";
+    }
+
+    row.getCell("content").alignment = { wrapText: true, vertical: "top" };
+    row.getCell("explanation").alignment = { wrapText: true, vertical: "top" };
+    row.alignment = { vertical: "middle" };
+
+    // 1. Data Validation (Dropdown) - Chỉ cho câu không phải TEXT
+    if (!isText) {
+      row.getCell("selection").dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: [`"${optionsList}"`],
+        showErrorMessage: false, // Để cho phép nhập MULTI (vd: A, C)
+      };
+    }
+
+    // 2. Conditional Formatting (Đổi màu theo kết quả)
+    if (!isText) {
+      worksheet.addConditionalFormatting({
+        ref: `C${rowNumber}`,
+        rules: [
+          {
+            type: "expression",
+            formulae: [`C${rowNumber}=D${rowNumber}`],
+            style: {
+              fill: { type: "pattern", pattern: "solid", bgColor: { argb: REPORT_THEME.successSoft } },
+              font: { color: { argb: REPORT_THEME.success }, bold: true },
+            },
+          },
+          {
+            type: "expression",
+            formulae: [`AND(NOT(ISBLANK(C${rowNumber})), C${rowNumber}<>D${rowNumber})`],
+            style: {
+              fill: { type: "pattern", pattern: "solid", bgColor: { argb: REPORT_THEME.dangerSoft } },
+              font: { color: { argb: REPORT_THEME.danger }, bold: true },
+            },
+          },
+        ],
+      });
+    }
+  });
+
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber > 1) {
+      row.eachCell((cell) => {
+        cell.border = {
+          top: { style: "thin", color: { argb: REPORT_THEME.slateLine } },
+          left: { style: "thin", color: { argb: REPORT_THEME.slateLine } },
+          bottom: { style: "thin", color: { argb: REPORT_THEME.slateLine } },
+          right: { style: "thin", color: { argb: REPORT_THEME.slateLine } },
+        };
+      });
+    }
+  });
+};
+
 const writeExcelQuestionContent = (worksheet, questions, showCorrect = false, showExplanation = false) => {
   let currentRow = worksheet.lastRow ? worksheet.lastRow.number + 1 : 1;
 
@@ -705,6 +837,12 @@ export const buildQuizContentExcel = async (quizId, user, { type = 'all', random
       writeExcelQuestionContent(ws, questions, true, true);
       ws.getColumn(1).width = 100;
     }
+
+    // 4. Bản Ôn tập tương tác (MỚI)
+    if (type === 'all' || type === 'review') {
+      const ws = workbook.addWorksheet(`Ôn tập${suffix}`);
+      writeExcelReviewContent(ws, questions);
+    }
   }
 
   const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
@@ -740,26 +878,61 @@ export const buildQuizContentPdf = async (quizId, user, { type = 'all', randomiz
 
     const drawStudentHeader = () => {
       doc.font(PDF_FONT_REGULAR).fontSize(11).fillColor(REPORT_THEME.slateText);
-      doc.text("Họ và tên: ........................................................... Lớp: .....................", { align: 'left' });
-      doc.text(`Ngày thi: ....../....../20......`, { align: 'left' });
-      doc.moveDown(1.5);
+      
+      const leftCol = 50;
+      const rightCol = 320;
+      const startY = doc.y;
+
+      doc.text(`Môn học: ...........................................................`, leftCol, startY);
+      doc.text(`Cấp độ: .......................................`, rightCol, startY);
+      
+      doc.moveDown(0.5);
+      doc.text(`Người tạo: ${getCreatorDisplayName(user)}`, leftCol);
+      doc.text(`Mã học sinh: ..............................`, rightCol, doc.y - 14); // Align with Người tạo
+
+      doc.moveDown(0.5);
+      doc.text(`Thời gian làm bài: ${quiz.time_limit_seconds ? Math.floor(quiz.time_limit_seconds / 60) + ' phút' : 'Không giới hạn'}`, leftCol);
+      doc.text(`Lớp: ...........................................`, rightCol, doc.y - 14);
+
+      doc.moveDown(0.5);
+      doc.text("Họ và tên: ................................................................................................................................", leftCol);
+      
+      doc.moveDown(1);
+      doc.strokeColor("#E2E8F0").lineWidth(0.5).moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).stroke();
+      doc.moveDown(1);
     };
 
     const drawQuestion = (q, index, showCorrect = false, showExplanation = false) => {
-      if (doc.y > 680) doc.addPage();
+      if (doc.y > 650) doc.addPage();
 
-      doc.font(PDF_FONT_BOLD).fontSize(11).fillColor("#0F172A").text(`Câu ${index + 1}: ${q.content}`);
+      let typeLabel = '(Câu hỏi 1 lời giải)';
+      if (q.type === 'MULTI_ANSWERS') typeLabel = '(Câu hỏi nhiều lời giải)';
+      if (q.type === 'TEXT') typeLabel = '(Câu hỏi tự luận)';
+      if (q.type === 'TRUE_FALSE') typeLabel = '(Câu hỏi Đúng/Sai)';
+
+      doc.font(PDF_FONT_BOLD).fontSize(11).fillColor("#0F172A").text(`Câu ${index + 1}: ${q.content} `);
+      doc.font(PDF_FONT_REGULAR).fontSize(9).fillColor("#64748B").text(typeLabel, { indent: 0 });
       doc.moveDown(0.3);
 
-      q.answers.forEach((a, aIdx) => {
-        const label = getOptionLabel(aIdx);
-        const isCorrect = showCorrect && a.is_correct;
-        
-        doc.font(isCorrect ? PDF_FONT_BOLD : PDF_FONT_REGULAR)
-           .fontSize(10)
-           .fillColor(isCorrect ? "#059669" : "#475569")
-           .text(`${label}. ${a.content}`, { indent: 20 });
-      });
+      if (q.type === 'TEXT') {
+        const lines = 4;
+        const lineContent = "..................................................................................................................................................";
+        doc.font(PDF_FONT_REGULAR).fontSize(10).fillColor("#E2E8F0");
+        for (let i = 0; i < lines; i++) {
+          doc.text(lineContent, { indent: 20 });
+          doc.moveDown(0.4);
+        }
+      } else {
+        q.answers.forEach((a, aIdx) => {
+          const label = getOptionLabel(aIdx);
+          const isCorrect = showCorrect && a.is_correct;
+          
+          doc.font(isCorrect ? PDF_FONT_BOLD : PDF_FONT_REGULAR)
+             .fontSize(10)
+             .fillColor(isCorrect ? "#059669" : "#475569")
+             .text(`${label}. ${a.content}`, { indent: 20 });
+        });
+      }
 
       if (showExplanation && q.explanation) {
         doc.moveDown(0.2);
@@ -773,12 +946,21 @@ export const buildQuizContentPdf = async (quizId, user, { type = 'all', randomiz
 
     for (let v = 0; v < count; v++) {
       const versionCode = 101 + v;
+      
       let questions = originalQuestions;
+      
+      const objectiveQuestions = questions.filter(q => q.type !== 'TEXT');
+      const subjectiveQuestions = questions.filter(q => q.type === 'TEXT');
+
       if (randomize) {
-        questions = shuffleArray(originalQuestions).map(q => ({
+        const shuffledObjective = shuffleArray(objectiveQuestions).map(q => ({
           ...q,
           answers: shuffleArray(q.answers)
         }));
+        const shuffledSubjective = shuffleArray(subjectiveQuestions);
+        questions = [...shuffledObjective, ...shuffledSubjective];
+      } else {
+        questions = [...objectiveQuestions, ...subjectiveQuestions];
       }
 
       // 1. Bản Đề thi
@@ -828,5 +1010,36 @@ export const buildQuizContentPdf = async (quizId, user, { type = 'all', randomiz
     buffer,
     fileName: `${buildFileName(quiz.title, "").replace("-report.", "")}-${fileSuffix}.pdf`,
     contentType: "application/pdf",
+  };
+};
+
+export const bundleQuizContentZip = async (quizId, user, options) => {
+  const zip = new AdmZip();
+  const { quiz } = await getQuizContentData(quizId, user);
+  
+  // 1. File Đề thi
+  const paper = await (options.format === 'pdf' 
+    ? buildQuizContentPdf(quizId, user, { ...options, type: 'paper' })
+    : buildQuizContentExcel(quizId, user, { ...options, type: 'paper' }));
+  zip.addFile(`1-De-thi-${paper.fileName}`, paper.buffer);
+
+  // 2. File Đáp án
+  const key = await (options.format === 'pdf'
+    ? buildQuizContentPdf(quizId, user, { ...options, type: 'key' })
+    : buildQuizContentExcel(quizId, user, { ...options, type: 'key' }));
+  zip.addFile(`2-Dap-an-${key.fileName}`, key.buffer);
+
+  // 3. File Lời giải
+  const solutions = await (options.format === 'pdf'
+    ? buildQuizContentPdf(quizId, user, { ...options, type: 'solutions' })
+    : buildQuizContentExcel(quizId, user, { ...options, type: 'solutions' }));
+  zip.addFile(`3-Loi-giai-chi-tiet-${solutions.fileName}`, solutions.buffer);
+
+  const buffer = zip.toBuffer();
+  
+  return {
+    buffer,
+    fileName: `${buildFileName(quiz.title, "").replace("-report.", "")}-separate-files.zip`,
+    contentType: "application/zip",
   };
 };
