@@ -2,11 +2,11 @@ import pool from '../db/db.js';
 import logger from '../utils/logger.js';
 
 export const create = async (data, tx = pool) => {
-  const { content, type, quizId, mediaUrl } = data;
+  const { content, type, quizId, mediaUrl, explanation } = data;
  
   logger.info(`questionRepository.js - Creating question - content: ${content}, type: ${type}, quizId: ${quizId}`);
-  const sql = "INSERT INTO questions(content, type, media_url, quiz_id) VALUES (?, ?, ?, ?);";
-  const [row] = await tx.execute(sql, [content, type, mediaUrl ?? null, quizId]);
+  const sql = "INSERT INTO questions(content, type, media_url, explanation, quiz_id) VALUES (?, ?, ?, ?, ?);";
+  const [row] = await tx.execute(sql, [content, type, mediaUrl ?? null, explanation ?? null, quizId]);
   return row.insertId;
 };
 

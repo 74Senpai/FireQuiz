@@ -9,9 +9,11 @@ const alterQueries = [
   "ALTER TABLE users ADD COLUMN bio TEXT;",
   "ALTER TABLE quizzes ADD COLUMN thumbnail_url VARCHAR(255);",
   "ALTER TABLE questions ADD COLUMN media_url VARCHAR(255);",
+  "ALTER TABLE questions ADD COLUMN explanation TEXT;",
   "ALTER TABLE attempt_questions ADD COLUMN media_url VARCHAR(255);",
+  "ALTER TABLE attempt_questions ADD COLUMN explanation TEXT;",
+  "ALTER TABLE attempt_questions MODIFY COLUMN type VARCHAR(20) NOT NULL;",
   "ALTER TABLE quizzes ADD COLUMN max_tab_violations INT DEFAULT 2;",
-  "ALTER TABLE users ADD COLUMN bio TEXT;",
   "ALTER TABLE quizzes ADD COLUMN max_attempts_per_user INT DEFAULT NULL;"
 ];
 

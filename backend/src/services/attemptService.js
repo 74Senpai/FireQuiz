@@ -158,7 +158,7 @@ const generateAttemptSnapshot = async (quiz, userId) => {
     }
 
     // 3. Bulk insert attempt_questions
-    const attemptQuestionsPayload = groupedQuestions.map(q => [attemptId, q.content, q.type, q.mediaUrl]);
+    const attemptQuestionsPayload = groupedQuestions.map(q => [attemptId, q.content, q.type, q.mediaUrl, q.explanation ?? null]);
     const aqResult = await attemptRepository.bulkInsertAttemptQuestions(conn, attemptQuestionsPayload);
 
     let currentAqId = aqResult.insertId;
@@ -199,6 +199,7 @@ const generateAttemptSnapshot = async (quiz, userId) => {
           text: q.content,
           type: q.type,
           media_url: q.mediaUrl,
+          explanation: q.explanation,
           options: optionsData
         });
       }
@@ -210,6 +211,7 @@ const generateAttemptSnapshot = async (quiz, userId) => {
           text: q.content,
           type: q.type,
           media_url: q.mediaUrl,
+          explanation: q.explanation,
           options: []
         });
       }

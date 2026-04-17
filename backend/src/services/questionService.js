@@ -70,7 +70,7 @@ const saveAnswers = async (questionId, answers, tx = pool) => {
 };
 
 export const createQuestion = async (user, data) => {
-  const { content, type, quizId, answers, mediaUrl } = data;
+  const { content, type, quizId, answers, mediaUrl, explanation } = data;
 
   if (!ALLOWED_TYPES.includes(type)) {
     throw new AppError(`Loại câu hỏi không hợp lệ. Chỉ chấp nhận: ${ALLOWED_TYPES.join(', ')}`, 400);
@@ -85,7 +85,7 @@ export const createQuestion = async (user, data) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    const questionId = await questionRepository.create({ content, type, quizId, mediaUrl }, conn);
+    const questionId = await questionRepository.create({ content, type, quizId, mediaUrl, explanation }, conn);
     await saveAnswers(questionId, answers, conn);
     await conn.commit();
     return questionId;
@@ -134,7 +134,7 @@ const checkQuestionExistAndOwner = async (questionId, userId) => {
 };
 
 export const updateQuestion = async (questionId, userId, data) => {
-  const { type, content, answers, mediaUrl } = data;
+  const { type, content, answers, mediaUrl, explanation } = data;
 
   await checkQuestionExistAndOwner(questionId, userId);
 
@@ -153,6 +153,7 @@ export const updateQuestion = async (questionId, userId, data) => {
     // Cập nhật content, type và mediaUrl
     if (content !== undefined) await questionRepository.changeContent(questionId, content, conn);
     if (type !== undefined) await questionRepository.changeType(questionId, type, conn);
+    if (explanation !== undefined) await questionRepository.changeExplanation(questionId, explanation, conn);
     
     if (mediaUrl !== undefined) {
       const oldQuestion = await questionRepository.findQuestionById(questionId);

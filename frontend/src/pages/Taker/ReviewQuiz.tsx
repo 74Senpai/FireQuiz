@@ -164,7 +164,9 @@ export function ReviewQuiz() {
         : "Đang làm dở";
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-10 animate-fade-in">
+    <>
+      {/* ══ Giao diện web — ẩn khi in ══ */}
+      <div className="no-print max-w-5xl mx-auto px-4 py-8 space-y-10 animate-fade-in">
       {/* Image Zoom Modal */}
       <AnimatePresence>
         {zoomedImage && (
