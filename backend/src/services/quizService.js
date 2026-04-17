@@ -152,7 +152,8 @@ export const getResultsDashboard = async (id, user) => {
 
     if (item.score !== null && item.score !== undefined) {
       const score = Number(item.score);
-      let index = Math.floor(score);
+      const gradingScale = Number(quiz.grading_scale || 10);
+      let index = Math.floor((score / gradingScale) * 10);
       if (index >= 10) index = 9;
       if (index < 0) index = 0;
       scoreHistogram[index].count++;
