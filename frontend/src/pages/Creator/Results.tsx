@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Download, Search, FileSpreadsheet, Loader2 } from "lucide-react";
+import { Download, Search, FileSpreadsheet, Loader2, ChevronDown, ClipboardList, BookOpen, FileCheck, Layers, FileType, Shuffle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import * as quizService from "@/services/quizServices";
 import { ResultsDashboardPanel } from "@/components/ui/ResultsDashboardPanel";
@@ -29,8 +29,12 @@ export function Results() {
   const [selectedQuizId, setSelectedQuizId] = useState("");
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isExportingContent, setIsExportingContent] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [isRandomize, setIsRandomize] = useState(false);
+  const [versionCount, setVersionCount] = useState(1);
   const [exportStatus, setExportStatus] = useState<ExportStatus | null>(null);
-  const isAnyExporting = isExportingExcel || isExportingPdf;
+  const isAnyExporting = isExportingExcel || isExportingPdf || isExportingContent;
 
   useEffect(() => {
     const fetchQuizzes = async () => {
@@ -173,6 +177,98 @@ export function Results() {
       }
     }
   };
+  const handleExportContent = async (type: "paper" | "key" | "solutions" | "all", format: "excel" | "pdf") => {
+    if (!selectedQuizId) return;
+
+    const label = type === "paper" ? "Đề thi" : type === "key" ? "Đáp án" : type === "solutions" ? "Lời giải" : "Trọn bộ";
+    const formatLabel = format.toUpperCase();
+    const kind: ExportKind = format === "excel" ? "excel" : "pdf";
+
+    setIsExportingContent(true);
+    setExportStatus({
+      kind,
+      stage: "preparing",
+      progress: 10,
+      message: `Đang khởi tạo bản ${label} (${formatLabel})...`,
+    });
+
+    try {
+      const response = await quizService.exportQuizContent(selectedQuizId, { 
+        type, 
+        format,
+        randomize: isRandomize,
+        versionCount
+      }, {
+        onDownloadProgress: (event: any) => {
+          if (event?.total) {
+            const progress = Math.min(95, Math.round((event.loaded / event.total) * 100));
+            setExportStatus({
+              kind,
+              stage: "downloading",
+              progress,
+              message: `Đang tải bản ${label}... ${progress}%`,
+            });
+          }
+        }
+      });
+
+      const fileName = parseFileNameFromDisposition(response.headers["content-disposition"]) || 
+                       `quiz-${selectedQuizId}-${type}.${format}`;
+
+      downloadFile(response.data, fileName);
+      setExportStatus({
+        kind,
+        stage: "success",
+        progress: 100,
+        message: `Đã tải ${label} (${formatLabel}) thành công.`,
+        fileName,
+      });
+    } catch (error: any) {
+      console.error("Lỗi xuất nội dung:", error);
+      setExportStatus({
+        kind,
+        stage: "error",
+        progress: 100,
+        message: "Không thể xuất nội dung bộ đề. Vui lòng thử lại.",
+      });
+    } finally {
+      setIsExportingContent(false);
+    }
+  };
+
+  const ExportOption = ({ title, icon: Icon, type, desc }: any) => (
+    <div className="flex items-center justify-between gap-4 rounded-lg border border-white/5 bg-white/5 p-3 transition-all hover:bg-white/10">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-300">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-white">{title}</p>
+          <p className="text-xs text-slate-400">{desc}</p>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 border-indigo-400/30 bg-indigo-500/10 px-2 text-[10px] text-indigo-200 hover:bg-indigo-500/20"
+          onClick={() => handleExportContent(type, "excel")}
+          disabled={isAnyExporting}
+        >
+          <FileSpreadsheet className="mr-1 h-3 w-3" /> EXCEL
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 border-rose-400/30 bg-rose-500/10 px-2 text-[10px] text-rose-200 hover:bg-rose-500/20"
+          onClick={() => handleExportContent(type, "pdf")}
+          disabled={isAnyExporting}
+        >
+          <Download className="mr-1 h-3 w-3" /> PDF
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -208,6 +304,98 @@ export function Results() {
           >
             Xem bảng xếp hạng
           </Button>
+
+          <div className="relative">
+            <Button
+              type="button"
+              disabled={!selectedQuizId || isAnyExporting}
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-lg"
+            >
+              {isExportingContent ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Layers className="h-4 w-4" />
+              )}
+              Xuất bộ đề 3 bản
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </Button>
+            
+            {showExportMenu && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setShowExportMenu(false)}
+                />
+                <div className="absolute right-0 top-12 z-20 w-96 rounded-xl border border-white/20 bg-slate-900/95 p-4 backdrop-blur-xl shadow-2xl animate-fade-in">
+                  <div className="mb-4">
+                    <h4 className="font-bold text-white uppercase tracking-wider text-xs opacity-70">Lựa chọn xuất bộ đề</h4>
+                    <p className="text-[10px] text-slate-400 mt-1">Chọn phiên bản nội dung và định dạng bạn muốn tải.</p>
+                  </div>
+
+                  <div className="mb-6 p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Shuffle className="h-4 w-4 text-indigo-300" />
+                        <label htmlFor="randomize" className="text-xs font-medium text-indigo-100 cursor-pointer select-none">Xáo trộn câu hỏi & đáp án</label>
+                      </div>
+                      <input 
+                        type="checkbox"
+                        id="randomize" 
+                        checked={isRandomize} 
+                        onChange={(e) => setIsRandomize(e.target.checked)}
+                        className="h-4 w-4 rounded border-indigo-400 bg-slate-800 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer"
+                      />
+                    </div>
+                    
+                    {isRandomize && (
+                      <div className="flex items-center justify-between pt-2 border-t border-indigo-500/10 animate-slide-up">
+                        <label className="text-[10px] text-indigo-200">Số lượng mã đề (1-10):</label>
+                        <input 
+                          type="number" 
+                          min={1} 
+                          max={10} 
+                          value={versionCount}
+                          onChange={(e) => setVersionCount(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
+                          className="w-12 h-6 bg-slate-800 border border-indigo-500/30 rounded text-center text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <ExportOption 
+                      title="Bản Đề thi" 
+                      desc="Không có đáp án, có header Họ tên/Lớp"
+                      icon={BookOpen} 
+                      type="paper" 
+                    />
+                    <ExportOption 
+                      title="Bản Đáp án" 
+                      desc="Bảng đối chiếu đáp án đúng nhanh"
+                      icon={ClipboardList} 
+                      type="key" 
+                    />
+                    <ExportOption 
+                      title="Bản Lời giải" 
+                      desc="Đầy đủ nội dung và giải thích chi tiết"
+                      icon={FileCheck} 
+                      type="solutions" 
+                    />
+                    <div className="pt-2 border-t border-white/10">
+                      <ExportOption 
+                        title="Trọn bộ (3 trong 1)" 
+                        desc="Gộp cả 3 loại vào cùng 1 tệp tin"
+                        icon={Layers} 
+                        type="all" 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
           <Button
             type="button"
             disabled={!selectedQuizId || isAnyExporting}
@@ -358,84 +546,7 @@ export function Results() {
         </CardContent>
       </Card>
 
-      <Card className="border-white/10 bg-white/5 backdrop-blur-md shadow-2xl">
-        <CardHeader className="pb-4">
-          <div className="flex gap-4">
-            <select className="flex h-10 w-64 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-              <option>Thi giữa kỳ - Toán 101</option>
-              <option>Thi cuối kỳ - Vật lý</option>
-            </select>
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <Input
-                className="bg-white/10 pl-9 text-slate-100 placeholder:text-slate-400"
-                placeholder="Tìm kiếm tên hoặc mã học sinh..."
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-hidden rounded-lg border border-white/20">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-white/10 bg-white/5 text-xs uppercase text-slate-400">
-                <tr>
-                  <th className="px-6 py-3 font-medium">Tên học sinh</th>
-                  <th className="px-6 py-3 font-medium">Mã học sinh</th>
-                  <th className="px-6 py-3 font-medium">Điểm</th>
-                  <th className="px-6 py-3 font-medium">Thời gian</th>
-                  <th className="px-6 py-3 font-medium">Đúng/Sai</th>
-                  <th className="px-6 py-3 text-right font-medium">Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/10">
-                {[
-                  {
-                    n: "Alice Smith",
-                    id: "STU001",
-                    s: "9.5/10",
-                    t: "45m 12s",
-                    c: "38/2",
-                  },
-                  {
-                    n: "Bob Jones",
-                    id: "STU002",
-                    s: "7.0/10",
-                    t: "59m 30s",
-                    c: "28/12",
-                  },
-                  {
-                    n: "Charlie Brown",
-                    id: "STU003",
-                    s: "8.5/10",
-                    t: "50m 00s",
-                    c: "34/6",
-                  },
-                ].map((item, i) => (
-                  <tr
-                    key={i}
-                    className="bg-white/5 transition-colors duration-300 hover:bg-white/10"
-                  >
-                    <td className="px-6 py-4 font-medium text-slate-100">
-                      {item.n}
-                    </td>
-                    <td className="px-6 py-4 text-slate-400">{item.id}</td>
-                    <td className="px-6 py-4 font-bold text-purple-300">
-                      {item.s}
-                    </td>
-                    <td className="px-6 py-4 text-slate-400">{item.t}</td>
-                    <td className="px-6 py-4 text-slate-400">{item.c}</td>
-                    <td className="px-6 py-4 text-right">
-                      <Button variant="ghost" size="sm" className="gap-2">
-                        <Download className="h-4 w-4" /> Excel
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Bảng kết quả chi tiết đã được thay thế bằng ResultsDashboardPanel bên dưới */}
 
       {selectedQuizId ? (
         <ResultsDashboardPanel quizId={selectedQuizId} />
