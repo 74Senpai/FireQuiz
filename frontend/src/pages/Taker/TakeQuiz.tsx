@@ -131,13 +131,18 @@ export function TakeQuiz() {
     loadQuizData();
   }, [quizId]);
 
+  const getRemainingSeconds = useCallback(() => {
+    if (!deadlineRef.current) return null;
+    return Math.max(0, Math.round((deadlineRef.current - Date.now()) / 1000));
+  }, []);
+
   useEffect(() => {
     if (loading || errorMsg || !questions.length) return;
     // Nếu quiz không có giới hạn thời gian thì không cần đếm ngược
     if (deadlineRef.current === null) return;
 
     const tick = () => {
-      const remaining = Math.max(0, Math.round((deadlineRef.current! - Date.now()) / 1000));
+      const remaining = getRemainingSeconds()!;
       setTimeLeft(remaining);
       if (remaining <= 0) {
         clearInterval(timer);
@@ -148,21 +153,22 @@ export function TakeQuiz() {
     const timer = setInterval(tick, 1000);
     tick(); // chạy ngay để hiển thị đúng khi vừa resume (tránh chờ 1 giây)
     return () => clearInterval(timer);
-  }, [loading, errorMsg, questions.length, handleSubmit]);
+  }, [loading, errorMsg, questions.length, handleSubmit, getRemainingSeconds]);
 
   // Khi tab/máy wake up, cập nhật lại timeLeft ngay từ deadline (tránh timer bị lệch do sleep)
   useEffect(() => {
     if (loading || !attemptId || !deadlineRef.current) return;
     const onVisible = () => {
-      if (document.visibilityState === "visible" && deadlineRef.current) {
-        const remaining = Math.max(0, Math.round((deadlineRef.current - Date.now()) / 1000));
+      if (document.visibilityState === "visible") {
+        const remaining = getRemainingSeconds();
+        if (remaining === null) return;
         setTimeLeft(remaining);
         if (remaining <= 0) handleSubmit(true);
       }
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [loading, attemptId, handleSubmit]);
+  }, [loading, attemptId, handleSubmit, getRemainingSeconds]);
 
   // ─── Vi phạm chuyển tab ──────────────────────────────────────────────────
   useEffect(() => {
