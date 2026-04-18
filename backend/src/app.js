@@ -10,6 +10,7 @@ import questionRoute from './routes/questionRoute.js';
 import attemptRoute from './routes/attemptRoute.js';
 import uploadRoute from './routes/uploadRoute.js';
 import mediaRoute from './routes/mediaRoutes.js';
+import bankQuestionRoute from './routes/bankQuestionRoute.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import cookieParser from 'cookie-parser';
 import { protectedRoute } from './middlewares/authMiddleware.js';
@@ -62,6 +63,7 @@ app.use(protectedRoute);
 app.use('/api/user', userRoute);
 app.use('/api/attempt', attemptRoute);
 app.use('/api/upload', uploadRoute);
+app.use('/api/bank', bankQuestionRoute);
 
 // global exception handler
 app.use(errorHandler);
