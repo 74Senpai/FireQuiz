@@ -171,7 +171,7 @@ CREATE TABLE bank_questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     creator_id INT NOT NULL,
     content VARCHAR(255) NOT NULL,
-    type CHAR(15) NOT NULL,
+    type VARCHAR(15) NOT NULL,
     media_url VARCHAR(255),
     difficulty ENUM('easy', 'medium', 'hard') DEFAULT 'medium',
     category VARCHAR(100),
