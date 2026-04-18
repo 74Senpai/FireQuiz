@@ -412,7 +412,8 @@ export const finishAttempt = async (attemptId, userId, answers = {}, textAnswers
     }
 
     // Bước 3: Gom toàn bộ option IDs cần xóa và payload cần insert
-    const optionIdsToDelete = [];
+    // Xóa toàn bộ đáp án cũ của attempt này trước — kể cả câu bị bỏ trống
+    const optionIdsToDelete = allOptions.map(o => o.id);
     const insertPayload = [];
 
     // Xử lý câu có option (SINGLE_CHOICE, MULTIPLE_CHOICE, ...)
@@ -424,7 +425,6 @@ export const finishAttempt = async (attemptId, userId, answers = {}, textAnswers
       if (!optionsByQId.has(attemptQuestionId)) continue;
 
       const existingOpts = optionsByQId.get(attemptQuestionId);
-      existingOpts.forEach(o => optionIdsToDelete.push(o.id));
 
       const ids = Array.isArray(optionIds)
         ? optionIds
@@ -453,7 +453,6 @@ export const finishAttempt = async (attemptId, userId, answers = {}, textAnswers
       if (!optionsByQId.has(attemptQuestionId)) continue;
 
       const existingOpts = optionsByQId.get(attemptQuestionId);
-      existingOpts.forEach(o => optionIdsToDelete.push(o.id));
 
       // Gắn textAnswer vào option đầu tiên của câu TEXT (lấy từ map, không cần query DB)
       if (existingOpts.length > 0) {
