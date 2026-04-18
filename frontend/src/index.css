@@ -16,11 +16,6 @@
   body {
     @apply bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100;
   }
-
-  /* Safe transition cho các thẻ tương tác - KHÔNG ĐƯỢC dùng dạng * {transition:all} */
-  button, a, input, select, textarea {
-    @apply transition-colors duration-200 ease-in-out;
-  }
 }
 
 @layer utilities {

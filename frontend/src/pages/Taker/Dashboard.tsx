@@ -91,9 +91,9 @@ export function TakerDashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between animate-fade-in">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-[length:200%_auto] animate-gradient-shift drop-shadow-lg inline-block transform transition-all duration-300 hover:scale-[1.02] hover:drop-shadow-[0_0_15px_rgba(167,139,250,0.6)]">
+          <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">
             Bảng điều khiển học sinh
           </h2>
           <p className="text-slate-400 mt-1">
@@ -125,10 +125,9 @@ export function TakerDashboard() {
         </div>
       </div>
 
-      <div className="animate-fade-in animate-delay-100">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-white animate-fade-in">
-          <Clock className="w-6 h-6 text-indigo-400 animate-float" /> Quiz đang
-          có
+      <div>
+        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
+          <Clock className="w-6 h-6 text-indigo-400" /> Quiz đang có
         </h3>
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {loadingQuizzes ? (
@@ -157,8 +156,7 @@ export function TakerDashboard() {
               return (
                 <Card
                   key={quiz.id}
-                  className="border-indigo-400/30 hover:border-indigo-400/60 shadow-xl hover:shadow-2xl hover:shadow-indigo-500/30 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl group"
-                  style={{ animationDelay: `${index * 100}ms` }}
+                  className="border-indigo-400/30 hover:border-indigo-400/60 shadow-xl hover:shadow-2xl hover:shadow-indigo-500/30 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl group transition-all duration-300"
                 >
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg font-bold line-clamp-1 text-slate-100 group-hover:text-indigo-300 transition-colors duration-300">
@@ -185,7 +183,7 @@ export function TakerDashboard() {
                     </div>
                     {isFull ? (
                       <Button
-                        className="w-full gap-2 bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
+                        className="w-full gap-2 bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-700"
                         disabled={true}
                       >
                         <Play className="w-4 h-4" /> Hết chỗ
@@ -196,8 +194,7 @@ export function TakerDashboard() {
                         className="block"
                       >
                         <Button className="w-full gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg group-hover:shadow-indigo-500/50">
-                          <Play className="w-4 h-4 group-hover:animate-pulse" />{" "}
-                          Vào test
+                          <Play className="w-4 h-4" /> VÀO THI
                         </Button>
                       </Link>
                     )}
@@ -209,9 +206,9 @@ export function TakerDashboard() {
         </div>
       </div>
 
-      <div className="animate-fade-in animate-delay-200">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-white animate-fade-in">
-          <HistoryIcon className="w-6 h-6 text-emerald-400 animate-float" />{" "}
+      <div>
+        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
+          <HistoryIcon className="w-6 h-6 text-emerald-400" />{" "}
           Lịch sử &amp; đáp án
         </h3>
         <Card className="bg-gradient-to-br from-emerald-900/20 to-slate-900/50 backdrop-blur-xl border-emerald-400/30 max-w-xl">

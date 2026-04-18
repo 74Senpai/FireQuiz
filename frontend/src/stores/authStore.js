@@ -6,14 +6,30 @@ export const useAuthStore = create((set) => ({
   isAuthenticated: false,
   isLoading: true,
 
+  // Helper to normalize user data across different API responses
+  _normalizeUser: (data) => {
+    if (!data) return null;
+    return {
+      ...data,
+      // Ensure full_name is always available (maps from fullName if needed)
+      full_name: data.full_name || data.fullName || data.full_name,
+    };
+  },
+
   login: async (data) => {
     try {
       const res = await authService.login(data);
       
       if (res && res.accessToken) {
         localStorage.setItem("accessToken", res.accessToken);
+        
+        // After getting token, we MUST fetch the full profile to get all details (role, avatar, etc.)
+        // This avoids the 'need reload' issue.
+        const userStore = useAuthStore.getState();
+        const profileData = await authService.getProfile();
+        
         set({
-          user: res.user,
+          user: userStore._normalizeUser(profileData),
           isAuthenticated: true,
           isLoading: false,
         });
@@ -28,11 +44,9 @@ export const useAuthStore = create((set) => ({
   fetchUser: async () => {
     try {
       const data = await authService.getProfile();
+      const userStore = useAuthStore.getState();
       set({
-        user: {
-          ...data,
-          full_name: data.fullName, // Keep this mapping for backwards compatibility in frontend
-        },
+        user: userStore._normalizeUser(data),
         isAuthenticated: true,
         isLoading: false,
       });
@@ -67,11 +81,9 @@ export const useAuthStore = create((set) => ({
     }
     try {
       const data = await authService.getProfile();
+      const userStore = useAuthStore.getState();
       set({
-        user: {
-          ...data,
-          full_name: data.fullName,
-        },
+        user: userStore._normalizeUser(data),
         isAuthenticated: true,
         isLoading: false,
       });

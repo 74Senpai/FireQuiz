@@ -116,7 +116,7 @@ export function ForgotPassword() {
                 ? "Xác thực OTP"
                 : "Mật khẩu mới"}
           </CardTitle>
-          <CardDescription className="text-slate-500">
+          <CardDescription className="text-slate-600">
             {step === 1 && "Nhập email để nhận mã xác thực"}
             {step === 2 && `Mã OTP đã được gửi đến email của bạn`}
             {step === 3 && "Thiết lập mật khẩu mới (tối thiểu 8 ký tự)"}

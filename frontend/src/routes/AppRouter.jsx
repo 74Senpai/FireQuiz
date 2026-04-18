@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 
 import { AuthLayout } from "../layouts/AuthLayout";
 import { DashboardLayout } from "../layouts/DashboardLayout";
+import { GlobalDialog } from "../components/ui/GlobalDialog";
 
 const Login = lazy(() => import("../pages/Auth/Login").then(m => ({ default: m.Login })));
 const Register = lazy(() => import("../pages/Auth/Register").then(m => ({ default: m.Register })));
@@ -41,7 +42,9 @@ import PublicRoute from "./PublicRouter";
 import HomeRedirect from "@/components/redirects/HomeRedirect";
 export default function AppRouter() {
   return (
-    <Suspense fallback={<GlobalLoader />}>
+    <>
+      <GlobalDialog />
+      <Suspense fallback={<GlobalLoader />}>
       <Routes>
         <Route path="/" element={<HomeRedirect />} />
         <Route path="/explore" element={<PublicExplore />} />
@@ -73,5 +76,6 @@ export default function AppRouter() {
         </Route>
       </Routes>
     </Suspense>
+    </>
   );
 }
