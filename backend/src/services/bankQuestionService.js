@@ -137,8 +137,8 @@ export const importFromBank = async (user, quizId, questionIds) => {
   if (!quiz) throw new AppError('Quiz không tồn tại', 404);
   if (quiz.creator_id !== user.id) throw new AppError('Bạn không có quyền thêm câu hỏi vào quiz này', 403);
 
-  const bankQuestions = await Promise.all(questionIds.map(id => bankQuestionRepository.findById(id)));
-  const notFound = questionIds.filter((id, i) => !bankQuestions[i]);
+  const bankQuestions = await bankQuestionRepository.findByIds(questionIds);
+  const notFound = questionIds.filter(id => !bankQuestions.find(bq => bq.id === id));
   if (notFound.length) throw new AppError(`Không tìm thấy câu hỏi bank: ${notFound.join(', ')}`, 404);
 
   const answers = await bankQuestionRepository.findAnswersByQuestionIds(questionIds);
@@ -150,7 +150,7 @@ export const importFromBank = async (user, quizId, questionIds) => {
     const createdIds = [];
     for (const bq of bankQuestions) {
       const qId = await questionRepository.create(
-        { content: bq.content, type: bq.type, quizId, mediaUrl: bq.media_url },
+        { content: bq.content, type: bq.type, quizId, mediaUrl: bq.media_url, bankQuestionId: bq.id },
         conn
       );
       const bqAnswers = answerMap.get(bq.id) || [];
@@ -159,8 +159,6 @@ export const importFromBank = async (user, quizId, questionIds) => {
           answerRepository.createAnswer({ content: a.content, isCorrect: a.is_correct, questionId: qId }, conn)
         )
       );
-      // Đánh dấu nguồn gốc từ bank
-      await conn.execute('UPDATE questions SET bank_question_id = ? WHERE id = ?', [bq.id, qId]);
       createdIds.push(qId);
     }
     await conn.commit();
