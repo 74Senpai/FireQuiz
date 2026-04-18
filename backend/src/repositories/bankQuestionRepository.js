@@ -21,6 +21,13 @@ export const findById = async (id) => {
   return rows[0] || null;
 };
 
+export const findByIds = async (ids) => {
+  if (!ids.length) return [];
+  const placeholders = ids.map(() => '?').join(', ');
+  const [rows] = await pool.execute(`SELECT * FROM bank_questions WHERE id IN (${placeholders})`, ids);
+  return rows;
+};
+
 export const findAll = async ({ creatorId, category, difficulty, type, search }) => {
   let sql = 'SELECT * FROM bank_questions WHERE creator_id = ?';
   const params = [creatorId];
