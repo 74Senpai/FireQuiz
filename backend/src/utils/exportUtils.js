@@ -66,16 +66,21 @@ export const downloadMediaBuffer = async (url) => {
   }
 };
 
+const qrCache = new Map();
+
 /**
- * Tạo QR Code Buffer từ text.
+ * Tạo QR Code Buffer từ text, cache theo URL để tránh tạo lại cho cùng một media.
  */
 export const generateQRCodeBuffer = async (text) => {
+  if (qrCache.has(text)) return qrCache.get(text);
   try {
-    return await QRCode.toBuffer(text, {
+    const buffer = await QRCode.toBuffer(text, {
       margin: 1,
       width: 100,
       color: { dark: '#000000', light: '#ffffff' }
     });
+    qrCache.set(text, buffer);
+    return buffer;
   } catch (err) {
     console.error('QR Code error:', err);
     return null;
