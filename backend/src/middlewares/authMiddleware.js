@@ -7,6 +7,15 @@ import * as userService from '../services/userService.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
+export const validateEmail = asyncHandler(async (req, res, next) => {
+  const { email } = req.body;
+  if (!email) {
+    throw new AppError("Email là bắt buộc", 400);
+  }
+  validator.isEmailValid(email);
+  next();
+});
+
 export const validateSignUp = asyncHandler(async (req, res, next) => {
   const { password, fullName, email, otp } = req.body;
 
