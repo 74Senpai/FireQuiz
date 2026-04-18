@@ -49,10 +49,10 @@ export const importFromBank = asyncHandler(async (req, res) => {
   const invalidIds = questionIds.filter((id) => !Number.isInteger(Number(id)) || Number(id) <= 0);
   if (invalidIds.length) throw new AppError(`questionIds không hợp lệ: ${invalidIds.join(', ')}`, 400);
 
-  const createdIds = await bankQuestionService.importFromBank(
+  const { createdIds, skipped } = await bankQuestionService.importFromBank(
     req.user,
     parseId(req.params.quizId, 'quizId'),
     questionIds.map(Number)
   );
-  return res.status(201).json({ createdQuestionIds: createdIds });
+  return res.status(201).json({ createdQuestionIds: createdIds, skipped });
 });

@@ -50,3 +50,13 @@ export const deleteQuestionById = async (id, tx = pool) => {
 
   await tx.execute(sql, [id]);
 };
+
+export const findExistingBankQuestionIds = async (quizId, bankQuestionIds) => {
+  if (!bankQuestionIds.length) return new Set();
+  const placeholders = bankQuestionIds.map(() => '?').join(', ');
+  const [rows] = await pool.execute(
+    `SELECT bank_question_id FROM questions WHERE quiz_id = ? AND bank_question_id IN (${placeholders})`,
+    [quizId, ...bankQuestionIds]
+  );
+  return new Set(rows.map(r => r.bank_question_id));
+};
