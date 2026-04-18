@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post("/register", otpRateLimiter, authMiddleware.validateSignUp, authController.signUp);
 router.post("/send-signup-otp", otpRateLimiter, authMiddleware.validateEmail, authController.sendSignUpOTP);
-router.post("/login", authMiddleware.validateLogIn, authController.logIn);
+router.post("/login", apiRateLimiter, authMiddleware.validateLogIn, authController.logIn);
 router.post("/logout", authController.logOut);
 router.post("/refresh", authController.refreshToken);
 router.post("/forgot-password", otpRateLimiter, authMiddleware.validateEmail, authController.forgotPassword);
