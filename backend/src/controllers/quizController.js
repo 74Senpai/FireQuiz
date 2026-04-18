@@ -7,6 +7,7 @@ import AppError from '../errors/AppError.js';
 const sendReport = (res, report) => {
   res.setHeader('Content-Type', report.contentType);
   res.setHeader('Content-Disposition', `attachment; filename="${report.fileName}"`);
+  res.setHeader('Content-Length', String(report.buffer.length));
   return res.status(200).send(report.buffer);
 };
 
@@ -56,7 +57,8 @@ export const getResultsDashboard = asyncHandler(async (req, res) => {
 export const exportQuizResultsExcel = asyncHandler(async (req, res) => {
   const id = req.params.id;
   const user = req.user;
-  const report = await quizReportService.buildExcelReport(id, user);
+  const { advanced = 'false' } = req.query;
+  const report = await quizReportService.buildExcelReport(id, user, { advanced: advanced === 'true' });
   return sendReport(res, report);
 });
 
@@ -64,6 +66,35 @@ export const exportQuizResultsPdf = asyncHandler(async (req, res) => {
   const id = req.params.id;
   const user = req.user;
   const report = await quizReportService.buildPdfReport(id, user);
+  return sendReport(res, report);
+});
+
+export const exportQuizContent = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const user = req.user;
+  const { type = 'all', format = 'excel', randomize = 'false', versionCount = '1', separateFiles = 'false' } = req.query;
+
+  const parsedVersionCount = parseInt(versionCount);
+  if (isNaN(parsedVersionCount) || parsedVersionCount < 1) {
+    return res.status(400).json({ message: 'versionCount phải là số nguyên lớn hơn 0' });
+  }
+
+  let report;
+  const options = {
+    type,
+    format,
+    randomize: randomize === 'true',
+    versionCount: parsedVersionCount,
+  };
+
+  if (separateFiles === 'true') {
+    report = await quizReportService.bundleQuizContentZip(id, user, options);
+  } else if (format === 'pdf') {
+    report = await quizReportService.buildQuizContentPdf(id, user, options);
+  } else {
+    report = await quizReportService.buildQuizContentExcel(id, user, options);
+  }
+
   return sendReport(res, report);
 });
 

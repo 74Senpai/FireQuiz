@@ -92,7 +92,7 @@ export function Leaderboard() {
         }
       } catch (err: any) {
         setError(
-          err.response?.data?.message || "Khong the tai danh sach quiz.",
+          err.response?.data?.message || "Không thể tải danh sách bộ câu hỏi.",
         );
       }
     };
@@ -117,7 +117,7 @@ export function Leaderboard() {
       } catch (err: any) {
         setPayload(null);
         setError(
-          err.response?.data?.message || "Khong the tai bang xep hang.",
+          err.response?.data?.message || "Không thể tải bảng xếp hạng.",
         );
       } finally {
         setIsLoading(false);
@@ -133,7 +133,7 @@ export function Leaderboard() {
     if (seconds === undefined || seconds === null) return "--";
     const minutes = Math.floor(seconds / 60);
     const remainSeconds = seconds % 60;
-    return `${minutes}m ${String(remainSeconds).padStart(2, "0")}s`;
+    return `${minutes} phút ${String(remainSeconds).padStart(2, "0")} giây`;
   };
 
   const formatScore = (score?: number) => {
@@ -160,11 +160,11 @@ export function Leaderboard() {
           </Button>
           <div>
             <h2 className="bg-gradient-to-r from-amber-200 via-yellow-300 to-orange-300 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent">
-              Bang xep hang Top 10
+              Bảng xếp hạng Top 10
             </h2>
             <p className="mt-1 text-slate-400">
-              Vinh danh thi sinh theo diem cao nhat va toc do hoan thanh nhanh
-              nhat.
+              Vinh danh thí sinh theo điểm cao nhất và tốc độ hoàn thành nhanh
+              nhất.
             </p>
           </div>
         </div>
@@ -175,7 +175,7 @@ export function Leaderboard() {
             onChange={handleQuizChange}
             className="h-10 min-w-72 rounded-lg border border-white/10 bg-slate-900 px-3 text-sm text-white outline-none focus:ring-2 focus:ring-amber-400"
           >
-            <option value="">Chon quiz de xem bang xep hang</option>
+            <option value="">Chọn bộ câu hỏi để xem bảng xếp hạng</option>
             {quizzes.map((quiz) => (
               <option key={quiz.id} value={quiz.id}>
                 {quiz.title}
@@ -188,7 +188,7 @@ export function Leaderboard() {
       {isLoading ? (
         <div className="flex min-h-[320px] flex-col items-center justify-center text-slate-300">
           <Loader2 className="mb-4 h-10 w-10 animate-spin" />
-          <p>Dang tai bang xep hang...</p>
+          <p>Đang tải bảng xếp hạng...</p>
         </div>
       ) : error ? (
         <Card className="border-rose-500/30 bg-rose-500/10 text-rose-100 shadow-none hover:translate-y-0 hover:shadow-none">
@@ -197,7 +197,7 @@ export function Leaderboard() {
       ) : !selectedQuizId ? (
         <Card className="border-dashed border-white/10 bg-white/5 text-slate-300 shadow-none hover:translate-y-0 hover:shadow-none">
           <CardContent className="p-10 text-center">
-            Chon mot quiz de hien thi bang xep hang.
+            Chọn một bộ câu hỏi để hiển thị bảng xếp hạng.
           </CardContent>
         </Card>
       ) : (
@@ -206,8 +206,8 @@ export function Leaderboard() {
             <CardHeader>
               <CardTitle className="text-white">{payload?.quiz.title}</CardTitle>
               <CardDescription className="text-slate-300">
-                Top 10 thi sinh duoc xep hang theo diem cao nhat, neu bang diem
-                se uu tien thoi gian lam bai nhanh hon.
+                Top 10 thí sinh được xếp hạng theo điểm cao nhất, nếu bằng điểm
+                sẽ ưu tiên thời gian làm bài nhanh hơn.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-3">
@@ -215,7 +215,7 @@ export function Leaderboard() {
                 <div className="mb-2 flex items-center gap-2 text-amber-300">
                   <Star className="h-4 w-4" />
                   <span className="text-sm font-semibold">
-                    Tong so nguoi trong Top
+                    Tổng số người trong Top
                   </span>
                 </div>
                 <p className="text-2xl font-bold text-white">
@@ -225,7 +225,7 @@ export function Leaderboard() {
               <div className="rounded-xl border border-white/10 bg-slate-950/30 p-4">
                 <div className="mb-2 flex items-center gap-2 text-emerald-300">
                   <Target className="h-4 w-4" />
-                  <span className="text-sm font-semibold">Diem dung dau</span>
+                  <span className="text-sm font-semibold">Điểm đứng đầu</span>
                 </div>
                 <p className="text-2xl font-bold text-white">
                   {payload?.data[0] ? formatScore(payload.data[0].score) : "--"}
@@ -235,7 +235,7 @@ export function Leaderboard() {
                 <div className="mb-2 flex items-center gap-2 text-sky-300">
                   <TimerReset className="h-4 w-4" />
                   <span className="text-sm font-semibold">
-                    Thoi gian nhanh nhat
+                    Thời gian nhanh nhất
                   </span>
                 </div>
                 <p className="text-2xl font-bold text-white">
@@ -270,7 +270,7 @@ export function Leaderboard() {
                 <CardContent className="space-y-3">
                   <div className="rounded-xl border border-white/10 bg-black/10 p-3 text-center">
                     <p className="text-xs uppercase tracking-wider text-slate-300">
-                      Diem
+                      Điểm
                     </p>
                     <p className="mt-1 text-2xl font-bold text-white">
                       {formatScore(item.score)}
@@ -278,7 +278,7 @@ export function Leaderboard() {
                   </div>
                   <div className="rounded-xl border border-white/10 bg-black/10 p-3 text-center">
                     <p className="text-xs uppercase tracking-wider text-slate-300">
-                      Thoi gian
+                      Thời gian
                     </p>
                     <p className="mt-1 text-lg font-semibold text-white">
                       {formatDuration(item.duration_seconds)}
@@ -291,9 +291,9 @@ export function Leaderboard() {
 
           <Card className="border-white/10 bg-white/5 text-white shadow-none hover:translate-y-0 hover:shadow-none">
             <CardHeader>
-              <CardTitle className="text-white">Danh sach xep hang</CardTitle>
+              <CardTitle className="text-white">Danh sách xếp hạng</CardTitle>
               <CardDescription className="text-slate-300">
-                Hien thi day du 10 vi tri dau tien.
+                Hiển thị đầy đủ 10 vị trí đầu tiên.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -302,12 +302,12 @@ export function Leaderboard() {
                   <table className="w-full text-left text-sm">
                     <thead className="bg-white/5 text-xs uppercase tracking-wider text-slate-400">
                       <tr>
-                        <th className="px-4 py-3">Hang</th>
-                        <th className="px-4 py-3">Thi sinh</th>
+                        <th className="px-4 py-3">Hạng</th>
+                        <th className="px-4 py-3">Thí sinh</th>
                         <th className="px-4 py-3">Email</th>
-                        <th className="px-4 py-3">Diem</th>
-                        <th className="px-4 py-3">Thoi gian</th>
-                        <th className="px-4 py-3">Hoan thanh</th>
+                        <th className="px-4 py-3">Điểm</th>
+                        <th className="px-4 py-3">Thời gian</th>
+                        <th className="px-4 py-3">Hoàn thành</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/10">
@@ -340,7 +340,7 @@ export function Leaderboard() {
                 </div>
               ) : (
                 <div className="rounded-xl border border-dashed border-white/10 bg-slate-950/20 px-6 py-12 text-center text-slate-400">
-                  Chua co du lieu de hien thi bang xep hang.
+                  Chưa có dữ liệu để hiển thị bảng xếp hạng.
                 </div>
               )}
             </CardContent>

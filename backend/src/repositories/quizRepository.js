@@ -106,7 +106,7 @@ export const updateQuizInfo = async (id, data) => {
 };
 
 export const getListQuizByUserId = async (id) => {
-  const sql = "SELECT * FROM quizzes WHERE creator_id = ? AND status != 'DELETED';";
+  const sql = "SELECT id, title, description, creator_id, quiz_code, status, grading_scale, time_limit_seconds, available_from, available_until, max_attempts, created_at, updated_at FROM quizzes WHERE creator_id = ? AND status != 'DELETED';";
 
   const [row] = await pool.execute(sql, [id]);
   return row;
@@ -175,12 +175,13 @@ export const countPublicOpenQuizzes = async (conn) => {
 
 export const findPublicOpenQuizzes = async (conn, { limit, offset }) => {
   const [rows] = await conn.execute(
-    `SELECT quizzes.*,
-       (SELECT COUNT(*) FROM quiz_attempts WHERE quiz_id = quizzes.id) AS joined_count
+    `SELECT quizzes.*, COUNT(qa.id) AS joined_count
      FROM quizzes
-     WHERE status = 'PUBLIC'
+     LEFT JOIN quiz_attempts qa ON qa.quiz_id = quizzes.id
+     WHERE quizzes.status = 'PUBLIC'
        AND (${SQL_OPEN_WINDOW})
-     ORDER BY id DESC
+     GROUP BY quizzes.id
+     ORDER BY quizzes.id DESC
      LIMIT ${Number(limit)} OFFSET ${Number(offset)}`
   );
   return rows;

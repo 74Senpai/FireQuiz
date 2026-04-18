@@ -163,11 +163,12 @@ export function TakeQuiz() {
         // Vi phạm chạm/vượt ngưỡng → khóa bài và nộp tự động
         setIsLocked(true);
         setShowViolationModal(false);
-        // Nộp bài ngay lập tức khi tab được lưu (visibility visible sẽ không cần)
-        // Dùng timeout nhỏ để state có thể settle rồi mới submit
-        setTimeout(() => {
-          handleSubmit(true);
-        }, 100);
+        // Dùng keepalive fetch để đảm bảo request gửi được kể cả khi tab bị đóng
+        attemptServices.submitAttemptKeepAlive(
+          attemptId,
+          latestAnswersRef.current,
+          latestTextAnswersRef.current
+        ).catch(() => {});
       } else {
         // Vi phạm lần đầu → hiện cảnh báo khi user quay lại
         const onVisible = () => {

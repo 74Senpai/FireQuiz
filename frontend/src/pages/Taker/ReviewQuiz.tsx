@@ -14,9 +14,14 @@ import {
   FileAudio,
   ZoomIn,
   X,
+  FileText,
+  FileSpreadsheet,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getAttemptReview } from "@/services/attemptServices";
+import {
+  getAttemptReview,
+  exportAttemptReview,
+} from "@/services/attemptServices";
 import { cn } from "@/lib/utils";
 
 function formatDt(value: any) {
@@ -98,6 +103,20 @@ export function ReviewQuiz() {
       cancelled = true;
     };
   }, [attemptId]);
+
+  const handleDownload = async (
+    format: "pdf" | "excel",
+    type: "review" | "paper" | "solutions" | "slip",
+  ) => {
+    if (!attemptId) return;
+
+    try {
+      await exportAttemptReview(attemptId, format, type);
+    } catch (err: any) {
+      console.error("Download error:", err);
+      alert("Không thể tải xuống tài liệu. Vui lòng thử lại sau.");
+    }
+  };
 
   const summary = useMemo(() => {
     if (!payload?.questions?.length) {
@@ -226,16 +245,77 @@ export function ReviewQuiz() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <Button
-            variant="outline"
-            className="bg-slate-900 border-white/10 text-slate-300 hover:bg-white/5"
-            onClick={() => window.print()}
-          >
-            In kết quả
-          </Button>
+        <div className="flex flex-wrap gap-2">
+          {/* Ôn tập cá nhân */}
+          <div className="flex bg-slate-900 border border-white/10 rounded-lg overflow-hidden">
+            <Button
+              variant="ghost"
+              className="text-indigo-400 hover:bg-indigo-500/10 gap-2 border-r border-white/10 px-3 h-9"
+              onClick={() => handleDownload("pdf", "slip")}
+              title="In phiếu điểm"
+            >
+              <FileText className="w-4 h-4" /> In Phiếu Điểm
+            </Button>
+            <Button
+              variant="ghost"
+              className="text-emerald-400 hover:bg-emerald-500/10 gap-2 border-r border-white/10 px-3 h-9"
+              onClick={() => handleDownload("pdf", "review")}
+              title="Tải tài liệu ôn tập PDF (có giải thích)"
+            >
+              <FileText className="w-4 h-4" /> Ôn tập (PDF)
+            </Button>
+            <Button
+              variant="ghost"
+              className="text-emerald-400 hover:bg-emerald-500/10 px-3 h-9"
+              onClick={() => handleDownload("excel", "review")}
+              title="Tải bảng kê ôn tập Excel"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Đề thi trắng */}
+          <div className="flex bg-slate-900 border border-white/10 rounded-lg overflow-hidden">
+            <Button
+              variant="ghost"
+              className="text-indigo-400 hover:bg-indigo-500/10 gap-2 border-r border-white/10 px-3 h-9"
+              onClick={() => handleDownload("pdf", "paper")}
+              title="Tạo đề thi trắng (để tự luyện tập)"
+            >
+              <FileText className="w-4 h-4" /> Tạo đề (PDF)
+            </Button>
+            <Button
+              variant="ghost"
+              className="text-indigo-400 hover:bg-indigo-500/10 px-3 h-9"
+              onClick={() => handleDownload("excel", "paper")}
+              title="Tạo đề thi trắng Excel"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Đáp án gốc */}
+          <div className="flex bg-slate-900 border border-white/10 rounded-lg overflow-hidden">
+            <Button
+              variant="ghost"
+              className="text-amber-400 hover:bg-amber-500/10 gap-2 border-r border-white/10 px-3 h-9"
+              onClick={() => handleDownload("pdf", "solutions")}
+              title="Tải bộ đáp án & lời giải gốc"
+            >
+              <FileText className="w-4 h-4" /> Đáp án (PDF)
+            </Button>
+            <Button
+              variant="ghost"
+              className="text-amber-400 hover:bg-amber-500/10 px-3 h-9"
+              onClick={() => handleDownload("excel", "solutions")}
+              title="Tải bộ đáp án Excel"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+            </Button>
+          </div>
+
           <Link to="/dashboard">
-            <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
+            <Button className="bg-slate-800 hover:bg-slate-700 text-white h-9">
               Về trang chủ
             </Button>
           </Link>
@@ -410,30 +490,43 @@ export function ReviewQuiz() {
                     {/* Media Display in ReviewQuiz */}
                     {question.media_url && (
                       <div className="mt-4 rounded-xl overflow-hidden border border-white/10 bg-black/20 max-w-2xl">
-                        {(question.media_url.match(/\.(jpeg|jpg|gif|png|webp)/i) || question.media_url.includes('image')) && (
-                          <div 
+                        {(question.media_url.match(
+                          /\.(jpeg|jpg|gif|png|webp)/i,
+                        ) ||
+                          question.media_url.includes("image")) && (
+                          <div
                             className="relative group/media cursor-zoom-in overflow-hidden rounded-lg"
                             onClick={() => setZoomedImage(question.media_url)}
                           >
-                            <img 
-                              src={question.media_url} 
-                              className="w-full h-auto max-h-96 object-contain transition-transform duration-300 group-hover/media:scale-[1.02]" 
-                              alt="Question media" 
+                            <img
+                              src={question.media_url}
+                              className="w-full h-auto max-h-96 object-contain transition-transform duration-300 group-hover/media:scale-[1.02]"
+                              alt="Question media"
                             />
                             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/media:opacity-100 transition-opacity flex items-center justify-center">
-                                <div className="bg-white/20 backdrop-blur-md p-2 rounded-full border border-white/30">
-                                    <ZoomIn className="w-6 h-6 text-white" />
-                                </div>
+                              <div className="bg-white/20 backdrop-blur-md p-2 rounded-full border border-white/30">
+                                <ZoomIn className="w-6 h-6 text-white" />
+                              </div>
                             </div>
                           </div>
                         )}
-                        {(question.media_url.match(/\.(mp4|webm)/i) || question.media_url.includes('video')) && (
-                          <video src={question.media_url} controls className="w-full h-auto max-h-96" />
+                        {(question.media_url.match(/\.(mp4|webm)/i) ||
+                          question.media_url.includes("video")) && (
+                          <video
+                            src={question.media_url}
+                            controls
+                            className="w-full h-auto max-h-96"
+                          />
                         )}
-                        {(question.media_url.match(/\.(mp3|wav|ogg)/i) || question.media_url.includes('audio')) && (
+                        {(question.media_url.match(/\.(mp3|wav|ogg)/i) ||
+                          question.media_url.includes("audio")) && (
                           <div className="p-6 flex flex-col items-center gap-4">
                             <FileAudio className="w-10 h-10 text-indigo-400" />
-                            <audio src={question.media_url} controls className="w-full max-w-md" />
+                            <audio
+                              src={question.media_url}
+                              controls
+                              className="w-full max-w-md"
+                            />
                           </div>
                         )}
                       </div>

@@ -30,7 +30,53 @@ export const submitAttempt = (attemptId, answers = {}, textAnswers = {}) =>
     .patch(`/attempt/${attemptId}/submit`, { answers, textAnswers })
     .then((res) => res.data);
 
+/**
+ * Nộp bài khẩn cấp khi trang sắp bị unload (vi phạm tab lần cuối).
+ * Dùng fetch keepalive để đảm bảo request được gửi kể cả khi tab bị đóng.
+ */
+export const submitAttemptKeepAlive = (attemptId, answers = {}, textAnswers = {}) => {
+  const token = localStorage.getItem("accessToken");
+  return fetch(`${process.env.API_URL}/attempt/${attemptId}/submit`, {
+    method: "PATCH",
+    keepalive: true,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    credentials: "include",
+    body: JSON.stringify({ answers, textAnswers }),
+  });
+};
+
 /** Thống kê điểm số */
 export const getMyStats = () =>
   axios.get("/attempt/stats/my").then((res) => res.data);
+
+/** Xuất báo cáo / Tài liệu ôn tập (Blob) */
+export const exportAttemptReview = async (attemptId, format, type) => {
+  const res = await axios.get(`/attempt/${attemptId}/export-review`, {
+    params: { format, type },
+    responseType: 'blob'
+  });
+  
+  // Trích xuất tên file từ Content-Disposition nếu có
+  let fileName = `${type}-${attemptId}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
+  const disposition = res.headers['content-disposition'];
+  if (disposition && disposition.indexOf('filename=') !== -1) {
+    const matches = disposition.match(/filename="(.+)"/);
+    if (matches != null && matches[1]) fileName = matches[1];
+  }
+
+  // Thực hiện download
+  const url = window.URL.createObjectURL(new Blob([res.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', fileName);
+  document.body.appendChild(link);
+  link.click();
+  
+  link.remove();
+  window.URL.revokeObjectURL(url);
+  return true;
+};
 

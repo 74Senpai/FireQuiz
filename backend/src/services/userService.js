@@ -29,7 +29,7 @@ export const updateAvatar = async (userId, newAvatarUrl) => {
   if (!user) return;
 
   const oldAvatarUrl = user.avatar_url;
-  await userRepository.updateAvatarUrl(userId, newAvatarUrl);
+  await userRepository.updateAvatar(userId, newAvatarUrl);
 
   // Thử xóa avatar cũ nếu có thay đổi
   if (oldAvatarUrl && oldAvatarUrl !== newAvatarUrl) {

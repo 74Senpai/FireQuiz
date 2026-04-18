@@ -136,6 +136,33 @@ export const getResultsDashboard = async (id, user) => {
 
   const dashboard = await attemptAggregationService.getResultsDashboardDataByQuizId(id);
 
+  let totalCorrect = 0;
+  let totalIncorrect = 0;
+
+  const gradingScale = Number(quiz.grading_scale) > 0 ? Number(quiz.grading_scale) : 10;
+  const bucketSize = gradingScale / 10;
+  const scoreHistogram = Array.from({ length: 10 }, (_, i) => ({
+    range: `${i * bucketSize}-${(i + 1) * bucketSize}`,
+    count: 0,
+  }));
+
+  dashboard.forEach(item => {
+    totalCorrect += item.correct_count || 0;
+    totalIncorrect += item.incorrect_count || 0;
+
+    if (item.score !== null && item.score !== undefined) {
+      const score = Number(item.score);
+      let index = Math.floor((score / gradingScale) * 10);
+      if (index >= 10) index = 9;
+      if (index < 0) index = 0;
+      scoreHistogram[index].count++;
+    }
+  });
+
+  const totalQuestionsAnswered = totalCorrect + totalIncorrect;
+  const correctRate = totalQuestionsAnswered > 0 ? ((totalCorrect / totalQuestionsAnswered) * 100).toFixed(1) : 0;
+  const incorrectRate = totalQuestionsAnswered > 0 ? ((totalIncorrect / totalQuestionsAnswered) * 100).toFixed(1) : 0;
+
   return {
     quiz: await mediaService.hydrateQuiz({
       id: quiz.id,
@@ -152,6 +179,13 @@ export const getResultsDashboard = async (id, user) => {
       inProgressCount: dashboard.filter(
         (item) => item.submission_status === "IN_PROGRESS",
       ).length,
+      overallRatio: {
+        correct: totalCorrect,
+        incorrect: totalIncorrect,
+        correctRate: Number(correctRate),
+        incorrectRate: Number(incorrectRate)
+      },
+      scoreHistogram,
     },
     data: dashboard,
   };

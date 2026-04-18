@@ -15,14 +15,15 @@ export const getAllOptionsByAttemptId = async (conn, attemptId) => {
 };
 
 /**
- * Xóa hàng loạt đáp án theo danh sách option IDs (1 câu DELETE duy nhất)
+ * Xóa toàn bộ đáp án của một attempt bằng JOIN, tránh IN clause dài
  */
-export const bulkDeleteAttemptAnswersByOptionIds = async (conn, optionIds) => {
-  if (!optionIds || optionIds.length === 0) return;
-  const placeholders = optionIds.map(() => '?').join(',');
+export const deleteAllAttemptAnswersByAttemptId = async (conn, attemptId) => {
   await conn.execute(
-    `DELETE FROM attempt_answers WHERE attempt_option_id IN (${placeholders})`,
-    optionIds
+    `DELETE aa FROM attempt_answers aa
+     JOIN attempt_options ao ON aa.attempt_option_id = ao.id
+     JOIN attempt_questions aq ON ao.attempt_question_id = aq.id
+     WHERE aq.quiz_attempt_id = ?`,
+    [attemptId]
   );
 };
 
@@ -59,11 +60,9 @@ export const insertAttemptAnswer = async (conn, attemptOptionId, textAnswer = nu
  */
 export const bulkInsertAttemptAnswers = async (conn, attemptAnswers) => {
   if (attemptAnswers.length === 0) return;
-  // attemptAnswers should be an array of objects: { attemptOptionId, textAnswer }
-  const values = attemptAnswers.map(a => [a.attemptOptionId, a.textAnswer || null]);
   await conn.query(
     `INSERT INTO attempt_answers (attempt_option_id, text_answer) VALUES ?`,
-    [values]
+    [attemptAnswers]
   );
 };
 
@@ -105,7 +104,7 @@ export const createQuizAttempt = async (conn, userId, quizId, quizTitle) => {
  */
 export const getQuestionsAndAnswersByQuizId = async (conn, quizId) => {
   const [rows] = await conn.execute(
-    `SELECT q.id as question_id, q.content as question_content, q.type as question_type, q.media_url as question_media_url,
+    `SELECT q.id as question_id, q.content as question_content, q.type as question_type, q.media_url as question_media_url, q.explanation as question_explanation,
             a.id as answer_id, a.content as answer_content, a.is_correct as answer_is_correct
      FROM questions q
      LEFT JOIN answers a ON q.id = a.question_id
@@ -121,7 +120,7 @@ export const getQuestionsAndAnswersByQuizId = async (conn, quizId) => {
 export const bulkInsertAttemptQuestions = async (conn, questionsData) => {
   if (questionsData.length === 0) return null;
   const [result] = await conn.query(
-    `INSERT INTO attempt_questions (quiz_attempt_id, content, type, media_url) VALUES ?`,
+    `INSERT INTO attempt_questions (quiz_attempt_id, content, type, media_url, explanation) VALUES ?`,
     [questionsData]
   );
   return result;
@@ -155,7 +154,7 @@ export const getActiveAttempt = async (quizId, userId) => {
  */
 export const getAttemptSnapshot = async (attemptId) => {
   const [questions] = await pool.execute(
-    `SELECT id, content, type, media_url FROM attempt_questions WHERE quiz_attempt_id = ?`,
+    `SELECT id, content, type, media_url, explanation FROM attempt_questions WHERE quiz_attempt_id = ?`,
     [attemptId]
   );
 
@@ -186,6 +185,7 @@ export const getAttemptSnapshot = async (attemptId) => {
       text: q.content,
       type: q.type,
       media_url: q.media_url,
+      explanation: q.explanation,
       options: optionsData,
       selectedOptionIds: selectedOptionIds,
       textAnswer: textAnswer
@@ -201,13 +201,13 @@ export const getAttemptSnapshot = async (attemptId) => {
 /**
  * Lấy số lượng câu hỏi và số câu trả lời đúng để tính điểm
  */
-export const getAttemptScoreData = async (attemptId) => {
-  const [totalRows] = await pool.execute(
+export const getAttemptScoreData = async (conn, attemptId) => {
+  const [totalRows] = await conn.execute(
     `SELECT COUNT(*) as total FROM attempt_questions WHERE quiz_attempt_id = ?`,
     [attemptId]
   );
 
-  const [correctRows] = await pool.execute(
+  const [correctRows] = await conn.execute(
     `SELECT COUNT(*) as correct
      FROM attempt_answers aa
      JOIN attempt_options ao ON aa.attempt_option_id = ao.id
@@ -225,8 +225,8 @@ export const getAttemptScoreData = async (attemptId) => {
 /**
  * Đánh dấu bài làm là hoàn thành
  */
-export const markAttemptFinished = async (attemptId, score) => {
-  await pool.execute(
+export const markAttemptFinished = async (conn, attemptId, score) => {
+  await conn.execute(
     `UPDATE quiz_attempts SET finished_at = NOW(), score = ? WHERE id = ?`,
     [score, attemptId]
   );

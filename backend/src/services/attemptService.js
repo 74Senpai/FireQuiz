@@ -95,6 +95,7 @@ export const getMyAttemptReviewDetail = async (user, attemptIdParam) => {
       content: question.content,
       type: question.type,
       media_url: question.media_url,
+      explanation: question.explanation,
       options: opts.map((opt) => ({
         id: opt.id,
         attempt_question_id: opt.attempt_question_id,
@@ -132,6 +133,7 @@ const generateAttemptSnapshot = async (quiz, userId) => {
           content: row.question_content,
           type: row.question_type,
           mediaUrl: row.question_media_url,
+          explanation: row.question_explanation,
           answers: []
         });
       }
@@ -156,7 +158,7 @@ const generateAttemptSnapshot = async (quiz, userId) => {
     }
 
     // 3. Bulk insert attempt_questions
-    const attemptQuestionsPayload = groupedQuestions.map(q => [attemptId, q.content, q.type, q.mediaUrl]);
+    const attemptQuestionsPayload = groupedQuestions.map(q => [attemptId, q.content, q.type, q.mediaUrl, q.explanation ?? null]);
     const aqResult = await attemptRepository.bulkInsertAttemptQuestions(conn, attemptQuestionsPayload);
 
     let currentAqId = aqResult.insertId;
@@ -197,6 +199,7 @@ const generateAttemptSnapshot = async (quiz, userId) => {
           text: q.content,
           type: q.type,
           media_url: q.mediaUrl,
+          explanation: q.explanation,
           options: optionsData
         });
       }
@@ -208,6 +211,7 @@ const generateAttemptSnapshot = async (quiz, userId) => {
           text: q.content,
           type: q.type,
           media_url: q.mediaUrl,
+          explanation: q.explanation,
           options: []
         });
       }
@@ -267,10 +271,7 @@ export const submitAnswer = async (attemptId, userId, attemptQuestionId, attempt
     const ids = Array.isArray(attemptOptionIds) ? attemptOptionIds : [attemptOptionIds];
 
     if (ids.length > 0) {
-      const answersPayload = ids.map((id, index) => ({
-        attemptOptionId: id,
-        textAnswer: index === 0 ? textAnswer : null
-      }));
+      const answersPayload = ids.map((id, index) => [id, index === 0 ? textAnswer : null]);
       await attemptRepository.bulkInsertAttemptAnswers(conn, answersPayload);
     }
 
@@ -407,8 +408,7 @@ export const finishAttempt = async (attemptId, userId, answers = {}, textAnswers
       validOptionIds.add(opt.id);
     }
 
-    // Bước 3: Gom toàn bộ option IDs cần xóa và payload cần insert
-    const optionIdsToDelete = [];
+    // Bước 3: Build payload insert
     const insertPayload = [];
 
     // Xử lý câu có option (SINGLE_CHOICE, MULTIPLE_CHOICE, ...)
@@ -420,7 +420,6 @@ export const finishAttempt = async (attemptId, userId, answers = {}, textAnswers
       if (!optionsByQId.has(attemptQuestionId)) continue;
 
       const existingOpts = optionsByQId.get(attemptQuestionId);
-      existingOpts.forEach(o => optionIdsToDelete.push(o.id));
 
       const ids = Array.isArray(optionIds)
         ? optionIds
@@ -431,10 +430,7 @@ export const finishAttempt = async (attemptId, userId, answers = {}, textAnswers
       if (ids.length > 0) {
         const textValue = textAnswers[qIdStr] || null;
         ids.forEach((id, index) => {
-          insertPayload.push({
-            attemptOptionId: id,
-            textAnswer: index === 0 ? textValue : null,
-          });
+          insertPayload.push([id, index === 0 ? textValue : null]);
         });
       }
     }
@@ -449,51 +445,47 @@ export const finishAttempt = async (attemptId, userId, answers = {}, textAnswers
       if (!optionsByQId.has(attemptQuestionId)) continue;
 
       const existingOpts = optionsByQId.get(attemptQuestionId);
-      existingOpts.forEach(o => optionIdsToDelete.push(o.id));
 
       // Gắn textAnswer vào option đầu tiên của câu TEXT (lấy từ map, không cần query DB)
       if (existingOpts.length > 0) {
-        insertPayload.push({
-          attemptOptionId: existingOpts[0].id,
-          textAnswer: textValue || null,
-        });
+        insertPayload.push([existingOpts[0].id, textValue || null]);
       }
     }
 
-    // Bước 4: 1 bulk DELETE duy nhất cho toàn bộ câu hỏi được cập nhật
-    await attemptRepository.bulkDeleteAttemptAnswersByOptionIds(conn, optionIdsToDelete);
+    // Bước 4: Xóa toàn bộ đáp án cũ bằng JOIN theo attemptId
+    await attemptRepository.deleteAllAttemptAnswersByAttemptId(conn, attemptId);
 
     // Bước 5: 1 bulk INSERT duy nhất cho toàn bộ đáp án mới
     await attemptRepository.bulkInsertAttemptAnswers(conn, insertPayload);
 
+    // Bước 6: Tính điểm và đánh dấu hoàn thành trong cùng transaction
+    const scoreData = await attemptRepository.getAttemptScoreData(conn, attemptId);
+    let finalScore = 0;
+    if (scoreData.total > 0) {
+      const gradingScale = quiz.grading_scale || 10;
+      finalScore = (scoreData.correct / scoreData.total) * gradingScale;
+    }
+    finalScore = Math.round(finalScore * 100) / 100;
+
+    await attemptRepository.markAttemptFinished(conn, attemptId, finalScore);
+
     await conn.commit();
+
+    // Xóa cache draft sau khi transaction thành công
+    delCache(buildDraftKey(attempt.quiz_id, userId));
+
+    return {
+      message: 'Nộp bài thành công',
+      score: finalScore,
+      correct: scoreData.correct,
+      total: scoreData.total,
+    };
   } catch (err) {
     await conn.rollback();
     throw err;
   } finally {
     conn.release();
   }
-
-  // Tính điểm
-  const scoreData = await attemptRepository.getAttemptScoreData(attemptId);
-  let finalScore = 0;
-  if (scoreData.total > 0) {
-    const gradingScale = quiz.grading_scale || 10;
-    finalScore = (scoreData.correct / scoreData.total) * gradingScale;
-  }
-  finalScore = Math.round(finalScore * 100) / 100;
-
-  await attemptRepository.markAttemptFinished(attemptId, finalScore);
-
-  // Xóa cache draft sau khi đã ghi DB thành công
-  delCache(buildDraftKey(attempt.quiz_id, userId));
-
-  return {
-    message: 'Nộp bài thành công',
-    score: finalScore,
-    correct: scoreData.correct,
-    total: scoreData.total,
-  };
 };
 
 export const recordTabViolation = async (attemptId, userId) => {
@@ -512,7 +504,7 @@ export const recordTabViolation = async (attemptId, userId) => {
 export const joinQuizByCode = async (code, userId) => {
   const quiz = await quizRepository.getQuizByCode(code);
   if (!quiz) {
-    throw new AppError("Sai PIN", 404);
+    throw new AppError("Mã PIN không chính xác", 404);
   }
 
   await startAttempt(quiz.id, userId);
@@ -523,7 +515,7 @@ export const joinQuizByCode = async (code, userId) => {
 /**
  * Thống kê lịch sử thi cho user hiện tại
  */
-export const getMyHistoryStats = async (user) => {
-  return await attemptRepository.getHistoryStatsByUserId(user.id);
+export const getMyHistoryStats = async (userId) => {
+  return await attemptRepository.getHistoryStatsByUserId(userId);
 };
 

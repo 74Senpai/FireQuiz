@@ -4,7 +4,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const createQuestion = asyncHandler(async (req, res) => {
   const user = req.user;
-  const { content, type, quizId, answers, mediaUrl } = req.body;
+  const { content, type, quizId, answers, mediaUrl, explanation } = req.body;
 
   if (!content || !type || !quizId) {
     throw new AppError('Không được thiếu content, type, quizId', 400);
@@ -15,34 +15,10 @@ export const createQuestion = asyncHandler(async (req, res) => {
     throw new AppError('Câu hỏi trắc nghiệm phải có đáp án', 400);
   }
 
-  const id = await questionService.createQuestion(user, { content, type, quizId, answers: answers || [], mediaUrl });
+  const id = await questionService.createQuestion(user, { content, type, quizId, answers: answers || [], mediaUrl, explanation });
   return res.status(201).json({ questionId: id });
 });
 
-
-export const changeType = asyncHandler(async (req, res) => {
-  const questionId = req.params.id;
-  
-  const user = req.user;
-  
-  const { type } = req.body;
-  
-  await questionService.changeType(questionId, user.id, type);
- 
-  return res.status(204).send();
-});
-
-export const changeContent = asyncHandler(async (req, res) => {
-  const questionId = req.params.id;
-  
-  const user = req.user;
-
-  const { content } = req.body;
-
-  await questionService.changeContent(questionId, user.id, content);
-
-  return res.status(204).send();
-});
 
 export const deleteQuestion = asyncHandler(async (req, res) => {
   const questionId = req.params.id;

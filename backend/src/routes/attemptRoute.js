@@ -20,6 +20,7 @@ router.patch('/:id/violation', protectedRoute, attemptController.reportViolation
 // PATCH /api/attempts/:id/submit
 router.patch('/:id/submit', protectedRoute, attemptController.completeAttempt);
 
-router.get('/stats/my', protectedRoute, attemptController.getMyStats);
+// Tuyến đường xuất tài liệu ôn tập
+router.get('/:id/export-review', protectedRoute, attemptController.exportAttemptReview);
 
 export default router;

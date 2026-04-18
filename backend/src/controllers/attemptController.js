@@ -1,5 +1,13 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
 import * as attemptService from '../services/attemptService.js';
+import { getQuizAttemptById } from '../repositories/attemptRepository.js';
+import {
+  buildAttemptReviewPdf,
+  buildAttemptReviewExcel,
+  buildAttemptReviewSlipPdf,
+  buildQuizContentPdf,
+  buildQuizContentExcel,
+} from '../services/quizReportService.js';
 
 /** GET /api/attempt/my?page=&pageSize= */
 export const listMyAttempts = asyncHandler(async (req, res) => {
@@ -74,5 +82,39 @@ export const reportViolation = asyncHandler(async (req, res) => {
 export const getMyStats = asyncHandler(async (req, res) => {
   const stats = await attemptService.getMyHistoryStats(req.user.id);
   return res.status(200).json(stats);
+});
+
+/**
+ * GET /api/attempts/:id/export-review?format=pdf|excel&type=review|paper|solutions
+ * Chú thích (BE): Xuất tài liệu ôn tập cá nhân
+ */
+export const exportAttemptReview = asyncHandler(async (req, res) => {
+  const attemptId = Number(req.params.id);
+  const user = req.user;
+  const { format = 'pdf', type = 'review' } = req.query;
+
+  const attempt = await getQuizAttemptById(attemptId);
+  if (!attempt || attempt.user_id !== user.id) {
+    return res.status(403).json({ message: 'Bạn không có quyền truy cập bản in này' });
+  }
+
+  let result;
+  if (type === 'slip') {
+    result = await buildAttemptReviewSlipPdf(attemptId, user);
+  } else if (type === 'review') {
+    result = format === 'pdf' 
+      ? await buildAttemptReviewPdf(attemptId, user)
+      : await buildAttemptReviewExcel(attemptId, user);
+  } else {
+    // Các bản 'paper' (đề) hoặc 'solutions' (đáp án gốc) lấy từ Quiz cha
+    const options = { type, format, isParticipant: true };
+    result = format === 'pdf'
+      ? await buildQuizContentPdf(attempt.quiz_id, user, options)
+      : await buildQuizContentExcel(attempt.quiz_id, user, options);
+  }
+
+  res.setHeader('Content-Type', result.contentType);
+  res.setHeader('Content-Disposition', `attachment; filename="${result.fileName}"`);
+  return res.send(result.buffer);
 });
 
