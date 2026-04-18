@@ -28,12 +28,28 @@ export const saveDraft = asyncHandler(async (req, res) => {
     throw new AppError('Bạn không có bài làm đang tiến hành cho quiz này', 403);
   }
 
+  const MAX_QUESTIONS = 500;
+  const MAX_TEXT_LENGTH = 10000;
+
+  const safeAnswers = answers && typeof answers === 'object' ? answers : {};
+  const safeTextAnswers = textAnswers && typeof textAnswers === 'object' ? textAnswers : {};
+
+  if (Object.keys(safeAnswers).length > MAX_QUESTIONS || Object.keys(safeTextAnswers).length > MAX_QUESTIONS) {
+    throw new AppError('Dữ liệu draft vượt quá giới hạn cho phép', 400);
+  }
+
+  for (const val of Object.values(safeTextAnswers)) {
+    if (typeof val === 'string' && val.length > MAX_TEXT_LENGTH) {
+      throw new AppError('Nội dung câu trả lời tự luận vượt quá giới hạn cho phép', 400);
+    }
+  }
+
   const key = buildDraftKey(quizId, userId);
   const draft = {
     quizId,
     userId,
-    answers: answers || {},
-    textAnswers: textAnswers || {},
+    answers: safeAnswers,
+    textAnswers: safeTextAnswers,
     timestamp: timestamp || Date.now(),
   };
 
