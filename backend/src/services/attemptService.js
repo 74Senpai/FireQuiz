@@ -527,7 +527,7 @@ export const joinQuizByCode = async (code, userId) => {
 /**
  * Thống kê lịch sử thi cho user hiện tại
  */
-export const getMyHistoryStats = async (user) => {
-  return await attemptRepository.getHistoryStatsByUserId(user.id);
+export const getMyHistoryStats = async (userId) => {
+  return await attemptRepository.getHistoryStatsByUserId(userId);
 };
 
