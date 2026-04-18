@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,6 +20,7 @@ function safePostLoginRedirect(raw: string | null): string | null {
 
 export function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = React.useState(false);
 
@@ -86,6 +87,13 @@ export function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
+          {/* Hiển thị thông báo thành công từ các trang khác (ví dụ: đăng ký xong) */}
+          {location.state?.message && (
+            <div className="p-3 text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg animate-in fade-in slide-in-from-top-2">
+              {location.state.message}
+            </div>
+          )}
+
           {/* Hiển thị lỗi từ API (ví dụ: Sai tài khoản/mật khẩu) */}
           {errors.api && (
             <div className="p-3 text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg animate-shake">

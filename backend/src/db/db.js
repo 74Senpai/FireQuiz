@@ -14,8 +14,14 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
+  queueLimit: 0,
+  // Cấu hình để tránh lỗi ECONNRESET và giữ kết nối sống
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
+  maxIdle: 10, // Số lượng kết nối nhàn rỗi tối đa
+  idleTimeout: 60000, // Thời gian (ms) trước khi một kết nối nhàn rỗi bị đóng
   ...(process.env.DB_SSL === 'true' && {
-    ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true },
+    ssl: { minVersion: "TLSv1.2", rejectUnauthorized: true },
   }),
 });
 

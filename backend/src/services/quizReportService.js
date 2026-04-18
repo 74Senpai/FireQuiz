@@ -201,7 +201,7 @@ export const buildPdfReport = async (quizId, user) => {
     doc.end();
   });
 
-  return { buffer, fileName: utils.buildFileName(quiz.title, "pdf"), contentType: "application/pdf" };
+  return { buffer, fileName: utils.buildFileName(`${quiz.title}-report`, "pdf"), contentType: "application/pdf" };
 };
 
 export const buildQuizContentPdf = async (quizId, user, { type = 'all', randomize = false, versionCount = 1, isParticipant = false } = {}) => {

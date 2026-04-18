@@ -9,6 +9,11 @@ jest.unstable_mockModule('../src/repositories/userRepository.js', () => ({
   findByUsername: jest.fn(),
 }));
 
+jest.unstable_mockModule('../src/utils/otpManager.js', () => ({
+  generateOTP: jest.fn(),
+  verifyOTP: jest.fn(),
+}));
+
 jest.unstable_mockModule('../src/repositories/sessionRepository.js', () => ({
   create: jest.fn(),
   deleteSessionByToken: jest.fn(),
@@ -70,8 +75,12 @@ describe('Service Layer Unit Tests', () => {
         password: 'pass',
         fullName: 'Test User',
         email: 'test@email.com',
+        otp: '123456',
       };
 
+      const otpManager = await import('../src/utils/otpManager.js');
+      // @ts-ignore
+      otpManager.verifyOTP.mockReturnValue(true);
       userRepository.findByEmail.mockResolvedValue(null);
       bcrypt.hash.mockResolvedValue('hashedpass');
       userRepository.create.mockResolvedValue();
@@ -79,6 +88,8 @@ describe('Service Layer Unit Tests', () => {
       await authService.signUp(data);
 
       expect(userRepository.findByEmail).toHaveBeenCalledWith('test@email.com');
+      // @ts-ignore
+      expect(otpManager.verifyOTP).toHaveBeenCalledWith('test@email.com', '123456');
       expect(bcrypt.hash).toHaveBeenCalledWith('pass', 10);
       expect(userRepository.create).toHaveBeenCalledWith({
         hashedPassword: 'hashedpass',

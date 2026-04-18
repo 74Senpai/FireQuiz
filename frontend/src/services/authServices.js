@@ -19,8 +19,14 @@ export const register = async (data) => {
   return res.data;
 };
 
-export const forgotPassword = (email) => {
-  return axiosInstance.post("/auth/forgot-password", { email });
+export const sendSignUpOTP = async (email) => {
+  const res = await axiosInstance.post("/auth/send-signup-otp", { email });
+  return res.data;
+};
+
+export const forgotPassword = async (email) => {
+  const res = await axiosInstance.post("/auth/forgot-password", { email });
+  return res.data;
 };
 
 export const verifyOTP = async (data) => {
@@ -28,8 +34,9 @@ export const verifyOTP = async (data) => {
   return res.data;
 };
 
-export const resetPassword = (data) => {
-  return axiosInstance.post("/auth/reset-password", data);
+export const resetPassword = async (data) => {
+  const res = await axiosInstance.post("/auth/reset-password", data);
+  return res.data;
 };
 
 export const changePassword = async (oldPassword, newPassword) => {

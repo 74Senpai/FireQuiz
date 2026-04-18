@@ -7,11 +7,20 @@ import * as userService from '../services/userService.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
-export const validateSignUp = asyncHandler(async (req, res, next) => {
-  const { username, password, fullName, email } = req.body;
+export const validateEmail = asyncHandler(async (req, res, next) => {
+  const { email } = req.body;
+  if (!email) {
+    throw new AppError("Email là bắt buộc", 400);
+  }
+  validator.isEmailValid(email);
+  next();
+});
 
-  if (!password || !fullName || !email) {
-    throw new AppError("Không được trống password, fullname, email", 404);
+export const validateSignUp = asyncHandler(async (req, res, next) => {
+  const { password, fullName, email, otp } = req.body;
+
+  if (!password || !fullName || !email || !otp) {
+    throw new AppError("Không được trống password, fullName, email, otp", 400);
   }
 
   validator.isPasswordValid(password);

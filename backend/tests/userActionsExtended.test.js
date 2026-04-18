@@ -14,6 +14,10 @@ jest.unstable_mockModule('../src/db/db.js', () => ({
   }
 }));
 
+jest.unstable_mockModule('../src/utils/asyncHandler.js', () => ({
+  asyncHandler: (fn) => fn,
+}));
+
 jest.unstable_mockModule('../src/services/supabaseService.js', () => ({
   deleteFileFromSupabase: jest.fn(),
   supabaseAvatarBucket: 'avatars',
@@ -21,7 +25,7 @@ jest.unstable_mockModule('../src/services/supabaseService.js', () => ({
 
 // 2. Mock Cache
 jest.unstable_mockModule('../src/cache/cacheClient.js', () => ({
-  buildDraftKey: Number,
+  buildDraftKey: (q, u) => `draft:${q}:${u}`,
   getCache: jest.fn(),
   setCache: jest.fn(),
   delCache: jest.fn(),
@@ -46,6 +50,8 @@ jest.unstable_mockModule('../src/repositories/attemptRepository.js', () => ({
   bulkInsertAttemptAnswers: jest.fn(),
   getAttemptScoreData: jest.fn(),
   markAttemptFinished: jest.fn(),
+  getActiveAttempt: jest.fn(),
+  deleteAllAttemptAnswersByAttemptId: jest.fn(),
 }));
 
 // Dynamic Imports
@@ -63,6 +69,10 @@ beforeAll(async () => {
   cache = await import('../src/cache/cacheClient.js');
   userRepo = await import('../src/repositories/userRepository.js');
   attemptRepo = await import('../src/repositories/attemptRepository.js');
+  const quizRepo = await import('../src/repositories/quizRepository.js');
+  
+  // Export them for easy access in tests
+  Object.assign(globalThis, { userService, attemptService, draftController, cache, userRepo, attemptRepo, quizRepo });
 });
 
 describe('User Actions Extended - Unit Tests', () => {
@@ -96,6 +106,11 @@ describe('User Actions Extended - Unit Tests', () => {
       };
       const res = { status: jest.fn().mockReturnThis(), send: jest.fn() };
 
+      const quizRepo = await import('../src/repositories/quizRepository.js');
+      quizRepo.getQuizById.mockResolvedValue({ id: 10 });
+      attemptRepo.getActiveAttempt.mockResolvedValue({ id: 99 });
+      attemptRepo.getQuizAttemptById.mockResolvedValue({ id: 99, user_id: 1, quiz_id: 10 }); // in case startAttempt or check is needed
+
       await draftController.saveDraft(req, res);
 
       expect(cache.setCache).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
@@ -126,14 +141,14 @@ describe('User Actions Extended - Unit Tests', () => {
       const mockOptions = [{ id: 201, attempt_question_id: 101 }];
 
       attemptRepo.getQuizAttemptById.mockResolvedValue(mockAttempt);
-      const quizRepo = await import('../src/repositories/quizRepository.js');
       quizRepo.getQuizById.mockResolvedValue(mockQuiz);
       attemptRepo.getAllOptionsByAttemptId.mockResolvedValue(mockOptions);
+      attemptRepo.deleteAllAttemptAnswersByAttemptId.mockResolvedValue();
       attemptRepo.getAttemptScoreData.mockResolvedValue({ total: 10, correct: 8 });
 
       const result = await attemptService.finishAttempt(attemptId, userId, { 101: [201] });
 
-      expect(attemptRepo.markAttemptFinished).toHaveBeenCalledWith(attemptId, 8.0);
+      expect(attemptRepo.markAttemptFinished).toHaveBeenCalledWith(expect.anything(), attemptId, 8.0);
       expect(result.score).toBe(8.0);
       expect(result.message).toBe('Nộp bài thành công');
       expect(cache.delCache).toHaveBeenCalled();

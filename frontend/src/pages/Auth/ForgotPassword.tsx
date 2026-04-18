@@ -24,7 +24,26 @@ export function ForgotPassword() {
   const [confirmPassword, setConfirmPassword] = React.useState("");
 
   const [resetToken, setResetToken] = React.useState("");
+  const [countdown, setCountdown] = React.useState(0);
   const [errors, setErrors] = React.useState<any>({});
+
+  // Tự động gửi OTP khi đã nhập đủ 6 số
+  React.useEffect(() => {
+    if (step === 2 && otp.length === 6 && !isLoading) {
+      handleVerifyOTP();
+    }
+  }, [otp, step, isLoading]);
+
+  // Xử lý đếm ngược gửi lại mã
+  React.useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [countdown]);
 
 
   // STEP 1: Gửi OTP
@@ -37,6 +56,7 @@ export function ForgotPassword() {
       await authService.forgotPassword(email);
 
       setStep(2);
+      setCountdown(60); // Bắt đầu đếm ngược 60s
       setErrors({});
     } catch (err) {
       setErrors({
@@ -50,15 +70,16 @@ export function ForgotPassword() {
   };
 
   // STEP 2: Xác thực OTP
-  const handleVerifyOTP = async (e) => {
-    e.preventDefault();
-    if (!otp) return;
+  const handleVerifyOTP = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!otp || isLoading) return;
 
     setIsLoading(true);
     try {
       const res = await authService.verifyOTP({ email, otp });
 
-      setResetToken(res.data.resetToken);
+      // res ở đây đã là res.data từ service trả về
+      setResetToken(res.resetToken);
       setStep(3);
       setErrors({});
     } catch (err) {
@@ -118,7 +139,14 @@ export function ForgotPassword() {
           </CardTitle>
           <CardDescription className="text-slate-600">
             {step === 1 && "Nhập email để nhận mã xác thực"}
-            {step === 2 && `Mã OTP đã được gửi đến email của bạn`}
+            {step === 2 && (
+              <span className="flex flex-col gap-1">
+                <span>Mã OTP đã được gửi đến email của bạn.</span>
+                <span className="text-xs text-slate-400 font-medium italic">
+                  * Vui lòng kiểm tra cả hòm thư <b>Rác (Spam)</b> hoặc <b>Quảng cáo</b> nếu không thấy mã.
+                </span>
+              </span>
+            )}
             {step === 3 && "Thiết lập mật khẩu mới (tối thiểu 8 ký tự)"}
           </CardDescription>
         </CardHeader>
@@ -149,7 +177,21 @@ export function ForgotPassword() {
                 maxLength={6}
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
+                inputMode="numeric"
+                pattern="[0-9]*"
               />
+              <div className="flex justify-center mt-4">
+                <button
+                  type="button"
+                  onClick={handleSendOTP}
+                  disabled={countdown > 0 || isLoading}
+                  className="text-xs text-slate-500 hover:text-indigo-600 font-medium transition-colors disabled:text-slate-300 disabled:cursor-not-allowed"
+                >
+                  {countdown > 0
+                    ? `Không nhận được mã? Gửi lại sau ${countdown}s`
+                    : "Không nhận được mã? Gửi lại"}
+                </button>
+              </div>
             </div>
           )}
 
@@ -203,7 +245,7 @@ export function ForgotPassword() {
             {step === 1
               ? "Gửi mã xác nhận"
               : step === 2
-                ? "Xác thực mã OTP"
+                ? "Xác minh mã & Tiếp tục"
                 : "Cập nhật mật khẩu"}
           </Button>
 
