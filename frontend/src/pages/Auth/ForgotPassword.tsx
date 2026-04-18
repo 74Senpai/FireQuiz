@@ -126,7 +126,14 @@ export function ForgotPassword() {
           </CardTitle>
           <CardDescription className="text-slate-600">
             {step === 1 && "Nhập email để nhận mã xác thực"}
-            {step === 2 && `Mã OTP đã được gửi đến email của bạn`}
+            {step === 2 && (
+              <span className="flex flex-col gap-1">
+                <span>Mã OTP đã được gửi đến email của bạn.</span>
+                <span className="text-xs text-slate-400 font-medium italic">
+                  * Vui lòng kiểm tra cả hòm thư <b>Rác (Spam)</b> hoặc <b>Quảng cáo</b> nếu không thấy mã.
+                </span>
+              </span>
+            )}
             {step === 3 && "Thiết lập mật khẩu mới (tối thiểu 8 ký tự)"}
           </CardDescription>
         </CardHeader>
@@ -211,7 +218,7 @@ export function ForgotPassword() {
             {step === 1
               ? "Gửi mã xác nhận"
               : step === 2
-                ? "Xác thực mã OTP"
+                ? "Xác minh mã & Tiếp tục"
                 : "Cập nhật mật khẩu"}
           </Button>
 

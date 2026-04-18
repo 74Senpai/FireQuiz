@@ -110,7 +110,14 @@ export function Register() {
           <CardDescription className="text-slate-500">
             {step === 1 
               ? "Bắt đầu hành trình chinh phục tri thức cùng FireQuiz" 
-              : `Mã xác thực đã được gửi đến ${email}`}
+              : (
+                <span className="flex flex-col gap-1">
+                  <span>Mã xác thực đã được gửi đến <b>{email}</b></span>
+                  <span className="text-xs text-slate-400 font-medium italic">
+                    * Vui lòng kiểm tra hòm thư <b>Rác (Spam)</b> nếu không thấy mã.
+                  </span>
+                </span>
+              )}
           </CardDescription>
         </CardHeader>
 
@@ -192,6 +199,9 @@ export function Register() {
                 </div>
                 <p className="text-sm text-center text-slate-600 px-4">
                   Vui lòng nhập mã 6 số chúng tôi vừa gửi đến hòm thư của bạn để hoàn tất đăng ký.
+                </p>
+                <p className="text-[11px] text-pink-600 font-semibold bg-pink-50 px-3 py-1 rounded-full animate-pulse">
+                  Mẹo: Kiểm tra cả hộp thư Spam nhé!
                 </p>
               </div>
               
