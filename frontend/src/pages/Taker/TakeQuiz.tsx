@@ -20,7 +20,8 @@ export function TakeQuiz() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const [timeLeft, setTimeLeft] = useState(3600);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const deadlineRef = useRef<number | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   
   // State lưu đáp án: key = attempt_questions.id, value = mảng các attempt_options.id
@@ -47,8 +48,8 @@ export function TakeQuiz() {
   // Ref cho debounce câu TEXT
   const textDebounceRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
 
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
+  const minutes = timeLeft !== null ? Math.floor(timeLeft / 60) : null;
+  const seconds = timeLeft !== null ? timeLeft % 60 : null;
 
   const totalPages = Math.ceil(questions.length / QUESTIONS_PER_PAGE);
 
@@ -61,6 +62,8 @@ export function TakeQuiz() {
         setQuestions(data.questions);
         setQuizTitle(data.quizTitle);
         if (data.timeLimitSeconds !== undefined && data.timeLimitSeconds !== null) {
+          const deadline = Date.now() + data.timeLimitSeconds * 1000;
+          deadlineRef.current = deadline;
           setTimeLeft(data.timeLimitSeconds);
         }
         if (data.maxTabViolations !== undefined) {
@@ -130,19 +133,36 @@ export function TakeQuiz() {
 
   useEffect(() => {
     if (loading || errorMsg || !questions.length) return;
-    
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleSubmit(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    // Nếu quiz không có giới hạn thời gian thì không cần đếm ngược
+    if (deadlineRef.current === null) return;
+
+    const tick = () => {
+      const remaining = Math.max(0, Math.round((deadlineRef.current! - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        clearInterval(timer);
+        handleSubmit(true);
+      }
+    };
+
+    const timer = setInterval(tick, 1000);
+    tick(); // chạy ngay để hiển thị đúng khi vừa resume (tránh chờ 1 giây)
     return () => clearInterval(timer);
   }, [loading, errorMsg, questions.length]);
+
+  // Khi tab/máy wake up, cập nhật lại timeLeft ngay từ deadline (tránh timer bị lệch do sleep)
+  useEffect(() => {
+    if (!deadlineRef.current) return;
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && deadlineRef.current) {
+        const remaining = Math.max(0, Math.round((deadlineRef.current - Date.now()) / 1000));
+        setTimeLeft(remaining);
+        if (remaining <= 0) handleSubmit(true);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
 
   // ─── Vi phạm chuyển tab ──────────────────────────────────────────────────
   useEffect(() => {
@@ -334,12 +354,14 @@ export function TakeQuiz() {
           <div className="flex items-center gap-4">
              <div className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-xl font-mono text-xl font-bold border transition-all duration-500",
-              timeLeft < 300 
-                ? "bg-red-500/20 text-red-400 border-red-500/40 animate-pulse" 
+              timeLeft !== null && timeLeft < 300
+                ? "bg-red-500/20 text-red-400 border-red-500/40 animate-pulse"
                 : "bg-indigo-500/10 text-indigo-300 border-indigo-500/30"
             )}>
               <Clock className="w-5 h-5" />
-              {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
+              {minutes !== null && seconds !== null
+                ? `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+                : "∞"}
             </div>
             <div>
               <h2 className="text-xl font-bold text-white truncate max-w-[200px] sm:max-w-md">{quizTitle}</h2>
