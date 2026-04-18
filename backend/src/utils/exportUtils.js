@@ -66,10 +66,12 @@ export const downloadMediaBuffer = async (url) => {
   }
 };
 
+const QR_CACHE_MAX = 200;
 const qrCache = new Map();
 
 /**
  * Tạo QR Code Buffer từ text, cache theo URL để tránh tạo lại cho cùng một media.
+ * Giới hạn tối đa QR_CACHE_MAX entry, evict entry cũ nhất khi đầy.
  */
 export const generateQRCodeBuffer = async (text) => {
   if (qrCache.has(text)) return qrCache.get(text);
@@ -79,6 +81,9 @@ export const generateQRCodeBuffer = async (text) => {
       width: 100,
       color: { dark: '#000000', light: '#ffffff' }
     });
+    if (qrCache.size >= QR_CACHE_MAX) {
+      qrCache.delete(qrCache.keys().next().value);
+    }
     qrCache.set(text, buffer);
     return buffer;
   } catch (err) {
