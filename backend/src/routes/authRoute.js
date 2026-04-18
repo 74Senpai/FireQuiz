@@ -11,7 +11,7 @@ router.post("/login", authMiddleware.validateLogIn, authController.logIn);
 router.post("/logout", authController.logOut);
 router.post("/refresh", authController.refreshToken);
 router.post("/forgot-password", otpRateLimiter, authMiddleware.validateEmail, authController.forgotPassword);
-router.post("/verify-otp", authController.verifyForgotPasswordOTP);
+router.post("/verify-otp", otpRateLimiter, authController.verifyForgotPasswordOTP);
 router.post("/reset-password", authController.resetPassword);
 router.put("/change-password", authMiddleware.protectedRoute, authController.changePassword);
 
