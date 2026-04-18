@@ -2,6 +2,8 @@ import * as supabaseService from '../services/supabaseService.js';
 import AppError from '../errors/AppError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
+const ALLOWED_BUCKETS = new Set([supabaseService.supabaseBucket]);
+
 /**
  * Endpoint xử lý redirect tới media trên private bucket.
  * Link này dùng cho QR Code trong PDF và link trong Excel.
@@ -13,8 +15,11 @@ export const handleMediaRedirect = asyncHandler(async (req, res) => {
     throw new AppError('Thiếu đường dẫn file', 400);
   }
 
-  // Tùy chọn bucket (mặc định là quizzes-img của hệ thống)
   const targetBucket = bucket || supabaseService.supabaseBucket;
+
+  if (!ALLOWED_BUCKETS.has(targetBucket)) {
+    throw new AppError('Bucket không được phép truy cập', 403);
+  }
 
   // Tạo Signed URL có thời hạn ngắn (vd: 5 phút để user xem ngay)
   const signedUrl = await supabaseService.createSignedUrl(path, 300, targetBucket);
