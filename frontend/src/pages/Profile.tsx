@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useDialogStore } from "@/stores/dialogStore";
 import {
   User,
   Lock,
@@ -179,20 +180,26 @@ export function Profile() {
   };
 
   const handleDeleteAccount = async () => {
-    if (
-      window.confirm(
-        "CẢNH BÁO: Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác.",
-      )
-    ) {
-      setIsLoading(true);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setIsLoading(false);
-      alert("Tài khoản của bạn đã được xóa.");
-      // Clear store and redirect
-      await logout();
-      navigate("/login");
-    }
+    useDialogStore.getState().showDialog({
+      type: "confirm",
+      title: "Xóa tài khoản",
+      description: "CẢNH BÁO: Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác.",
+      onConfirm: async () => {
+        setIsLoading(true);
+        // Simulate API call
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        setIsLoading(false);
+        
+        useDialogStore.getState().showDialog({
+          title: "Thành công",
+          description: "Tài khoản của bạn đã được xóa.",
+        });
+        
+        // Clear store and redirect
+        await logout();
+        navigate("/login");
+      }
+    });
   };
 
   return (

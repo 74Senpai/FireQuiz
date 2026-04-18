@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import * as attemptServices from "@/services/attemptServices";
 import * as draftService from "@/services/draftService";
 import { cn } from "@/lib/utils";
+import { useDialogStore } from "@/stores/dialogStore";
 
 const QUESTIONS_PER_PAGE = 10;
 
@@ -185,8 +186,65 @@ export function TakeQuiz() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [loading, errorMsg, attemptId, isSubmitting, isLocked]);
 
+  // ─── Xử lý Đóng Tab / Rời trang (Native) ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (loading || errorMsg || !attemptId || isSubmitting || isLocked) return;
+
+    // Cảnh báo người dùng khi cố đóng tab / tải lại trang
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "Bạn có chắc chắn muốn thoát? Bài thi sẽ được nộp tự động nếu bạn rời đi.";
+    };
+
+    // Tự động nộp khi trang thực sự bị đóng (user chọn Leave)
+    const handlePageHide = () => {
+      if (!isSubmitting && !isLocked) {
+        attemptServices.submitAttemptKeepAlive(
+          attemptId,
+          latestAnswersRef.current,
+          latestTextAnswersRef.current
+        ).catch(() => {});
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("pagehide", handlePageHide);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("pagehide", handlePageHide);
+      
+      // Auto-submit nếu component Unmount (SPA navigation) và chưa nộp
+      if (!isSubmitting && !isLocked) {
+        attemptServices.submitAttemptKeepAlive(
+          attemptId,
+          latestAnswersRef.current,
+          latestTextAnswersRef.current
+        ).catch(() => {});
+      }
+    };
+  }, [loading, errorMsg, attemptId, isSubmitting, isLocked]);
+
   const handleSubmit = async (force = false) => {
     if (!quizId || !attemptId || isSubmitting) return;
+
+    const doSubmit = async () => {
+      setIsSubmitting(true);
+      try {
+        // Gửi toàn bộ đáp án lên BE để ghi DB
+        await attemptServices.submitAttempt(
+          attemptId,
+          latestAnswersRef.current,
+          latestTextAnswersRef.current
+        );
+        // Xóa draft local sau khi submit thành công
+        draftService.clearLocal(quizId!, userIdRef.current);
+        navigate(`/dashboard/attempt/${attemptId}/review`);
+      } catch (err) {
+        console.error("Lỗi khi nộp bài:", err);
+        navigate(`/dashboard/attempt/${attemptId}/review`);
+      }
+    };
 
     if (!force) {
       const unansweredCount = questions.length
@@ -198,24 +256,19 @@ export function TakeQuiz() {
         unansweredCount > 0
           ? `Bạn còn ${unansweredCount} câu hỏi chưa trả lời. Bạn có chắc chắn muốn nộp bài không?`
           : "Bạn có chắc chắn muốn nộp bài thi không?";
-      if (!window.confirm(msg)) return;
+      
+      useDialogStore.getState().showDialog({
+        type: 'confirm',
+        title: 'Nộp bài thi',
+        description: msg,
+        confirmText: 'Nộp bài',
+        cancelText: 'Trở lại',
+        onConfirm: doSubmit
+      });
+      return;
     }
 
-    setIsSubmitting(true);
-    try {
-      // Gửi toàn bộ đáp án lên BE để ghi DB
-      await attemptServices.submitAttempt(
-        attemptId,
-        latestAnswersRef.current,
-        latestTextAnswersRef.current
-      );
-      // Xóa draft local sau khi submit thành công
-      draftService.clearLocal(quizId!, userIdRef.current);
-      navigate(`/dashboard/attempt/${attemptId}/review`);
-    } catch (err) {
-      console.error("Lỗi khi nộp bài:", err);
-      navigate(`/dashboard/attempt/${attemptId}/review`);
-    }
+    doSubmit();
   };
 
   const handleAnswerSelect = (questionId: number, optionId: number, type: string) => {

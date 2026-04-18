@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useDialogStore } from "@/stores/dialogStore";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,15 +38,22 @@ export function CreatorDashboard() {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!window.confirm("Bạn có chắc chắn muốn xóa quiz này?")) return;
-
-    try {
-      await quizService.deleteQuiz(id);
-
-      setQuizzes((prev) => prev.filter((q) => q.id !== id));
-    } catch (error) {
-      alert("Không thể xóa quiz. Vui lòng thử lại.");
-    }
+    useDialogStore.getState().showDialog({
+      type: 'confirm',
+      title: 'Xóa Quiz',
+      description: 'Bạn có chắc chắn muốn xóa quiz này?',
+      onConfirm: async () => {
+        try {
+          await quizService.deleteQuiz(id);
+          setQuizzes((prev) => prev.filter((q) => q.id !== id));
+        } catch (error) {
+          useDialogStore.getState().showDialog({
+            title: 'Lỗi',
+            description: 'Không thể xóa quiz. Vui lòng thử lại.',
+          });
+        }
+      }
+    });
   };
 
   useEffect(() => {

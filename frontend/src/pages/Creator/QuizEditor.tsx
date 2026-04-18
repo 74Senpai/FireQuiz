@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as quizServices from "@/services/quizServices";
+import { useDialogStore } from "@/stores/dialogStore";
 
 // ─── Status helpers ───────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -119,17 +120,26 @@ export function QuizEditor() {
           quizServices.updateQuizStatus(id!, newStatus),
         ]);
         setQuizStatus(newStatus);
-        alert("Cập nhật bài thi thành công!");
+        useDialogStore.getState().showDialog({
+          title: "Thành công",
+          description: "Cập nhật bài thi thành công!",
+        });
       } else {
         const createPayload = { ...infoPayload, ...settingsPayload, status: newStatus };
         const res = await quizServices.createQuiz(createPayload);
-        alert("Tạo bài thi mới thành công!");
+        useDialogStore.getState().showDialog({
+          title: "Thành công",
+          description: "Tạo bài thi mới thành công!",
+        });
         const quizId = res.quizId || res.data?.quizId;
         navigate(`/dashboard/quiz/${quizId}/edit`);
         return;
       }
     } catch (error: any) {
-      alert(error.response?.data?.message || "Có lỗi xảy ra.");
+      useDialogStore.getState().showDialog({
+        title: "Lỗi",
+        description: error.response?.data?.message || "Có lỗi xảy ra.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -138,15 +148,25 @@ export function QuizEditor() {
   // ── Đổi status riêng ──────────────────────────────────────────────────────
   const handleStatusToggle = async (newStatus: QuizStatus) => {
     if (!isEditMode || newStatus === quizStatus) return;
-    setIsStatusUpdating(true);
-    try {
-      await quizServices.updateQuizStatus(id!, newStatus);
-      setQuizStatus(newStatus);
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Không thể đổi trạng thái");
-    } finally {
-      setIsStatusUpdating(false);
-    }
+    useDialogStore.getState().showDialog({
+      type: "confirm",
+      title: "Xác nhận",
+      description: `Bạn có chắc chắn chuyển sang trạng thái: ${newStatus}?`,
+      onConfirm: async () => {
+        setIsStatusUpdating(true);
+        try {
+          await quizServices.updateQuizStatus(id!, newStatus);
+          setQuizStatus(newStatus);
+        } catch (err: any) {
+          useDialogStore.getState().showDialog({
+            title: "Lỗi",
+            description: err.response?.data?.message || "Không thể đổi trạng thái",
+          });
+        } finally {
+          setIsStatusUpdating(false);
+        }
+      }
+    });
   };
 
   // ── Tạo mã PIN ────────────────────────────────────────────────────────────
@@ -156,7 +176,10 @@ export function QuizEditor() {
       const res = await quizServices.generatePin(id!);
       setQuizPin(res.pin || res.quizCode || res.data?.pin || res.data?.quizCode);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Không thể tạo mã PIN");
+      useDialogStore.getState().showDialog({
+        title: "Lỗi",
+        description: err.response?.data?.message || "Không thể tạo mã PIN",
+      });
     } finally {
       setIsPinLoading(false);
     }
@@ -164,16 +187,25 @@ export function QuizEditor() {
 
   // ── Xóa mã PIN ───────────────────────────────────────────────────────────
   const handleRemovePin = async () => {
-    if (!confirm("Xóa mã PIN? Người dùng đang có mã sẽ không thể dùng mã này nữa.")) return;
-    setIsPinLoading(true);
-    try {
-      await quizServices.removePin(id!);
-      setQuizPin(null);
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Không thể xóa mã PIN");
-    } finally {
-      setIsPinLoading(false);
-    }
+    useDialogStore.getState().showDialog({
+      type: "confirm",
+      title: "Xóa mã PIN",
+      description: "Xóa mã PIN? Người dùng đang có mã sẽ không thể dùng mã này nữa.",
+      onConfirm: async () => {
+        setIsPinLoading(true);
+        try {
+          await quizServices.removePin(id!);
+          setQuizPin(null);
+        } catch (err: any) {
+          useDialogStore.getState().showDialog({
+            title: "Lỗi",
+            description: err.response?.data?.message || "Không thể xóa mã PIN",
+          });
+        } finally {
+          setIsPinLoading(false);
+        }
+      }
+    });
   };
 
   // ── Copy PIN ──────────────────────────────────────────────────────────────
