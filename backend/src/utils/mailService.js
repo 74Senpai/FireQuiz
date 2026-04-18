@@ -64,7 +64,7 @@ export const sendOTPEmail = async (email, otp) => {
 
   await sendMail({
     to: email,
-    subject: `[FireQuiz] Mã OTP xác thực: ${otp}`,
+    subject: "[FireQuiz] Mã xác thực tài khoản",
     html,
   });
 };
