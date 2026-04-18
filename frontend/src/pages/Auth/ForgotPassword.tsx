@@ -26,6 +26,13 @@ export function ForgotPassword() {
   const [resetToken, setResetToken] = React.useState("");
   const [errors, setErrors] = React.useState<any>({});
 
+  // Tự động gửi OTP khi đã nhập đủ 6 số
+  React.useEffect(() => {
+    if (step === 2 && otp.length === 6 && !isLoading) {
+      handleVerifyOTP();
+    }
+  }, [otp, step, isLoading]);
+
 
   // STEP 1: Gửi OTP
   const handleSendOTP = async (e) => {
@@ -50,15 +57,16 @@ export function ForgotPassword() {
   };
 
   // STEP 2: Xác thực OTP
-  const handleVerifyOTP = async (e) => {
-    e.preventDefault();
-    if (!otp) return;
+  const handleVerifyOTP = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!otp || isLoading) return;
 
     setIsLoading(true);
     try {
       const res = await authService.verifyOTP({ email, otp });
 
-      setResetToken(res.data.resetToken);
+      // res ở đây đã là res.data từ service trả về
+      setResetToken(res.resetToken);
       setStep(3);
       setErrors({});
     } catch (err) {

@@ -8,10 +8,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export const validateSignUp = asyncHandler(async (req, res, next) => {
-  const { username, password, fullName, email } = req.body;
+  const { password, fullName, email, otp } = req.body;
 
-  if (!password || !fullName || !email) {
-    throw new AppError("Không được trống password, fullname, email", 404);
+  if (!password || !fullName || !email || !otp) {
+    throw new AppError("Không được trống password, fullname, email, otp", 400);
   }
 
   validator.isPasswordValid(password);
