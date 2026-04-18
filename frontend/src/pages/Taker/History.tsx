@@ -167,7 +167,7 @@ export function History() {
               </Button>
               <span className="text-sm text-slate-400 tabular-nums">
                 Trang {pagination.page} / {pagination.totalPages}
-                <span className="text-slate-500 ml-2">
+                <span className="text-slate-400 ml-2">
                   ({pagination.totalItems} lần)
                 </span>
               </span>

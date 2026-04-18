@@ -183,7 +183,7 @@ export function TakerDashboard() {
                     </div>
                     {isFull ? (
                       <Button
-                        className="w-full gap-2 bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
+                        className="w-full gap-2 bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-700"
                         disabled={true}
                       >
                         <Play className="w-4 h-4" /> Hết chỗ

@@ -78,7 +78,7 @@ export function Register() {
           <CardTitle className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
             Tạo tài khoản
           </CardTitle>
-          <CardDescription className="text-slate-600">
+          <CardDescription className="text-slate-400">
             Tham gia để bắt đầu làm bài kiểm tra
           </CardDescription>
         </CardHeader>
@@ -92,7 +92,7 @@ export function Register() {
 
           <div className="space-y-2 animate-slide-up animate-delay-100">
             <label
-              className="text-sm font-semibold text-slate-700"
+              className="text-sm font-semibold text-slate-200"
               htmlFor="name"
             >
               Họ và tên
@@ -112,7 +112,7 @@ export function Register() {
 
           <div className="space-y-2 animate-slide-up animate-delay-200">
             <label
-              className="text-sm font-semibold text-slate-700"
+              className="text-sm font-semibold text-slate-200"
               htmlFor="email"
             >
               Địa chỉ email
@@ -132,7 +132,7 @@ export function Register() {
 
           <div className="space-y-2 animate-slide-up animate-delay-300">
             <label
-              className="text-sm font-semibold text-slate-700"
+              className="text-sm font-semibold text-slate-200"
               htmlFor="password"
             >
               Mật khẩu

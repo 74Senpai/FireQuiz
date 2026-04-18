@@ -445,7 +445,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
                     <button
                       onClick={() => toggleCorrect(idx)}
                       className={
-                        ans.isCorrect ? "text-emerald-400" : "text-slate-600"
+                        ans.isCorrect ? "text-emerald-400" : "text-slate-400"
                       }
                       title={
                         ans.isCorrect ? "Đáp án đúng" : "Nhấn để đánh dấu đúng"
@@ -482,7 +482,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
                       <button
                         onClick={() => removeAnswer(idx)}
                         disabled={answers.length <= MIN_OPTIONS}
-                        className="text-slate-600 hover:text-rose-400 disabled:opacity-20 disabled:cursor-not-allowed shrink-0"
+                        className="text-slate-400 hover:text-rose-400 disabled:opacity-20 disabled:cursor-not-allowed shrink-0"
                         title="Xóa đáp án"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -555,7 +555,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
         {questions.length === 0 && !isAdding && (
           <div className="text-center py-12 text-slate-500 border-2 border-dashed border-white/5 rounded-xl">
             <p className="text-sm">Chưa có câu hỏi nào.</p>
-            <p className="text-xs mt-1 text-slate-600">
+            <p className="text-xs mt-1 text-slate-400">
               Nhấn "Thêm câu hỏi" hoặc "Import Excel" để bắt đầu.
             </p>
           </div>

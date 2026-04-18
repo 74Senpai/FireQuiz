@@ -245,7 +245,7 @@ export function Profile() {
                     className="w-full h-full object-cover transition-transform duration-500 group-hover/avatar:scale-110"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-500">
+                  <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-400">
                     <User className="w-20 h-20 opacity-20" />
                   </div>
                 )}
@@ -275,7 +275,7 @@ export function Profile() {
               <h3 className="font-bold text-white truncate">
                 {user?.full_name}
               </h3>
-              <p className="text-xs text-slate-500 uppercase tracking-widest mt-1 font-semibold">
+              <p className="text-xs text-slate-400 uppercase tracking-widest mt-1 font-semibold">
                 {user?.role}
               </p>
             </div>
@@ -380,7 +380,7 @@ export function Profile() {
                       <label className="text-sm font-bold text-slate-300">
                         Tiểu sử cá nhân (Bio)
                       </label>
-                      <span className="text-[10px] text-slate-500 font-mono uppercase">
+                      <span className="text-[10px] text-slate-400 font-mono uppercase">
                         Tối đa 500 ký tự
                       </span>
                     </div>
@@ -558,6 +558,7 @@ export function Profile() {
                           border: "1px solid #ffffff10",
                         }}
                         itemStyle={{ color: "#ec4899" }}
+                        labelStyle={{ color: "#f8fafc" }}
                       />
                       <Bar dataKey="score" radius={[0, 4, 4, 0]} barSize={30}>
                         {historyStats.map((entry, index) => (
@@ -570,7 +571,7 @@ export function Profile() {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-500 gap-2 border border-dashed border-white/5 rounded-2xl">
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2 border border-dashed border-white/5 rounded-2xl">
                     <p>Bạn chưa thực hiện bài thi nào.</p>
                   </div>
                 )}

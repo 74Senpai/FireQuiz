@@ -122,7 +122,7 @@ export function ActivityHeatmap({ stats }: ActivityHeatmapProps) {
     <div className="w-full bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-x-auto overflow-y-hidden hide-scrollbar">
       <div className="min-w-max">
         {/* Header / Month Labels */}
-        <div className="flex text-xs font-semibold text-slate-500 mb-2 pl-[30px] relative h-5">
+        <div className="flex text-xs font-semibold text-slate-400 mb-2 pl-[30px] relative h-5">
            {monthLabels.map((lbl, i) => (
              <div 
                key={i} 
@@ -136,7 +136,7 @@ export function ActivityHeatmap({ stats }: ActivityHeatmapProps) {
 
         <div className="flex">
           {/* Day Labels - Left Side */}
-          <div className="flex flex-col gap-[3px] text-[10px] font-medium text-slate-500 pr-2 pt-[2px]">
+          <div className="flex flex-col gap-[3px] text-[10px] font-medium text-slate-400 pr-2 pt-[2px]">
             <div className="h-3 leading-3"></div>
             <div className="h-3 leading-3">T2</div>
             <div className="h-3 leading-3"></div>

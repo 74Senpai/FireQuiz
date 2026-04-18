@@ -472,7 +472,7 @@ export function TakeQuiz() {
                   {q.type === "TEXT" ? (
                     <div className="pl-0 sm:pl-12">
                       <textarea
-                        className="w-full min-h-[150px] bg-white/5 border border-white/10 rounded-xl p-4 text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-600 resize-none"
+                        className="w-full min-h-[150px] bg-white/5 border border-white/10 rounded-xl p-4 text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-400 resize-none break-words"
                         placeholder="Nhập câu trả lời của bạn tại đây..."
                         value={textAnswers[q.id] || ""}
                         disabled={isSubmitting || isLocked}
