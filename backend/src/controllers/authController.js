@@ -3,11 +3,23 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import AppError from '../errors/AppError.js';
 
 export const signUp = asyncHandler(async (req, res) => {
-  const { password, fullName, email } = req.body;
+  const { password, fullName, email, otp } = req.body;
 
-  await authService.signUp({ password, fullName, email });
+  await authService.signUp({ password, fullName, email, otp });
 
-  return res.status(204).send();
+  return res.status(201).json({ message: "Đăng ký tài khoản thành công" });
+});
+
+export const sendSignUpOTP = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new AppError("Email là bắt buộc", 400);
+  }
+
+  const response = await authService.sendSignUpOTP(email);
+
+  return res.status(200).json(response);
 });
 
 export const logIn = asyncHandler(async (req, res) => {

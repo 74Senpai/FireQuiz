@@ -14,12 +14,18 @@ const ACCESS_TOKEN_TTL = "7d";
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
 
 export const signUp = async (data) => {
-  const { password, fullName, email } = data;
+  const { password, fullName, email, otp } = data;
 
-  const emailDuplicate = await userRepository.findByEmail(data.email);
+  const emailDuplicate = await userRepository.findByEmail(email);
 
   if (emailDuplicate) {
     throw new AppError("Email đã tồn tại", 409);
+  }
+
+  // Xác thực OTP
+  const valid = verifyOTP(email, otp);
+  if (!valid) {
+    throw new AppError("Mã OTP không đúng hoặc đã hết hạn", 400);
   }
 
   // salt = 10
@@ -114,6 +120,19 @@ export const forgotPassword = async (email) => {
   await sendOTPEmail(email, otp);
 
   return { message: "OTP đã được gửi tới email" };
+};
+
+export const sendSignUpOTP = async (email) => {
+  const user = await userRepository.findByEmail(email);
+
+  if (user) {
+    throw new AppError("Email này đã được đăng ký", 409);
+  }
+
+  const otp = generateOTP(email);
+  await sendOTPEmail(email, otp);
+
+  return { message: "Mã xác thực đã được gửi tới email của bạn" };
 };
 
 export const verifyForgotPasswordOTP = async (email, otp) => {

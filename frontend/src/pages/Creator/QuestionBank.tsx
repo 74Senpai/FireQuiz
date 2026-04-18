@@ -276,7 +276,7 @@ function BankQuestionForm({ editingQuestion, onSaved, onCancel }: FormProps) {
                   <button
                     onClick={() => answers.length > 3 && setAnswers(answers.filter((_, i) => i !== idx))}
                     disabled={answers.length <= 3}
-                    className="text-slate-600 hover:text-rose-400 disabled:opacity-20 shrink-0"
+                    className="text-slate-400 hover:text-rose-400 disabled:opacity-20 shrink-0"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -447,7 +447,7 @@ export function QuestionBank() {
         <div className="text-center py-16 border-2 border-dashed border-white/5 rounded-xl space-y-3">
           <BookOpen className="w-10 h-10 text-slate-600 mx-auto" />
           <p className="text-slate-400 font-medium">Ngân hàng câu hỏi trống</p>
-          <p className="text-slate-600 text-sm">Nhấn "Thêm câu hỏi" để bắt đầu xây dựng ngân hàng.</p>
+          <p className="text-slate-400 text-sm">Nhấn "Thêm câu hỏi" để bắt đầu xây dựng ngân hàng.</p>
         </div>
       ) : (
         <div className="space-y-3">

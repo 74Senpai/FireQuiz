@@ -17,7 +17,8 @@ export const isPasswordValid = (password) => {
 };
 
 export const isEmailValid = (email) => {
-  if (!email.includes('@')) {
-    throw new AppError("Email không hợp lệ", 404);
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailRegex.test(email)) {
+    throw new AppError("Email không hợp lệ", 400);
   }
 };
