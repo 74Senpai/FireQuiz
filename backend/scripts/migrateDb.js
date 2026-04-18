@@ -74,6 +74,10 @@ const migrate = async () => {
         // Mã ER_DUP_FIELDNAME (1060) nghĩa là cột đã tồn tại, có thể bỏ qua
         if (err.code === 'ER_DUP_FIELDNAME') {
           console.log(`⏭️ Cột đã tồn tại, bỏ qua lệnh...`);
+        } else if (err.code === 'ER_FK_DUP_NAME' || err.errno === 1826) {
+          console.log(`⏭️ Foreign key đã tồn tại, bỏ qua lệnh...`);
+        } else if (err.code === 'ER_DUP_INDEX' || err.errno === 1831) {
+          console.log(`⏭️ Index đã tồn tại, bỏ qua lệnh...`);
         } else {
           console.error(`❌ Lỗi chạy lệnh:`, err.message);
         }
