@@ -218,17 +218,23 @@ export const buildQuizContentPdf = async (quizId, user, { type = 'all', randomiz
 
     const run = async () => {
       const count = Math.max(1, Math.min(10, parseInt(versionCount)));
+      const imageBuffers = await Promise.all(
+        originalQuestions.map(q => q.media_url && utils.isImageUrl(q.media_url)
+          ? utils.downloadMediaBuffer(q.media_url)
+          : Promise.resolve(null)
+        )
+      );
       for (let v = 0; v < count; v++) {
         const questions = utils.prepareQuestionsForExport(originalQuestions, randomize);
         if (type === 'all' || type === 'paper' || type === 'key') {
           const isKey = type === 'key';
           pdfGenerator.drawHeader(doc, isKey ? `ĐÁP ÁN: ${quiz.title}` : `ĐỀ THI: ${quiz.title}`);
-          for(let i=0; i<questions.length; i++) await pdfGenerator.drawQuestionCard(doc, questions[i], i, { showCorrect: isKey });
+          for(let i=0; i<questions.length; i++) await pdfGenerator.drawQuestionCard(doc, questions[i], i, { showCorrect: isKey }, imageBuffers[i]);
           if (v < count - 1 || type === 'all') doc.addPage();
         }
         if (type === 'all' || type === 'solutions') {
           pdfGenerator.drawHeader(doc, `LỜI GIẢI CHI TIẾT: ${quiz.title}`);
-          for(let i=0; i<questions.length; i++) await pdfGenerator.drawQuestionCard(doc, questions[i], i, { showCorrect: true, showExplanation: true });
+          for(let i=0; i<questions.length; i++) await pdfGenerator.drawQuestionCard(doc, questions[i], i, { showCorrect: true, showExplanation: true }, imageBuffers[i]);
           if (v < count - 1) doc.addPage();
         }
       }
@@ -268,7 +274,13 @@ export const buildAttemptReviewPdf = async (attemptId, user) => {
     doc.moveDown(1.5);
 
     const drawAll = async () => {
-      for(let i=0; i<questions.length; i++) await pdfGenerator.drawReviewQuestion(doc, questions[i], i);
+      const imageBuffers = await Promise.all(
+        questions.map(q => q.media_url && utils.isImageUrl(q.media_url)
+          ? utils.downloadMediaBuffer(q.media_url)
+          : Promise.resolve(null)
+        )
+      );
+      for(let i=0; i<questions.length; i++) await pdfGenerator.drawReviewQuestion(doc, questions[i], i, imageBuffers[i]);
       doc.end();
     };
     drawAll().catch(reject);

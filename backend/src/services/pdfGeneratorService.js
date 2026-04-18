@@ -202,7 +202,7 @@ export const drawResultRowCard = (doc, row, index, gradingScale) => {
   doc.y = cardTop + cardHeight + 8;
 };
 
-export const drawQuestionCard = async (doc, q, index, { showCorrect = false, showExplanation = false } = {}) => {
+export const drawQuestionCard = async (doc, q, index, { showCorrect = false, showExplanation = false } = {}, imageBuffer = null) => {
   const estimatedHeight = q.media_url ? 250 : 120;
   if (doc.y + estimatedHeight > doc.page.height - 50) doc.addPage();
 
@@ -233,14 +233,11 @@ export const drawQuestionCard = async (doc, q, index, { showCorrect = false, sho
   doc.moveDown(0.5);
 
   // 2. Hình ảnh nếu có (Nằm dưới câu hỏi)
-  if (q.media_url && utils.isImageUrl(q.media_url)) {
-    const imageBuffer = await utils.downloadMediaBuffer(q.media_url);
-    if (imageBuffer) {
-      try { 
-        doc.image(imageBuffer, { fit: [350, 200], align: 'center' }); 
-        doc.moveDown(0.8); 
-      } catch (err) {}
-    }
+  if (imageBuffer) {
+    try {
+      doc.image(imageBuffer, { fit: [350, 200], align: 'center' });
+      doc.moveDown(0.8);
+    } catch (err) {}
   }
 
   // 3. Loại câu hỏi
@@ -272,7 +269,7 @@ export const drawQuestionCard = async (doc, q, index, { showCorrect = false, sho
   doc.moveDown(1.5);
 };
 
-export const drawReviewQuestion = async (doc, q, index) => {
+export const drawReviewQuestion = async (doc, q, index, imageBuffer = null) => {
   const estimatedHeight = q.media_url ? 250 : 120;
   if (doc.y + estimatedHeight > doc.page.height - 50) doc.addPage();
 
@@ -306,14 +303,11 @@ export const drawReviewQuestion = async (doc, q, index) => {
   doc.moveDown(0.5);
 
   // 2. Hình ảnh nếu có (Nằm dưới câu hỏi)
-  if (q.media_url && utils.isImageUrl(q.media_url)) {
-    const imageBuffer = await utils.downloadMediaBuffer(q.media_url);
-    if (imageBuffer) {
-      try { 
-        doc.image(imageBuffer, { fit: [250, 150], align: 'center' }); 
-        doc.moveDown(0.8); 
-      } catch (err) {}
-    }
+  if (imageBuffer) {
+    try {
+      doc.image(imageBuffer, { fit: [250, 150], align: 'center' });
+      doc.moveDown(0.8);
+    } catch (err) {}
   }
 
   // 3. Lựa chọn & Kết quả
