@@ -307,12 +307,13 @@ export const bundleQuizContentZip = async (quizId, user, options) => {
     { type: 'solutions', name: '3-Loi-giai-chi-tiet' }
   ];
 
-  for (const f of formats) {
-    const res = await (options.format === 'pdf' 
+  const results = await Promise.all(
+    formats.map(f => options.format === 'pdf'
       ? buildQuizContentPdf(quizId, user, { ...options, type: f.type })
-      : buildQuizContentExcel(quizId, user, { ...options, type: f.type }));
-    zip.addFile(`${f.name}-${res.fileName}`, res.buffer);
-  }
+      : buildQuizContentExcel(quizId, user, { ...options, type: f.type }))
+  );
+
+  results.forEach((res, i) => zip.addFile(`${formats[i].name}-${res.fileName}`, res.buffer));
 
   return {
     buffer: zip.toBuffer(),
