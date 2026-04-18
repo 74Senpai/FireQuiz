@@ -101,6 +101,24 @@ const extractPathFromUrl = (url, bucket = supabaseBucket) => {
 };
 
 /**
+ * Tải file từ Supabase Storage về Buffer (hỗ trợ cả path nội bộ lẫn URL đầy đủ cũ).
+ */
+export const downloadFileBuffer = async (pathOrUrl, bucket = supabaseBucket) => {
+  if (!supabase || !pathOrUrl) return null;
+
+  const filePath = pathOrUrl.includes('http')
+    ? extractPathFromUrl(pathOrUrl, bucket)
+    : pathOrUrl;
+
+  if (!filePath) return null;
+
+  const { data, error } = await supabase.storage.from(bucket).download(filePath);
+  if (error || !data) return null;
+
+  return Buffer.from(await data.arrayBuffer());
+};
+
+/**
  * Xóa file khỏi Supabase Storage.
  */
 export const deleteFileFromSupabase = async (fileUrl, bucket = supabaseBucket) => {

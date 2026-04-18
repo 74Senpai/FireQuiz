@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
 import path from 'path';
+import { downloadFileBuffer } from '../services/supabaseService.js';
 
 /**
  * Common color and theme tokens for reports.
@@ -58,10 +59,7 @@ export const prepareQuestionsForExport = (questions, randomize = false) => {
 export const downloadMediaBuffer = async (url) => {
   if (!url) return null;
   try {
-    const response = await fetch(url);
-    if (!response.ok) return null;
-    const arrayBuffer = await response.arrayBuffer();
-    return Buffer.from(arrayBuffer);
+    return await downloadFileBuffer(url);
   } catch (error) {
     console.error('Error downloading media:', error);
     return null;
