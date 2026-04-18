@@ -31,7 +31,7 @@ jest.unstable_mockModule('../src/cache/cacheClient.js', () => ({
 jest.unstable_mockModule('../src/repositories/userRepository.js', () => ({
   findById: jest.fn(),
   findByEmail: jest.fn(),
-  updateAvatarUrl: jest.fn(),
+  updateAvatar: jest.fn(),
   updateProfileData: jest.fn(),
 }));
 
@@ -75,9 +75,9 @@ describe('User Actions Extended - Unit Tests', () => {
   describe('User Profile & Avatar', () => {
     it('Nên cập nhật avatar thành công', async () => {
       userRepo.findById.mockResolvedValue({ id: 1, avatar_url: 'old.jpg' });
-      userRepo.updateAvatarUrl.mockResolvedValue(true);
+      userRepo.updateAvatar.mockResolvedValue(true);
       await userService.updateAvatar(1, 'http://new-avatar.jpg');
-      expect(userRepo.updateAvatarUrl).toHaveBeenCalledWith(1, 'http://new-avatar.jpg');
+      expect(userRepo.updateAvatar).toHaveBeenCalledWith(1, 'http://new-avatar.jpg');
     });
 
     it('Nên cập nhật thông tin cá nhân thành công', async () => {
