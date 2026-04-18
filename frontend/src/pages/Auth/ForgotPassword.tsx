@@ -24,6 +24,7 @@ export function ForgotPassword() {
   const [confirmPassword, setConfirmPassword] = React.useState("");
 
   const [resetToken, setResetToken] = React.useState("");
+  const [countdown, setCountdown] = React.useState(0);
   const [errors, setErrors] = React.useState<any>({});
 
   // Tự động gửi OTP khi đã nhập đủ 6 số
@@ -32,6 +33,17 @@ export function ForgotPassword() {
       handleVerifyOTP();
     }
   }, [otp, step, isLoading]);
+
+  // Xử lý đếm ngược gửi lại mã
+  React.useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [countdown]);
 
 
   // STEP 1: Gửi OTP
@@ -44,6 +56,7 @@ export function ForgotPassword() {
       await authService.forgotPassword(email);
 
       setStep(2);
+      setCountdown(60); // Bắt đầu đếm ngược 60s
       setErrors({});
     } catch (err) {
       setErrors({
@@ -164,7 +177,21 @@ export function ForgotPassword() {
                 maxLength={6}
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
+                inputMode="numeric"
+                pattern="[0-9]*"
               />
+              <div className="flex justify-center mt-4">
+                <button
+                  type="button"
+                  onClick={handleSendOTP}
+                  disabled={countdown > 0 || isLoading}
+                  className="text-xs text-slate-500 hover:text-indigo-600 font-medium transition-colors disabled:text-slate-300 disabled:cursor-not-allowed"
+                >
+                  {countdown > 0
+                    ? `Không nhận được mã? Gửi lại sau ${countdown}s`
+                    : "Không nhận được mã? Gửi lại"}
+                </button>
+              </div>
             </div>
           )}
 

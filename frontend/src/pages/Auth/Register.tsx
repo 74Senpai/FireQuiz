@@ -24,6 +24,7 @@ export function Register() {
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
   const [otp, setOtp] = React.useState("");
+  const [countdown, setCountdown] = React.useState(0);
 
   // State quản lý lỗi
   const [errors, setErrors] = React.useState<any>({});
@@ -34,6 +35,17 @@ export function Register() {
       handleRegister();
     }
   }, [otp, step, isLoading]);
+
+  // Xử lý đếm ngược cho nút gửi lại mã
+  React.useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [countdown]);
 
   const validateStep1 = () => {
     const errs: any = {};
@@ -64,6 +76,7 @@ export function Register() {
     try {
       await authService.sendSignUpOTP(email);
       setStep(2);
+      setCountdown(60); // Bắt đầu đếm ngược 60s
     } catch (error: any) {
       const message = error.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại.";
       setErrors({ api: message });
@@ -213,6 +226,8 @@ export function Register() {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   autoFocus
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                 />
               </div>
 
@@ -220,9 +235,12 @@ export function Register() {
                 <button 
                   type="button"
                   onClick={handleRequestOTP}
-                  className="text-xs text-slate-500 hover:text-pink-600 font-medium transition-colors"
+                  disabled={countdown > 0 || isLoading}
+                  className="text-xs text-slate-500 hover:text-pink-600 font-medium transition-colors disabled:text-slate-300 disabled:cursor-not-allowed"
                 >
-                  Không nhận được mã? Gửi lại
+                  {countdown > 0 
+                    ? `Không nhận được mã? Gửi lại sau ${countdown}s` 
+                    : "Không nhận được mã? Gửi lại"}
                 </button>
               </div>
             </div>
