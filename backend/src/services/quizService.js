@@ -139,7 +139,7 @@ export const getResultsDashboard = async (id, user) => {
   let totalCorrect = 0;
   let totalIncorrect = 0;
 
-  const gradingScale = Number(quiz.grading_scale || 10);
+  const gradingScale = Number(quiz.grading_scale) > 0 ? Number(quiz.grading_scale) : 10;
   const bucketSize = gradingScale / 10;
   const scoreHistogram = Array.from({ length: 10 }, (_, i) => ({
     range: `${i * bucketSize}-${(i + 1) * bucketSize}`,
