@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -148,7 +148,7 @@ export function TakeQuiz() {
     const timer = setInterval(tick, 1000);
     tick(); // chạy ngay để hiển thị đúng khi vừa resume (tránh chờ 1 giây)
     return () => clearInterval(timer);
-  }, [loading, errorMsg, questions.length]);
+  }, [loading, errorMsg, questions.length, handleSubmit]);
 
   // Khi tab/máy wake up, cập nhật lại timeLeft ngay từ deadline (tránh timer bị lệch do sleep)
   useEffect(() => {
@@ -162,7 +162,7 @@ export function TakeQuiz() {
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [loading, attemptId]);
+  }, [loading, attemptId, handleSubmit]);
 
   // ─── Vi phạm chuyển tab ──────────────────────────────────────────────────
   useEffect(() => {
@@ -205,7 +205,7 @@ export function TakeQuiz() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [loading, errorMsg, attemptId, isSubmitting, isLocked]);
 
-  const handleSubmit = async (force = false) => {
+  const handleSubmit = useCallback(async (force = false) => {
     if (!quizId || !attemptId || isSubmitting) return;
 
     if (!force) {
@@ -236,7 +236,7 @@ export function TakeQuiz() {
       console.error("Lỗi khi nộp bài:", err);
       navigate(`/dashboard/attempt/${attemptId}/review`);
     }
-  };
+  }, [quizId, attemptId, isSubmitting, questions.length, navigate]);
 
   const handleAnswerSelect = (questionId: number, optionId: number, type: string) => {
     if (isSubmitting || isLocked) return;
