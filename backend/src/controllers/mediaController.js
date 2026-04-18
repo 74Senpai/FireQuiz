@@ -1,4 +1,5 @@
 import * as supabaseService from '../services/supabaseService.js';
+import { countMediaUsage } from '../repositories/mediaRepository.js';
 import AppError from '../errors/AppError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -19,6 +20,11 @@ export const handleMediaRedirect = asyncHandler(async (req, res) => {
 
   if (!ALLOWED_BUCKETS.has(targetBucket)) {
     throw new AppError('Bucket không được phép truy cập', 403);
+  }
+
+  const usageCount = await countMediaUsage(path);
+  if (usageCount === 0) {
+    throw new AppError('Tài nguyên không tồn tại hoặc không được phép truy cập', 404);
   }
 
   // Tạo Signed URL có thời hạn ngắn (vd: 5 phút để user xem ngay)
