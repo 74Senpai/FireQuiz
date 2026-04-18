@@ -13,12 +13,12 @@ const initDB = async () => {
     port: Number(process.env.DB_PORT),
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    // Cho phép chạy nhiều command SQL trong một lần gọi (batch processing)
-    multipleStatements: true, 
-    ssl: {
-      minVersion: 'TLSv1.2',
-      rejectUnauthorized: true, 
-    },
+    database: process.env.DB_NAME,
+    waitForConnections: true,
+    connectionLimit: 10,
+    ...(process.env.DB_SSL === 'true' && {
+      ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true },
+    }),
   });
 
   try {

@@ -150,3 +150,44 @@ CREATE TABLE sessions (
 );
 
 CREATE INDEX idx_sessions_user_id ON sessions (user_id);
+
+-- =========================
+-- TABLE: bank_questions
+-- =========================
+CREATE TABLE bank_questions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    creator_id INT NOT NULL,
+    content VARCHAR(255) NOT NULL,
+    type CHAR(15) NOT NULL,
+    media_url VARCHAR(255),
+    difficulty ENUM('easy', 'medium', 'hard') DEFAULT 'medium',
+    category VARCHAR(100),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bank_question_creator FOREIGN KEY (creator_id) REFERENCES users (id)
+);
+
+CREATE INDEX idx_bank_questions_creator ON bank_questions (creator_id);
+CREATE INDEX idx_bank_questions_category ON bank_questions (category);
+
+-- =========================
+-- TABLE: bank_answers
+-- =========================
+CREATE TABLE bank_answers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    bank_question_id INT NOT NULL,
+    content VARCHAR(255) NOT NULL,
+    is_correct BOOLEAN NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bank_answer_question FOREIGN KEY (bank_question_id) REFERENCES bank_questions (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_bank_answers_question ON bank_answers (bank_question_id);
+
+-- =========================
+-- Liên kết questions với bank
+-- =========================
+ALTER TABLE questions
+    ADD COLUMN bank_question_id INT NULL,
+    ADD CONSTRAINT fk_question_bank FOREIGN KEY (bank_question_id) REFERENCES bank_questions (id) ON DELETE SET NULL;

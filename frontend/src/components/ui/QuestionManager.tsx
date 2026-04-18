@@ -18,10 +18,12 @@ import {
   Music,
   Film,
   FileAudio,
+  BookOpen,
 } from "lucide-react";
 import { uploadFile } from "@/services/uploadService";
 import { cn } from "@/lib/utils";
 import { ImportExcelModal } from "./ImportExcelModal";
+import { ImportFromBankModal } from "./ImportFromBankModal";
 import * as questionServices from "@/services/questionServices";
 
 // ─── Hằng số ─────────────────────────────────────────────────────────────────
@@ -58,6 +60,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showBankModal, setShowBankModal] = useState(false);
 
   // Form state
   const [questionType, setQuestionType] = useState<string>("ANANSWER");
@@ -224,6 +227,13 @@ export function QuestionManager({ quizId }: { quizId: string }) {
         <div className="flex gap-2">
           {!isAdding && (
             <>
+              <Button
+                variant="outline"
+                onClick={() => setShowBankModal(true)}
+                className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10 hover:text-white text-sm"
+              >
+                <BookOpen className="w-4 h-4 mr-2" /> Từ ngân hàng
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => setShowImportModal(true)}
@@ -585,13 +595,25 @@ export function QuestionManager({ quizId }: { quizId: string }) {
         ))}
       </div>
 
-      {/* Import Modal */}
+      {/* Import Excel Modal */}
       {showImportModal && (
         <ImportExcelModal
           quizId={quizId}
           onClose={() => setShowImportModal(false)}
           onSuccess={() => {
             setShowImportModal(false);
+            fetchQuestions();
+          }}
+        />
+      )}
+
+      {/* Import từ Ngân hàng Modal */}
+      {showBankModal && (
+        <ImportFromBankModal
+          quizId={quizId}
+          onClose={() => setShowBankModal(false)}
+          onSuccess={() => {
+            setShowBankModal(false);
             fetchQuestions();
           }}
         />

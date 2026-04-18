@@ -1,8 +1,10 @@
 import path from 'path';
+import { fileURLToPath } from 'url';
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 const alterQueries = [
   "ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255);",
@@ -11,8 +13,33 @@ const alterQueries = [
   "ALTER TABLE questions ADD COLUMN media_url VARCHAR(255);",
   "ALTER TABLE attempt_questions ADD COLUMN media_url VARCHAR(255);",
   "ALTER TABLE quizzes ADD COLUMN max_tab_violations INT DEFAULT 2;",
-  "ALTER TABLE users ADD COLUMN bio TEXT;",
-  "ALTER TABLE quizzes ADD COLUMN max_attempts_per_user INT DEFAULT NULL;"
+  "ALTER TABLE quizzes ADD COLUMN max_attempts_per_user INT DEFAULT NULL;",
+  `CREATE TABLE IF NOT EXISTS bank_questions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    creator_id INT NOT NULL,
+    content VARCHAR(255) NOT NULL,
+    type CHAR(15) NOT NULL,
+    media_url VARCHAR(255),
+    difficulty ENUM('easy','medium','hard') DEFAULT 'medium',
+    category VARCHAR(100),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bank_question_creator FOREIGN KEY (creator_id) REFERENCES users(id)
+  );`,
+  "CREATE INDEX IF NOT EXISTS idx_bank_questions_creator ON bank_questions (creator_id);",
+  "CREATE INDEX IF NOT EXISTS idx_bank_questions_category ON bank_questions (category);",
+  `CREATE TABLE IF NOT EXISTS bank_answers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    bank_question_id INT NOT NULL,
+    content VARCHAR(255) NOT NULL,
+    is_correct BOOLEAN NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bank_answer_question FOREIGN KEY (bank_question_id) REFERENCES bank_questions(id) ON DELETE CASCADE
+  );`,
+  "CREATE INDEX IF NOT EXISTS idx_bank_answers_question ON bank_answers (bank_question_id);",
+  "ALTER TABLE questions ADD COLUMN bank_question_id INT NULL;",
+  "ALTER TABLE questions ADD CONSTRAINT fk_question_bank FOREIGN KEY (bank_question_id) REFERENCES bank_questions(id) ON DELETE SET NULL;"
 ];
 
 const migrate = async () => {
@@ -21,14 +48,13 @@ const migrate = async () => {
     port: Number(process.env.DB_PORT),
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    ssl: {
-      minVersion: "TLSv1.2",
-      rejectUnauthorized: true
-    }
+    database: process.env.DB_NAME
   });
 
   console.log('Bắt đầu cập nhật cấu trúc database...');
+  console.log(process.env.DB_PASSWORD)
+  console.log(process.env.DB_NAME)
+  console.log(process.env.DB_USER)
 
   try {
     for (const query of alterQueries) {

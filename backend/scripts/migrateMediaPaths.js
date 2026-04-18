@@ -35,10 +35,11 @@ const runMigration = async () => {
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    ssl: {
-      minVersion: "TLSv1.2",
-      rejectUnauthorized: true
-    }
+    waitForConnections: true,
+    connectionLimit: 10,
+    ...(process.env.DB_SSL === 'true' && {
+      ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true },
+    }),
   });
 
   console.log('🚀 Bắt đầu Migrate Media URLs sang Paths...');
