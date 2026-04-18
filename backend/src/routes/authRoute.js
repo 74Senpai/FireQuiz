@@ -5,7 +5,7 @@ import { otpRateLimiter } from "../middlewares/rateLimiter.js";
 
 const router = express.Router();
 
-router.post("/register", authMiddleware.validateSignUp, authController.signUp);
+router.post("/register", otpRateLimiter, authMiddleware.validateSignUp, authController.signUp);
 router.post("/send-signup-otp", otpRateLimiter, authMiddleware.validateEmail, authController.sendSignUpOTP);
 router.post("/login", authMiddleware.validateLogIn, authController.logIn);
 router.post("/logout", authController.logOut);
