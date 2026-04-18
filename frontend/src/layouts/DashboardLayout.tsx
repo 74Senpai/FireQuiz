@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useDialogStore } from "@/stores/dialogStore";
+import { ScrollToTopButton } from "@/components/ui/ScrollToTopButton";
 import { cn } from "@/lib/utils";
 
 export function DashboardLayout() {
@@ -254,7 +255,7 @@ export function DashboardLayout() {
             </div>
           </div>
         </header>
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 relative">
+        <div id="main-scroll-area" className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 relative scroll-smooth">
           {/* Animated background elements */}
           <div className="absolute top-20 right-10 w-80 h-80 bg-indigo-500/10 rounded-full filter blur-3xl animate-blob"></div>
           <div className="absolute -bottom-20 left-10 w-80 h-80 bg-purple-500/10 rounded-full filter blur-3xl animate-blob animation-delay-4000"></div>
@@ -262,6 +263,7 @@ export function DashboardLayout() {
           <div className="relative z-10">
             <Outlet />
           </div>
+          <ScrollToTopButton />
         </div>
       </main>
     </div>

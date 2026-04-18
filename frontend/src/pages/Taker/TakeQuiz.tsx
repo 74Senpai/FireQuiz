@@ -525,7 +525,7 @@ export function TakeQuiz() {
             disabled={currentPage === 0}
             onClick={() => {
                 setCurrentPage(p => p - 1);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="text-slate-300 hover:bg-white/5 gap-2"
           >
@@ -538,7 +538,7 @@ export function TakeQuiz() {
                 key={i}
                 onClick={() => {
                     setCurrentPage(i);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 className={cn(
                   "w-2.5 h-2.5 rounded-full transition-all duration-300",
@@ -553,7 +553,7 @@ export function TakeQuiz() {
             <Button
                 onClick={() => {
                     setCurrentPage(p => p + 1);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
             >
