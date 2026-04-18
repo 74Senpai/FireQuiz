@@ -86,7 +86,15 @@ export function ImportFromBankModal({ quizId, onClose, onSuccess }: Props) {
     if (!selected.size) return alert("Vui lòng chọn ít nhất 1 câu hỏi");
     setIsImporting(true);
     try {
-      await bankService.importFromBank(quizId, [...selected]);
+      const { createdQuestionIds, skipped } = await bankService.importFromBank(quizId, [...selected]);
+      if (skipped > 0 && createdQuestionIds.length === 0) {
+        alert(`Tất cả ${skipped} câu hỏi đã tồn tại trong quiz, không có gì được thêm.`);
+        onClose();
+        return;
+      }
+      if (skipped > 0) {
+        alert(`Đã thêm ${createdQuestionIds.length} câu hỏi. Bỏ qua ${skipped} câu đã tồn tại trong quiz.`);
+      }
       onSuccess();
     } catch (e: any) {
       alert(e.response?.data?.message || "Import thất bại!");

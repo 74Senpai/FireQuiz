@@ -141,28 +141,42 @@ export const importFromBank = async (user, quizId, questionIds) => {
   const notFound = questionIds.filter(id => !bankQuestions.find(bq => bq.id === id));
   if (notFound.length) throw new AppError(`Không tìm thấy câu hỏi bank: ${notFound.join(', ')}`, 404);
 
-  const answers = await bankQuestionRepository.findAnswersByQuestionIds(questionIds);
+  const existingIds = await questionRepository.findExistingBankQuestionIds(quizId, questionIds);
+  const toImport = bankQuestions.filter(bq => !existingIds.has(bq.id));
+
+  if (!toImport.length) return { createdIds: [], skipped: questionIds.length };
+
+  const answers = await bankQuestionRepository.findAnswersByQuestionIds(toImport.map(bq => bq.id));
   const answerMap = buildAnswerMap(answers);
 
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
+    // Pass 1: insert tất cả questions → lấy IDs
     const createdIds = [];
-    for (const bq of bankQuestions) {
+    const bankIdToQuestionId = new Map();
+    for (const bq of toImport) {
       const qId = await questionRepository.create(
         { content: bq.content, type: bq.type, quizId, mediaUrl: bq.media_url, bankQuestionId: bq.id },
         conn
       );
-      const bqAnswers = answerMap.get(bq.id) || [];
-      await Promise.all(
-        bqAnswers.map(a =>
-          answerRepository.createAnswer({ content: a.content, isCorrect: a.is_correct, questionId: qId }, conn)
-        )
-      );
       createdIds.push(qId);
+      bankIdToQuestionId.set(bq.id, qId);
     }
+
+    // Pass 2: batch insert tất cả answers cùng lúc
+    await Promise.all(
+      toImport.flatMap(bq =>
+        (answerMap.get(bq.id) || []).map(a =>
+          answerRepository.createAnswer(
+            { content: a.content, isCorrect: a.is_correct, questionId: bankIdToQuestionId.get(bq.id) },
+            conn
+          )
+        )
+      )
+    );
     await conn.commit();
-    return createdIds;
+    return { createdIds, skipped: existingIds.size };
   } catch (err) {
     await conn.rollback();
     throw err;
