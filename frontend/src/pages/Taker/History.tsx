@@ -9,7 +9,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ArrowRight, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { getMyAttempts } from "@/services/attemptServices";
+import { getMyAttempts, getMyStats } from "@/services/attemptServices";
+import { ActivityHeatmap } from "@/components/ui/ActivityHeatmap";
 
 function formatDt(value) {
   if (!value) return "—";
@@ -36,6 +37,12 @@ export function History() {
     totalItems: 0,
     totalPages: 0,
   });
+  
+  const [statsData, setStatsData] = useState([]);
+
+  useEffect(() => {
+    getMyStats().then(res => setStatsData(res.data || res || [])).catch(console.error);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -63,13 +70,15 @@ export function History() {
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
-        <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-[length:200%_auto] animate-gradient-shift drop-shadow-lg inline-block transform transition-all duration-300 hover:scale-[1.02] hover:drop-shadow-[0_0_15px_rgba(167,139,250,0.6)]">
+        <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-[length:200%_auto] inline-block">
           Lịch sử làm bài
         </h2>
         <p className="text-slate-400 mt-1">
-          Các lần thi đã lưu trên hệ thống — xem lại đáp án theo từng lần.
+          Các lần thi đã lưu trên hệ thống — xem lại báo cáo chi tiết theo từng lần.
         </p>
       </div>
+
+      <ActivityHeatmap stats={statsData} />
 
       {loading && (
         <div className="flex items-center justify-center gap-3 py-20 text-slate-300">

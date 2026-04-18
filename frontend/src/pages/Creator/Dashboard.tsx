@@ -66,20 +66,11 @@ export function CreatorDashboard() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-400">
-        <Loader2 className="w-10 h-10 animate-spin mb-4" />
-        <p>Đang tải danh sách Quiz...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between animate-fade-in">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-[length:200%_auto] animate-gradient-shift drop-shadow-lg inline-block transform transition-all duration-300 hover:scale-[1.02]">
+          <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">
             Danh sách Quiz
           </h2>
           <p className="text-slate-400 mt-1">
@@ -87,20 +78,23 @@ export function CreatorDashboard() {
           </p>
         </div>
         <Link to="/dashboard/quiz/new">
-          {" "}
-          {/* Chỉnh lại route nếu cần */}
-          <Button className="gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-lg">
+          <Button className="gap-2 bg-slate-800 hover:bg-slate-700 text-white shadow-none border border-slate-700">
             <Plus className="w-5 h-5" />
             Tạo Quiz
           </Button>
         </Link>
       </div>
 
-      {quizzes.length === 0 ? (
+      {isLoading ? (
+        <div className="text-center py-20 bg-white/5 rounded-2xl border border-dashed border-white/10">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-indigo-400 mb-4" />
+          <p className="text-slate-400">Đang tải danh sách Quiz...</p>
+        </div>
+      ) : quizzes.length === 0 ? (
         <div className="text-center py-20 bg-white/5 rounded-2xl border border-dashed border-white/10">
           <p className="text-slate-400">Bạn chưa có bài thi nào.</p>
           <Link
-            to="/dashboard/manage/new"
+            to="/dashboard/quiz/new"
             className="text-indigo-400 hover:underline mt-2 inline-block"
           >
             Bắt đầu tạo bài thi đầu tiên
@@ -113,9 +107,8 @@ export function CreatorDashboard() {
             return (
               <Card
                 key={quiz.id}
-                className={`relative overflow-hidden group cursor-pointer animate-slide-up hover:scale-[1.02] transition-all duration-300 bg-white/5 border-white/10`}
-                style={{ animationDelay: `${index * 100}ms` }}
-                onClick={() => navigate(`/dashboard/quiz/${quiz.id}`)}
+                className={`relative overflow-hidden group cursor-pointer transition-colors duration-300 bg-white/5 border-white/10 hover:border-indigo-400/50`}
+                onClick={() => navigate(`/dashboard/quiz/${quiz.id}/edit`)}
               >
                 {/* Status bar dọc */}
                 <div

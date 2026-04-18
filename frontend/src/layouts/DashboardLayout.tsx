@@ -10,6 +10,7 @@ import {
   Clock,
   Flame,
   Globe,
+  Menu,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ export function DashboardLayout() {
   const { user, logout } = useAuthStore();
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -49,20 +51,31 @@ export function DashboardLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex overflow-hidden">
+    <div className="h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex overflow-hidden">
       {/* Sidebar */}
-      <aside className="no-print w-64 bg-white/10 backdrop-blur-md border-r border-white/10 flex flex-col shadow-2xl animate-slide-in">
-        <div className="h-16 flex items-center px-6 border-b border-white/10">
-          <div className="flex items-center gap-2 group cursor-pointer">
-            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-lg shadow-orange-500/50 group-hover:shadow-orange-500/70 transition-all duration-300 group-hover:scale-110">
+      <aside 
+        className={cn(
+          "no-print bg-white/10 backdrop-blur-md border-r border-white/10 flex flex-col shadow-2xl transition-all duration-300",
+          isCollapsed ? "w-20" : "w-64"
+        )}
+      >
+        <div className="h-16 flex items-center justify-between px-4 border-b border-white/10">
+          <div className={cn("flex items-center gap-2 group cursor-pointer overflow-hidden whitespace-nowrap transition-all duration-300", isCollapsed ? "opacity-0 w-0" : "opacity-100 w-auto")}>
+            <div className="relative flex items-center justify-center min-w-[40px] w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-lg transition-transform duration-300 group-hover:scale-110">
               <Flame className="w-6 h-6 text-white" fill="currentColor" />
             </div>
             <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 bg-clip-text text-transparent">
               Quizz
             </span>
           </div>
+          <button 
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-2 min-w-[40px] flex justify-center rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
         </div>
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto overflow-x-hidden">
           {links.map((link, index) => {
             const Icon = link.icon;
             const isActive = location.pathname === link.href;
@@ -70,21 +83,22 @@ export function DashboardLayout() {
               <Link
                 key={link.name}
                 to={link.href}
+                title={isCollapsed ? link.name : undefined}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ease-out group/link animate-slide-in hover:translate-x-1",
+                  "flex items-center rounded-lg text-sm font-semibold transition-all duration-300 ease-out group/link",
+                  isCollapsed ? "justify-center p-3" : "gap-3 px-4 py-3",
                   isActive
-                    ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30"
+                    ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg"
                     : "text-slate-300 hover:bg-white/10 hover:text-white",
                 )}
-                style={{ animationDelay: `${index * 50}ms` }}
               >
                 <Icon
                   className={cn(
-                    "w-5 h-5 transition-transform duration-300",
-                    isActive && "group-hover/link:rotate-12",
+                    "w-5 h-5 transition-transform duration-300 flex-shrink-0",
+                    isActive && !isCollapsed && "group-hover/link:rotate-12",
                   )}
                 />
-                {link.name}
+                {!isCollapsed && <span className="truncate">{link.name}</span>}
               </Link>
             );
           })}
@@ -93,27 +107,29 @@ export function DashboardLayout() {
           <button
             onClick={handleLogout}
             disabled={isLoggingOut}
+            title={isCollapsed ? "Đăng xuất" : undefined}
             className={cn(
-              "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ease-out group",
+              "w-full flex items-center rounded-lg text-sm font-semibold transition-all duration-300 ease-out group",
+              isCollapsed ? "justify-center p-3" : "gap-3 px-4 py-3",
               isLoggingOut
                 ? "opacity-50 cursor-not-allowed bg-slate-800 text-slate-500"
                 : "text-slate-300 hover:bg-red-500/20 hover:text-red-300",
             )}
           >
             {isLoggingOut ? (
-              <span className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></span>
+              <span className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin flex-shrink-0"></span>
             ) : (
-              <LogOut className="w-5 h-5 group-hover:rotate-180 transition-transform duration-300" />
+              <LogOut className="w-5 h-5 group-hover:rotate-180 transition-transform duration-300 flex-shrink-0" />
             )}
-            {isLoggingOut ? "Đang thoát..." : "Đăng xuất"}
+            {!isCollapsed && <span className="truncate">{isLoggingOut ? "Đang thoát..." : "Đăng xuất"}</span>}
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        <header className="no-print h-16 bg-white/5 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-8 shadow-lg">
-          <h1 className="text-2xl font-bold text-white capitalize animate-fade-in">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-l border-white/5">
+        <header className="no-print h-16 bg-white/5 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-8 shadow-sm">
+          <h1 className="text-2xl font-bold text-white capitalize">
             {(() => {
               const key = location.pathname.split("/").pop()?.replace("-", " ") || "Trang chính";
               const map: Record<string,string> = {
@@ -149,7 +165,7 @@ export function DashboardLayout() {
             </div>
           </div>
         </header>
-        <div className="flex-1 overflow-auto p-8 relative">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-8 relative">
           {/* Animated background elements */}
           <div className="absolute top-20 right-10 w-80 h-80 bg-indigo-500/10 rounded-full filter blur-3xl animate-blob"></div>
           <div className="absolute -bottom-20 left-10 w-80 h-80 bg-purple-500/10 rounded-full filter blur-3xl animate-blob animation-delay-4000"></div>
