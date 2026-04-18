@@ -3,9 +3,13 @@ import { fileURLToPath } from 'url';
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
+/*
+ * dùng chung env với app (uncomment đoạn này và comment line:3)
+ * const __dirname = path.dirname(fileURLToPath(import.meta.url));
+ * dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+*/
 const alterQueries = [
   "ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255);",
   "ALTER TABLE users ADD COLUMN bio TEXT;",
