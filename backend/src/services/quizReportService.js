@@ -19,7 +19,17 @@ const checkQuizExistAndOwner = (quiz, user) => {
   if (!user || user.id != quiz.creator_id) throw new AppError("Bạn không có quyền thực hiện hành động này", 403);
 };
 
-const checkHasExportAccess = async (quiz, user) => {
+const ANSWER_TYPES = new Set(['key', 'solutions', 'all']);
+
+const isQuizStillOpen = (quiz) => {
+  if (quiz.status !== 'PUBLIC') return false;
+  const now = new Date();
+  if (quiz.available_from && new Date(quiz.available_from) > now) return false;
+  if (quiz.available_until && new Date(quiz.available_until) <= now) return false;
+  return true;
+};
+
+const checkHasExportAccess = async (quiz, user, type = 'paper') => {
   if (!quiz) throw new AppError("Bộ câu hỏi không tồn tại", 404);
   if (!user) throw new AppError("Yêu cầu đăng nhập", 401);
   if (user.id == quiz.creator_id) return true;
@@ -29,6 +39,11 @@ const checkHasExportAccess = async (quiz, user) => {
     [quiz.id, user.id]
   );
   if (attempts.length === 0) throw new AppError("Bạn không có quyền xuất dữ liệu cho Quiz này", 403);
+
+  if (ANSWER_TYPES.has(type) && type !== 'paper' && isQuizStillOpen(quiz)) {
+    throw new AppError("Đáp án chỉ được phép xem sau khi bộ câu hỏi kết thúc", 403);
+  }
+
   return true;
 };
 
@@ -48,9 +63,9 @@ const getReportData = async (quizId, user) => {
   };
 };
 
-const getQuizContentData = async (quizId, user, isParticipantScan = false) => {
+const getQuizContentData = async (quizId, user, isParticipantScan = false, type = 'paper') => {
   const quiz = await quizRepository.getQuizById(quizId);
-  if (isParticipantScan) await checkHasExportAccess(quiz, user);
+  if (isParticipantScan) await checkHasExportAccess(quiz, user, type);
   else checkQuizExistAndOwner(quiz, user);
 
   const questions = await questionRepository.getListQuestionByQuizId(quizId);
@@ -108,7 +123,7 @@ export const buildExcelReport = async (quizId, user, options = {}) => {
 };
 
 export const buildQuizContentExcel = async (quizId, user, { type = 'all', randomize = false, versionCount = 1, isParticipant = false } = {}) => {
-  const { quiz, questions: originalQuestions } = await getQuizContentData(quizId, user, isParticipant);
+  const { quiz, questions: originalQuestions } = await getQuizContentData(quizId, user, isParticipant, type);
   const workbook = new ExcelJS.Workbook();
   const count = Math.max(1, Math.min(10, parseInt(versionCount)));
 
@@ -190,7 +205,7 @@ export const buildPdfReport = async (quizId, user) => {
 };
 
 export const buildQuizContentPdf = async (quizId, user, { type = 'all', randomize = false, versionCount = 1, isParticipant = false } = {}) => {
-  const { quiz, questions: originalQuestions } = await getQuizContentData(quizId, user, isParticipant);
+  const { quiz, questions: originalQuestions } = await getQuizContentData(quizId, user, isParticipant, type);
   const doc = new PDFDocument({ margin: 50, size: "A4", layout: "portrait" });
   const chunks = [];
 
