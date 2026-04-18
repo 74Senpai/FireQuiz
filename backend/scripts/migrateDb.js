@@ -10,6 +10,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
  * const __dirname = path.dirname(fileURLToPath(import.meta.url));
  * dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 */
+
 const alterQueries = [
   "ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255);",
   "ALTER TABLE users ADD COLUMN bio TEXT;",
@@ -59,9 +60,6 @@ const migrate = async () => {
   });
 
   console.log('Bắt đầu cập nhật cấu trúc database...');
-  console.log(process.env.DB_PASSWORD)
-  console.log(process.env.DB_NAME)
-  console.log(process.env.DB_USER)
 
   try {
     for (const query of alterQueries) {
