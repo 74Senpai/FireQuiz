@@ -74,12 +74,17 @@ export const exportQuizContent = asyncHandler(async (req, res) => {
   const user = req.user;
   const { type = 'all', format = 'excel', randomize = 'false', versionCount = '1', separateFiles = 'false' } = req.query;
 
+  const parsedVersionCount = parseInt(versionCount);
+  if (isNaN(parsedVersionCount) || parsedVersionCount < 1) {
+    return res.status(400).json({ message: 'versionCount phải là số nguyên lớn hơn 0' });
+  }
+
   let report;
-  const options = { 
-    type, 
+  const options = {
+    type,
     format,
-    randomize: randomize === 'true', 
-    versionCount: parseInt(versionCount)
+    randomize: randomize === 'true',
+    versionCount: parsedVersionCount,
   };
 
   if (separateFiles === 'true') {
