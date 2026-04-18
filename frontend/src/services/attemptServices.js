@@ -30,6 +30,24 @@ export const submitAttempt = (attemptId, answers = {}, textAnswers = {}) =>
     .patch(`/attempt/${attemptId}/submit`, { answers, textAnswers })
     .then((res) => res.data);
 
+/**
+ * Nộp bài khẩn cấp khi trang sắp bị unload (vi phạm tab lần cuối).
+ * Dùng fetch keepalive để đảm bảo request được gửi kể cả khi tab bị đóng.
+ */
+export const submitAttemptKeepAlive = (attemptId, answers = {}, textAnswers = {}) => {
+  const token = localStorage.getItem("accessToken");
+  return fetch(`${process.env.API_URL}/attempt/${attemptId}/submit`, {
+    method: "PATCH",
+    keepalive: true,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    credentials: "include",
+    body: JSON.stringify({ answers, textAnswers }),
+  });
+};
+
 /** Thống kê điểm số */
 export const getMyStats = () =>
   axios.get("/attempt/stats/my").then((res) => res.data);
