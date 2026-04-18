@@ -137,7 +137,7 @@ export function TakeQuiz() {
   }, []);
 
   useEffect(() => {
-    if (loading || errorMsg || !questions.length) return;
+    if (loading || errorMsg || !questions.length || isSubmitting) return;
     // Nếu quiz không có giới hạn thời gian thì không cần đếm ngược
     if (deadlineRef.current === null) return;
 
@@ -153,11 +153,11 @@ export function TakeQuiz() {
     const timer = setInterval(tick, 1000);
     tick(); // chạy ngay để hiển thị đúng khi vừa resume (tránh chờ 1 giây)
     return () => clearInterval(timer);
-  }, [loading, errorMsg, questions.length, handleSubmit, getRemainingSeconds]);
+  }, [loading, errorMsg, questions.length, isSubmitting, handleSubmit, getRemainingSeconds]);
 
   // Khi tab/máy wake up, cập nhật lại timeLeft ngay từ deadline (tránh timer bị lệch do sleep)
   useEffect(() => {
-    if (loading || !attemptId || !deadlineRef.current) return;
+    if (loading || !attemptId || isSubmitting || !deadlineRef.current) return;
     const onVisible = () => {
       if (document.visibilityState === "visible") {
         const remaining = getRemainingSeconds();
@@ -168,7 +168,7 @@ export function TakeQuiz() {
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [loading, attemptId, handleSubmit, getRemainingSeconds]);
+  }, [loading, attemptId, isSubmitting, handleSubmit, getRemainingSeconds]);
 
   // ─── Vi phạm chuyển tab ──────────────────────────────────────────────────
   useEffect(() => {
