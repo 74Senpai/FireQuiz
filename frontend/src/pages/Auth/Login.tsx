@@ -81,7 +81,7 @@ export function Login() {
           <CardTitle className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
             Chào mừng trở lại
           </CardTitle>
-          <CardDescription className="text-slate-600">
+          <CardDescription className="text-slate-500">
             Nhập email của bạn để đăng nhập
           </CardDescription>
         </CardHeader>

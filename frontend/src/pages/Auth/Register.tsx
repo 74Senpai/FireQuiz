@@ -78,7 +78,7 @@ export function Register() {
           <CardTitle className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
             Tạo tài khoản
           </CardTitle>
-          <CardDescription className="text-slate-600">
+          <CardDescription className="text-slate-500">
             Tham gia để bắt đầu làm bài kiểm tra
           </CardDescription>
         </CardHeader>
