@@ -1,6 +1,7 @@
 import * as bankQuestionRepository from '../repositories/bankQuestionRepository.js';
 import * as questionRepository from '../repositories/questionRepository.js';
 import * as answerRepository from '../repositories/answerRepository.js';
+import { getQuizById } from '../repositories/quizRepository.js';
 import pool from '../db/db.js';
 import AppError from '../errors/AppError.js';
 
