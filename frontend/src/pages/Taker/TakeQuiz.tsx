@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,7 +21,8 @@ export function TakeQuiz() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const [timeLeft, setTimeLeft] = useState(3600);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const deadlineRef = useRef<number | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   
   // State lưu đáp án: key = attempt_questions.id, value = mảng các attempt_options.id
@@ -48,8 +49,8 @@ export function TakeQuiz() {
   // Ref cho debounce câu TEXT
   const textDebounceRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
 
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
+  const minutes = timeLeft !== null ? Math.floor(timeLeft / 60) : null;
+  const seconds = timeLeft !== null ? timeLeft % 60 : null;
 
   const totalPages = Math.ceil(questions.length / QUESTIONS_PER_PAGE);
 
@@ -62,6 +63,8 @@ export function TakeQuiz() {
         setQuestions(data.questions);
         setQuizTitle(data.quizTitle);
         if (data.timeLimitSeconds !== undefined && data.timeLimitSeconds !== null) {
+          const deadline = Date.now() + data.timeLimitSeconds * 1000;
+          deadlineRef.current = deadline;
           setTimeLeft(data.timeLimitSeconds);
         }
         if (data.maxTabViolations !== undefined) {
@@ -129,21 +132,44 @@ export function TakeQuiz() {
     loadQuizData();
   }, [quizId]);
 
+  const getRemainingSeconds = useCallback(() => {
+    if (!deadlineRef.current) return null;
+    return Math.max(0, Math.round((deadlineRef.current - Date.now()) / 1000));
+  }, []);
+
   useEffect(() => {
-    if (loading || errorMsg || !questions.length) return;
-    
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleSubmit(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    if (loading || errorMsg || !questions.length || isSubmitting) return;
+    // Nếu quiz không có giới hạn thời gian thì không cần đếm ngược
+    if (deadlineRef.current === null) return;
+
+    const tick = () => {
+      const remaining = getRemainingSeconds()!;
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        clearInterval(timer);
+        handleSubmit(true);
+      }
+    };
+
+    const timer = setInterval(tick, 1000);
+    tick(); // chạy ngay để hiển thị đúng khi vừa resume (tránh chờ 1 giây)
     return () => clearInterval(timer);
-  }, [loading, errorMsg, questions.length]);
+  }, [loading, errorMsg, questions.length, isSubmitting, handleSubmit, getRemainingSeconds]);
+
+  // Khi tab/máy wake up, cập nhật lại timeLeft ngay từ deadline (tránh timer bị lệch do sleep)
+  useEffect(() => {
+    if (loading || !attemptId || isSubmitting || !deadlineRef.current) return;
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        const remaining = getRemainingSeconds();
+        if (remaining === null) return;
+        setTimeLeft(remaining);
+        if (remaining <= 0) handleSubmit(true);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [loading, attemptId, isSubmitting, handleSubmit, getRemainingSeconds]);
 
   // ─── Vi phạm chuyển tab ──────────────────────────────────────────────────
   useEffect(() => {
@@ -186,6 +212,7 @@ export function TakeQuiz() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [loading, errorMsg, attemptId, isSubmitting, isLocked]);
 
+  const handleSubmit = useCallback(async (force = false) => {
   // ─── Xử lý Đóng Tab / Rời trang (Native) ──────────────────────────────────────────────────
   useEffect(() => {
     if (loading || errorMsg || !attemptId || isSubmitting || isLocked) return;
@@ -256,7 +283,85 @@ export function TakeQuiz() {
         unansweredCount > 0
           ? `Bạn còn ${unansweredCount} câu hỏi chưa trả lời. Bạn có chắc chắn muốn nộp bài không?`
           : "Bạn có chắc chắn muốn nộp bài thi không?";
+          const doSubmit = async () => {
+262
+      setIsSubmitting(true);
+263
+      try {
+264
+        // Gửi toàn bộ đáp án lên BE để ghi DB
+265
+        await attemptServices.submitAttempt(
+266
+          attemptId,
+267
+          latestAnswersRef.current,
+268
+          latestTextAnswersRef.current
+269
+        );
+270
+        // Xóa draft local sau khi submit thành công
+271
+        draftService.clearLocal(quizId!, userIdRef.current);
+272
+        navigate(`/dashboard/attempt/${attemptId}/review`);
+273
+      } catch (err) {
+274
+        console.error("Lỗi khi nộp bài:", err);
+275
+        navigate(`/dashboard/attempt/${attemptId}/review`);
+276
+      }
+277
+    };
+278
+​
+279
+    if (!force) {
+280
+      const unansweredCount = questions.length
+281
+        - Object.keys(latestAnswersRef.current).length
+282
+        - Object.keys(latestTextAnswersRef.current).filter(
+283
+            (k) => latestTextAnswersRef.current[Number(k)]?.trim()
+284
+          ).length;
+285
+      const msg =
+286
+        unansweredCount > 0
+287
+          ? `Bạn còn ${unansweredCount} câu hỏi chưa trả lời. Bạn có chắc chắn muốn nộp bài không?`
+288
+          : "Bạn có chắc chắn muốn nộp bài thi không?";
+289
       
+290
+      useDialogStore.getState().showDialog({
+291
+        type: 'confirm',
+292
+        title: 'Nộp bài thi',
+293
+        description: msg,
+294
+        confirmText: 'Nộp bài',
+295
+        cancelText: 'Trở lại',
+296
+        onConfirm: doSubmit
+297
+      });
+298
+      return;
+299
+    }
+300
+
       useDialogStore.getState().showDialog({
         type: 'confirm',
         title: 'Nộp bài thi',
@@ -268,6 +373,22 @@ export function TakeQuiz() {
       return;
     }
 
+    setIsSubmitting(true);
+    try {
+      // Gửi toàn bộ đáp án lên BE để ghi DB
+      await attemptServices.submitAttempt(
+        attemptId,
+        latestAnswersRef.current,
+        latestTextAnswersRef.current
+      );
+      // Xóa draft local sau khi submit thành công
+      draftService.clearLocal(quizId!, userIdRef.current);
+      navigate(`/dashboard/attempt/${attemptId}/review`);
+    } catch (err) {
+      console.error("Lỗi khi nộp bài:", err);
+      navigate(`/dashboard/attempt/${attemptId}/review`);
+    }
+  }, [quizId, attemptId, isSubmitting, questions.length, navigate]);
     doSubmit();
   };
 
@@ -387,12 +508,14 @@ export function TakeQuiz() {
           <div className="flex items-center gap-4">
              <div className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-xl font-mono text-xl font-bold border transition-all duration-500",
-              timeLeft < 300 
-                ? "bg-red-500/20 text-red-400 border-red-500/40 animate-pulse" 
+              timeLeft !== null && timeLeft < 300
+                ? "bg-red-500/20 text-red-400 border-red-500/40 animate-pulse"
                 : "bg-indigo-500/10 text-indigo-300 border-indigo-500/30"
             )}>
               <Clock className="w-5 h-5" />
-              {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
+              {minutes !== null && seconds !== null
+                ? `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+                : "∞"}
             </div>
             <div>
               <h2 className="text-xl font-bold text-white truncate max-w-[200px] sm:max-w-md">{quizTitle}</h2>
