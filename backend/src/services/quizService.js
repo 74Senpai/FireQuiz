@@ -138,19 +138,13 @@ export const getResultsDashboard = async (id, user) => {
 
   let totalCorrect = 0;
   let totalIncorrect = 0;
-  
-  const scoreHistogram = [
-    { range: '0-1', count: 0 },
-    { range: '1-2', count: 0 },
-    { range: '2-3', count: 0 },
-    { range: '3-4', count: 0 },
-    { range: '4-5', count: 0 },
-    { range: '5-6', count: 0 },
-    { range: '6-7', count: 0 },
-    { range: '7-8', count: 0 },
-    { range: '8-9', count: 0 },
-    { range: '9-10', count: 0 },
-  ];
+
+  const gradingScale = Number(quiz.grading_scale || 10);
+  const bucketSize = gradingScale / 10;
+  const scoreHistogram = Array.from({ length: 10 }, (_, i) => ({
+    range: `${i * bucketSize}-${(i + 1) * bucketSize}`,
+    count: 0,
+  }));
 
   dashboard.forEach(item => {
     totalCorrect += item.correct_count || 0;
@@ -158,7 +152,6 @@ export const getResultsDashboard = async (id, user) => {
 
     if (item.score !== null && item.score !== undefined) {
       const score = Number(item.score);
-      const gradingScale = Number(quiz.grading_scale || 10);
       let index = Math.floor((score / gradingScale) * 10);
       if (index >= 10) index = 9;
       if (index < 0) index = 0;
