@@ -81,7 +81,7 @@ export function Login() {
           <CardTitle className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
             Chào mừng trở lại
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-slate-500">
             Nhập email của bạn để đăng nhập
           </CardDescription>
         </CardHeader>
@@ -95,7 +95,7 @@ export function Login() {
 
           <div className="space-y-2 animate-slide-up animate-delay-100">
             <label
-              className="text-sm font-semibold text-slate-200"
+              className="text-sm font-semibold text-slate-700"
               htmlFor="email"
             >
               Địa chỉ email
@@ -115,7 +115,7 @@ export function Login() {
           <div className="space-y-2 animate-slide-up animate-delay-200">
             <div className="flex items-center justify-between">
               <label
-                className="text-sm font-semibold text-slate-200"
+                className="text-sm font-semibold text-slate-700"
                 htmlFor="password"
               >
                 Mật khẩu
