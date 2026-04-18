@@ -1,5 +1,13 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
 import * as attemptService from '../services/attemptService.js';
+import { getQuizAttemptById } from '../repositories/attemptRepository.js';
+import {
+  buildAttemptReviewPdf,
+  buildAttemptReviewExcel,
+  buildAttemptReviewSlipPdf,
+  buildQuizContentPdf,
+  buildQuizContentExcel,
+} from '../services/quizReportService.js';
 
 /** GET /api/attempt/my?page=&pageSize= */
 export const listMyAttempts = asyncHandler(async (req, res) => {
@@ -85,14 +93,6 @@ export const exportAttemptReview = asyncHandler(async (req, res) => {
   const user = req.user;
   const { format = 'pdf', type = 'review' } = req.query;
 
-  const { getQuizAttemptById } = await import('../repositories/attemptRepository.js');
-  const { 
-    buildAttemptReviewPdf, 
-    buildAttemptReviewExcel,
-    buildQuizContentPdf,
-    buildQuizContentExcel
-  } = await import('../services/quizReportService.js');
-
   const attempt = await getQuizAttemptById(attemptId);
   if (!attempt || attempt.user_id !== user.id) {
     return res.status(403).json({ message: 'Bạn không có quyền truy cập bản in này' });
@@ -100,7 +100,6 @@ export const exportAttemptReview = asyncHandler(async (req, res) => {
 
   let result;
   if (type === 'slip') {
-    const { buildAttemptReviewSlipPdf } = await import('../services/quizReportService.js');
     result = await buildAttemptReviewSlipPdf(attemptId, user);
   } else if (type === 'review') {
     result = format === 'pdf' 
