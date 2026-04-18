@@ -326,7 +326,7 @@ export function TakeQuiz() {
   }
 
   return (
-    <div className="relative flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto px-4 py-8">
+    <div className="relative flex flex-col gap-8 max-w-4xl mx-auto px-4 py-8 pb-32">
       {/* Main Content */}
       <div className="flex-1 space-y-8 min-w-0">
         {/* Header */}
@@ -348,19 +348,10 @@ export function TakeQuiz() {
           </div>
 
           <div className="flex items-center gap-3">
-             <div className="hidden sm:block">
+             <div>
               {syncStatus === "saving" && <span className="text-[10px] uppercase tracking-widest text-slate-500 animate-pulse">Syncing...</span>}
               {syncStatus === "saved" && <span className="text-[10px] uppercase tracking-widest text-emerald-500 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Saved</span>}
             </div>
-            <Button 
-                variant="outline" 
-                size="sm" 
-                className="lg:hidden bg-slate-900 border-white/10 text-slate-300"
-                onClick={() => setShowChecklist(!showChecklist)}
-            >
-              <ListChecks className="w-4 h-4 mr-2" /> 
-              Danh sách
-            </Button>
           </div>
         </div>
 
@@ -385,9 +376,9 @@ export function TakeQuiz() {
                     <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300 font-bold text-sm">
                       {questionIdx + 1}
                     </span>
-                    <h3 className="text-lg sm:text-xl font-medium text-slate-100 leading-relaxed">
+                    <h3 className="text-lg sm:text-xl font-medium text-slate-100 leading-relaxed break-words">
                       {q.text}
-                      {((q.type || "").trim().toUpperCase().startsWith("MULTIPLE") || (q.type || "").trim().toUpperCase().startsWith("MULTI")) && <span className="ml-2 text-xs font-normal text-indigo-400 bg-indigo-400/10 px-2 py-0.5 rounded border border-indigo-400/20">Chọn nhiều đáp án</span>}
+                      {((q.type || "").trim().toUpperCase().startsWith("MULTIPLE") || (q.type || "").trim().toUpperCase().startsWith("MULTI")) && <span className="inline-block align-middle ml-2 whitespace-nowrap text-xs font-normal text-indigo-400 bg-indigo-400/10 px-2 py-0.5 rounded border border-indigo-400/20">Chọn nhiều đáp án</span>}
                     </h3>
                   </div>
 
@@ -528,24 +519,38 @@ export function TakeQuiz() {
         </div>
       </div>
 
-      {/* Checklist Sidebar */}
+      {/* Floating Checklist Button */}
+      <button
+        onClick={() => setShowChecklist(true)}
+        className={cn(
+          "fixed bottom-6 right-6 sm:bottom-10 sm:right-10 z-40 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-[0_0_40px_-5px_rgba(79,70,229,0.5)] flex items-center justify-center transition-all duration-300 hover:scale-110",
+          showChecklist ? "scale-0 opacity-0 pointer-events-none" : "scale-100 opacity-100"
+        )}
+      >
+        <ListChecks className="w-6 h-6 sm:w-7 sm:h-7" />
+        <span className="absolute top-0 right-0 w-5 h-5 bg-emerald-500 rounded-full border-2 border-slate-900 text-[10px] font-bold flex items-center justify-center shadow-lg">
+          {answeredCount}
+        </span>
+      </button>
+
+      {/* Checklist Sidebar (Drawer off-canvas) */}
       <div className={cn(
-        "fixed inset-0 z-50 lg:relative lg:inset-auto lg:z-0 transition-all duration-300",
-        showChecklist ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none lg:opacity-100 lg:pointer-events-auto"
+        "fixed inset-0 z-50 transition-all duration-300",
+        showChecklist ? "opacity-100 pointer-events-auto flex justify-end" : "opacity-0 pointer-events-none flex justify-end"
       )}>
-        {/* Mobile Backdrop */}
-        <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm lg:hidden" onClick={() => setShowChecklist(false)} />
+        {/* Backdrop */}
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowChecklist(false)} />
         
         <div className={cn(
-            "absolute right-0 top-0 bottom-0 w-80 bg-slate-900 border-l border-white/10 p-6 flex flex-col gap-6 lg:sticky lg:top-8 lg:rounded-2xl lg:border lg:shadow-2xl transition-transform duration-300",
-            showChecklist ? "translate-x-0" : "translate-x-full lg:translate-x-0"
+            "relative w-72 sm:w-80 max-w-[85vw] h-full bg-slate-900 border-l border-white/10 p-5 sm:p-6 flex flex-col gap-6 shadow-2xl overflow-hidden transition-transform duration-300 ease-out",
+            showChecklist ? "translate-x-0" : "translate-x-full"
         )}>
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
               <ListChecks className="w-5 h-5 text-indigo-400" />
               Tổng quan
             </h3>
-            <Button variant="ghost" size="icon" className="lg:hidden text-slate-400" onClick={() => setShowChecklist(false)}>
+            <Button variant="ghost" size="icon" className="text-slate-400 hover:bg-white/10" onClick={() => setShowChecklist(false)}>
               <ChevronRight className="w-5 h-5" />
             </Button>
           </div>

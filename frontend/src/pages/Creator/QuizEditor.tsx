@@ -238,9 +238,9 @@ export function QuizEditor() {
         </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Sidebar */}
-        <div className="col-span-3 space-y-1">
+        <div className="lg:col-span-3 space-y-1">
           {[
             { id: "settings",  label: "Cài đặt",   icon: Settings  },
             { id: "questions", label: "Câu hỏi",   icon: ShieldAlert },
@@ -262,7 +262,7 @@ export function QuizEditor() {
         </div>
 
         {/* Main Content */}
-        <div className="col-span-9 space-y-6 animate-slide-up">
+        <div className="lg:col-span-9 space-y-6 animate-slide-up">
 
           {/* ── Tab: Cài đặt ── */}
           {activeTab === "settings" && (
@@ -295,7 +295,7 @@ export function QuizEditor() {
                       placeholder="Hướng dẫn cho sinh viên..."
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-medium flex items-center gap-2">
                         <Clock className="w-4 h-4 text-slate-400" /> Thời gian làm (phút)
@@ -498,7 +498,7 @@ export function QuizEditor() {
                 <CardTitle className="text-slate-100">Lịch & Quyền truy cập</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Thời gian mở</label>
                     <Input
@@ -519,7 +519,7 @@ export function QuizEditor() {
                     {errors.schedule && <p className="text-sm text-red-400">{errors.schedule}</p>}
                   </div>
                 </div>
-                <div className="flex gap-6 pt-4 border-t border-white/10">
+                <div className="flex flex-col sm:flex-row gap-6 pt-4 border-t border-white/10">
                   <div className="space-y-2 flex-1">
                     <label className="text-sm font-medium">Tổng số người tối đa (Slots)</label>
                     <Input

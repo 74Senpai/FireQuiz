@@ -22,6 +22,7 @@ export function DashboardLayout() {
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -52,11 +53,20 @@ export function DashboardLayout() {
 
   return (
     <div className="h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex overflow-hidden">
+      {/* Mobile Overlay */}
+      {isMobileOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-40 md:hidden" 
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside 
         className={cn(
-          "no-print bg-white/10 backdrop-blur-md border-r border-white/10 flex flex-col shadow-2xl transition-all duration-300",
-          isCollapsed ? "w-20" : "w-64"
+          "no-print bg-slate-900/95 md:bg-white/10 backdrop-blur-md border-r border-white/10 flex flex-col shadow-2xl transition-all duration-300 fixed md:relative z-50 h-full",
+          isCollapsed ? "md:w-20" : "md:w-64",
+          isMobileOpen ? "w-64 translate-x-0" : "w-64 -translate-x-full md:translate-x-0"
         )}
       >
         <div className="h-16 flex items-center justify-between px-4 border-b border-white/10">
@@ -70,7 +80,7 @@ export function DashboardLayout() {
           </div>
           <button 
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 min-w-[40px] flex justify-center rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
+            className="p-2 min-w-[40px] hidden md:flex justify-center rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -95,10 +105,10 @@ export function DashboardLayout() {
                 <Icon
                   className={cn(
                     "w-5 h-5 transition-transform duration-300 flex-shrink-0",
-                    isActive && !isCollapsed && "group-hover/link:rotate-12",
+                    isActive && !isCollapsed && "md:group-hover/link:rotate-12",
                   )}
                 />
-                {!isCollapsed && <span className="truncate">{link.name}</span>}
+                <span className={cn("truncate transition-all", isCollapsed && "md:hidden")}>{link.name}</span>
               </Link>
             );
           })}
@@ -110,7 +120,7 @@ export function DashboardLayout() {
             title={isCollapsed ? "Đăng xuất" : undefined}
             className={cn(
               "w-full flex items-center rounded-lg text-sm font-semibold transition-all duration-300 ease-out group",
-              isCollapsed ? "justify-center p-3" : "gap-3 px-4 py-3",
+              isCollapsed ? "md:justify-center p-3" : "gap-3 px-4 py-3",
               isLoggingOut
                 ? "opacity-50 cursor-not-allowed bg-slate-800 text-slate-500"
                 : "text-slate-300 hover:bg-red-500/20 hover:text-red-300",
@@ -122,14 +132,22 @@ export function DashboardLayout() {
               <LogOut className="w-5 h-5 group-hover:rotate-180 transition-transform duration-300 flex-shrink-0" />
             )}
             {!isCollapsed && <span className="truncate">{isLoggingOut ? "Đang thoát..." : "Đăng xuất"}</span>}
+            {isCollapsed && <span className="truncate md:hidden">{isLoggingOut ? "Đang thoát..." : "Đăng xuất"}</span>}
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-l border-white/5">
-        <header className="no-print h-16 bg-white/5 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-8 shadow-sm">
-          <h1 className="text-2xl font-bold text-white capitalize">
+        <header className="no-print h-16 bg-white/5 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-4 md:px-8 shadow-sm">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsMobileOpen(true)}
+              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors md:hidden"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <h1 className="text-xl md:text-2xl font-bold text-white capitalize line-clamp-1">
             {(() => {
               const key = location.pathname.split("/").pop()?.replace("-", " ") || "Trang chính";
               const map: Record<string,string> = {
@@ -143,7 +161,8 @@ export function DashboardLayout() {
               };
               return map[key] || key;
             })()}
-          </h1>
+            </h1>
+          </div>
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-bold text-white">
@@ -165,7 +184,7 @@ export function DashboardLayout() {
             </div>
           </div>
         </header>
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-8 relative">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 relative">
           {/* Animated background elements */}
           <div className="absolute top-20 right-10 w-80 h-80 bg-indigo-500/10 rounded-full filter blur-3xl animate-blob"></div>
           <div className="absolute -bottom-20 left-10 w-80 h-80 bg-purple-500/10 rounded-full filter blur-3xl animate-blob animation-delay-4000"></div>
