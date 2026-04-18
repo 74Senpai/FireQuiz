@@ -202,13 +202,13 @@ export const getAttemptSnapshot = async (attemptId) => {
 /**
  * Lấy số lượng câu hỏi và số câu trả lời đúng để tính điểm
  */
-export const getAttemptScoreData = async (attemptId) => {
-  const [totalRows] = await pool.execute(
+export const getAttemptScoreData = async (conn, attemptId) => {
+  const [totalRows] = await conn.execute(
     `SELECT COUNT(*) as total FROM attempt_questions WHERE quiz_attempt_id = ?`,
     [attemptId]
   );
 
-  const [correctRows] = await pool.execute(
+  const [correctRows] = await conn.execute(
     `SELECT COUNT(*) as correct
      FROM attempt_answers aa
      JOIN attempt_options ao ON aa.attempt_option_id = ao.id
@@ -226,8 +226,8 @@ export const getAttemptScoreData = async (attemptId) => {
 /**
  * Đánh dấu bài làm là hoàn thành
  */
-export const markAttemptFinished = async (attemptId, score) => {
-  await pool.execute(
+export const markAttemptFinished = async (conn, attemptId, score) => {
+  await conn.execute(
     `UPDATE quiz_attempts SET finished_at = NOW(), score = ? WHERE id = ?`,
     [score, attemptId]
   );

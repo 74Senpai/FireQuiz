@@ -469,34 +469,34 @@ export const finishAttempt = async (attemptId, userId, answers = {}, textAnswers
     // Bước 5: 1 bulk INSERT duy nhất cho toàn bộ đáp án mới
     await attemptRepository.bulkInsertAttemptAnswers(conn, insertPayload);
 
+    // Bước 6: Tính điểm và đánh dấu hoàn thành trong cùng transaction
+    const scoreData = await attemptRepository.getAttemptScoreData(conn, attemptId);
+    let finalScore = 0;
+    if (scoreData.total > 0) {
+      const gradingScale = quiz.grading_scale || 10;
+      finalScore = (scoreData.correct / scoreData.total) * gradingScale;
+    }
+    finalScore = Math.round(finalScore * 100) / 100;
+
+    await attemptRepository.markAttemptFinished(conn, attemptId, finalScore);
+
     await conn.commit();
+
+    // Xóa cache draft sau khi transaction thành công
+    delCache(buildDraftKey(attempt.quiz_id, userId));
+
+    return {
+      message: 'Nộp bài thành công',
+      score: finalScore,
+      correct: scoreData.correct,
+      total: scoreData.total,
+    };
   } catch (err) {
     await conn.rollback();
     throw err;
   } finally {
     conn.release();
   }
-
-  // Tính điểm
-  const scoreData = await attemptRepository.getAttemptScoreData(attemptId);
-  let finalScore = 0;
-  if (scoreData.total > 0) {
-    const gradingScale = quiz.grading_scale || 10;
-    finalScore = (scoreData.correct / scoreData.total) * gradingScale;
-  }
-  finalScore = Math.round(finalScore * 100) / 100;
-
-  await attemptRepository.markAttemptFinished(attemptId, finalScore);
-
-  // Xóa cache draft sau khi đã ghi DB thành công
-  delCache(buildDraftKey(attempt.quiz_id, userId));
-
-  return {
-    message: 'Nộp bài thành công',
-    score: finalScore,
-    correct: scoreData.correct,
-    total: scoreData.total,
-  };
 };
 
 export const recordTabViolation = async (attemptId, userId) => {
