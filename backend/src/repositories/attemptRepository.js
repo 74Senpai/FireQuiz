@@ -60,11 +60,9 @@ export const insertAttemptAnswer = async (conn, attemptOptionId, textAnswer = nu
  */
 export const bulkInsertAttemptAnswers = async (conn, attemptAnswers) => {
   if (attemptAnswers.length === 0) return;
-  // attemptAnswers should be an array of objects: { attemptOptionId, textAnswer }
-  const values = attemptAnswers.map(a => [a.attemptOptionId, a.textAnswer || null]);
   await conn.query(
     `INSERT INTO attempt_answers (attempt_option_id, text_answer) VALUES ?`,
-    [values]
+    [attemptAnswers]
   );
 };
 

@@ -271,10 +271,7 @@ export const submitAnswer = async (attemptId, userId, attemptQuestionId, attempt
     const ids = Array.isArray(attemptOptionIds) ? attemptOptionIds : [attemptOptionIds];
 
     if (ids.length > 0) {
-      const answersPayload = ids.map((id, index) => ({
-        attemptOptionId: id,
-        textAnswer: index === 0 ? textAnswer : null
-      }));
+      const answersPayload = ids.map((id, index) => [id, index === 0 ? textAnswer : null]);
       await attemptRepository.bulkInsertAttemptAnswers(conn, answersPayload);
     }
 
@@ -433,10 +430,7 @@ export const finishAttempt = async (attemptId, userId, answers = {}, textAnswers
       if (ids.length > 0) {
         const textValue = textAnswers[qIdStr] || null;
         ids.forEach((id, index) => {
-          insertPayload.push({
-            attemptOptionId: id,
-            textAnswer: index === 0 ? textValue : null,
-          });
+          insertPayload.push([id, index === 0 ? textValue : null]);
         });
       }
     }
@@ -454,10 +448,7 @@ export const finishAttempt = async (attemptId, userId, answers = {}, textAnswers
 
       // Gắn textAnswer vào option đầu tiên của câu TEXT (lấy từ map, không cần query DB)
       if (existingOpts.length > 0) {
-        insertPayload.push({
-          attemptOptionId: existingOpts[0].id,
-          textAnswer: textValue || null,
-        });
+        insertPayload.push([existingOpts[0].id, textValue || null]);
       }
     }
 
