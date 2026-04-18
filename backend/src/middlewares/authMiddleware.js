@@ -11,7 +11,7 @@ export const validateSignUp = asyncHandler(async (req, res, next) => {
   const { password, fullName, email, otp } = req.body;
 
   if (!password || !fullName || !email || !otp) {
-    throw new AppError("Không được trống password, fullname, email, otp", 400);
+    throw new AppError("Không được trống password, fullName, email, otp", 400);
   }
 
   validator.isPasswordValid(password);
