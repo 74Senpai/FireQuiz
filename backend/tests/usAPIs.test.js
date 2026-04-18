@@ -151,7 +151,7 @@ describe('US APIs Integration / Unit Tests', () => {
       quizRepository.getQuizByCode.mockResolvedValue(null);
 
       await expect(attemptService.joinQuizByCode('INVALID', 200))
-        .rejects.toThrow("Sai PIN");
+        .rejects.toThrow("Mã PIN không chính xác");
     });
   });
 });

@@ -1,6 +1,7 @@
 import express from 'express';
 import * as quizController from '../controllers/quizController.js';
 import * as importController from '../controllers/importController.js';
+import * as draftController from '../controllers/draftController.js';
 import { getIdFromToken, protectedRoute } from '../middlewares/authMiddleware.js';
 import { uploadExcel } from '../middlewares/fileUpload.js';
 
@@ -12,6 +13,10 @@ const router = express.Router();
 router.get('/myquiz', protectedRoute, quizController.getListQuizByUserId);
 router.get('/public/open', quizController.listPublicOpenQuizzes);
 router.post('/', protectedRoute, quizController.createQuiz);
+
+// Chú thích (BE): Draft routes – lưu/lấy draft bài làm từ cache (KHÔNG ghi DB)
+router.post('/draft', protectedRoute, draftController.saveDraft);
+router.get('/draft', protectedRoute, draftController.getDraft);
 
 // Routes có :id — CRUD
 router.patch('/:id/status', protectedRoute, quizController.setStatus);
@@ -28,6 +33,7 @@ router.get('/:id/results-dashboard', protectedRoute, quizController.getResultsDa
 // Routes có :id — Export
 router.get('/:id/export/excel', protectedRoute, quizController.exportQuizResultsExcel);
 router.get('/:id/export/pdf', protectedRoute, quizController.exportQuizResultsPdf);
+router.get('/:id/export/content', protectedRoute, quizController.exportQuizContent);
 
 // Routes có :id — PIN
 router.post('/:id/generate-pin', protectedRoute, quizController.generatePin);

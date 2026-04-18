@@ -282,6 +282,8 @@ export const getResultReportDataByQuizId = async (quizId) => {
         incorrect_count: 0,
       };
 
+      const evaluations = questionEvaluations.filter(e => e.attempt_id === attempt.id);
+
       return {
         attempt_id: attempt.id,
         user_id: attempt.user_id,
@@ -291,8 +293,10 @@ export const getResultReportDataByQuizId = async (quizId) => {
         started_at: attempt.started_at,
         finished_at: attempt.finished_at,
         duration_seconds: attempt.duration_seconds,
+        tab_violations: attempt.tab_violations || 0,
         correct_count: attemptSummary.correct_count,
         incorrect_count: attemptSummary.incorrect_count,
+        evaluations: evaluations, // Chi tiết từng câu
       };
     });
 };
@@ -338,6 +342,7 @@ export const getResultsDashboardDataByQuizId = async (quizId) => {
         started_at: attempt.started_at,
         finished_at: attempt.finished_at,
         duration_seconds: attempt.duration_seconds,
+        tab_violations: attempt.tab_violations || 0,
         submission_status: attempt.finished_at === null ? "IN_PROGRESS" : "SUBMITTED",
         total_attempts: attemptCountMap.get(attempt.user_id) || 0,
         correct_count: attemptSummary.correct_count,

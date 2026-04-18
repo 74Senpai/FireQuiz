@@ -16,16 +16,67 @@ export const startAttempt = (quizId) =>
 export const reportAttemptViolation = (attemptId) =>
   axios.patch(`/attempt/${attemptId}/violation`).then((res) => res.data);
 
-/** Nộp bài thi */
-export const submitAttempt = (attemptId) =>
-  axios.patch(`/attempt/${attemptId}/submit`).then((res) => res.data);
+/**
+ * Nộp bài chính thức (Option A).
+ * Gửi kèm toàn bộ answers + textAnswers để BE ghi DB.
+ * Đây là lần DUY NHẤT đáp án được ghi vào database.
+ *
+ * @param {number} attemptId
+ * @param {Record<number, number[]>} answers      - { questionId: [optionId, ...] }
+ * @param {Record<number, string>}   textAnswers  - { questionId: "nội dung" }
+ */
+export const submitAttempt = (attemptId, answers = {}, textAnswers = {}) =>
+  axios
+    .patch(`/attempt/${attemptId}/submit`, { answers, textAnswers })
+    .then((res) => res.data);
 
-/** Đồng bộ đáp án (hỗ trợ cả mảng cho Multiple Choice và chuỗi cho Text) */
-export const syncAttemptAnswer = (attemptId, attemptQuestionId, attemptOptionIds, textAnswer = null) => {
-  const payload = {
-    attemptQuestionId,
-    attemptOptionIds: Array.isArray(attemptOptionIds) ? attemptOptionIds : (attemptOptionIds ? [attemptOptionIds] : []),
-    textAnswer,
-  };
-  return axios.patch(`/attempt/${attemptId}/answer`, payload).then((res) => res.data);
+/**
+ * Nộp bài khẩn cấp khi trang sắp bị unload (vi phạm tab lần cuối).
+ * Dùng fetch keepalive để đảm bảo request được gửi kể cả khi tab bị đóng.
+ */
+export const submitAttemptKeepAlive = (attemptId, answers = {}, textAnswers = {}) => {
+  const token = localStorage.getItem("accessToken");
+  return fetch(`${process.env.API_URL}/attempt/${attemptId}/submit`, {
+    method: "PATCH",
+    keepalive: true,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    credentials: "include",
+    body: JSON.stringify({ answers, textAnswers }),
+  });
 };
+
+/** Thống kê điểm số */
+export const getMyStats = () =>
+  axios.get("/attempt/stats/my").then((res) => res.data);
+
+/** Xuất báo cáo / Tài liệu ôn tập (Blob) */
+export const exportAttemptReview = async (attemptId, format, type) => {
+  const res = await axios.get(`/attempt/${attemptId}/export-review`, {
+    params: { format, type },
+    responseType: 'blob'
+  });
+  
+  // Trích xuất tên file từ Content-Disposition nếu có
+  let fileName = `${type}-${attemptId}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
+  const disposition = res.headers['content-disposition'];
+  if (disposition && disposition.indexOf('filename=') !== -1) {
+    const matches = disposition.match(/filename="(.+)"/);
+    if (matches != null && matches[1]) fileName = matches[1];
+  }
+
+  // Thực hiện download
+  const url = window.URL.createObjectURL(new Blob([res.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', fileName);
+  document.body.appendChild(link);
+  link.click();
+  
+  link.remove();
+  window.URL.revokeObjectURL(url);
+  return true;
+};
+

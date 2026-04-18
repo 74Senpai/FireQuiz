@@ -9,6 +9,10 @@ Dự án áp dụng mô hình phân lớp **Controller - Service - Repository (N
 ```text
 backend/
 ├── package.json           # Khai báo packages và scripts hệ thống (Môi trường `type: "module"`)
+├── .env.example           # File mẫu chứa các biến môi trường cần thiết
+├── scripts/               # Các script quản trị và bảo trì hệ thống
+│   ├── syncDb.js          # Script đồng bộ/khởi tạo lại hoàn toàn database từ file SQL
+│   └── migrateDb.js       # Script cập nhật cấu trúc database an toàn (Migration)
 ├── src/
 │   ├── app.js             # Entry point (Khởi tạo Express, thiết lập Cors, Error Handling, Server Listen)
 │   ├── routes/            # (Router) Định nghĩa các URI web API, nạp Middlewares phân quyền.
@@ -203,3 +207,50 @@ export const someAction = async (data) => {
 ```
 
 Cảm ơn bạn đã tuân thủ tiêu chuẩn này. Việc giữ các layer trong kiến trúc rời rạc và logging chuẩn hóa sẽ giúp cho dự án FireQuiz dễ dàng bảo trì và vận hành dài hạn.
+
+---
+
+## 6. Quản Lý Cơ Sở Dữ Liệu (Database Management)
+
+Dự án cung cấp các công cụ để đồng bộ và cập nhật cấu trúc cơ sở dữ liệu một cách tự động.
+
+### 6.1. Đồng bộ hóa toàn bộ (Reset Database)
+
+Nếu bạn muốn tạo lại toàn bộ database từ đầu dựa trên file `firequiz.sql` gốc:
+
+```bash
+npm run db:sync
+```
+
+> [!CAUTION]  
+> **CẢNH BÁO**: Lệnh này sẽ `DROP DATABASE` hiện tại và tạo mới hoàn toàn. Toàn bộ dữ liệu cũ (User, Quiz, Results, ...) sẽ bị **XÓA SẠCH**. Chỉ nên dùng khi khởi tạo dự án hoặc trong môi trường dev cần làm mới dữ liệu mẫu.
+
+### 6.2. Cập nhật cấu trúc an toàn (Migration)
+
+Để cập nhật các thay đổi mới nhất về cấu trúc (thêm cột, thêm bảng) mà **không làm mất dữ liệu hiện có**:
+
+```bash
+npm run db:migrate
+```
+
+Lệnh này sử dụng script `scripts/migrateDb.js` để chạy các câu lệnh `ALTER TABLE` một cách an toàn. Cột nào đã tồn tại sẽ được tự động bỏ qua.
+
+---
+
+## 7. Hướng dẫn thêm thay đổi Database mới
+
+Khi dự án có thêm yêu cầu thay đổi DB (ví dụ: thêm cột mới cho bảng `users`), hãy làm theo các bước sau:
+
+1.  **Cập nhật file `firequiz.sql`**: Cập nhật định nghĩa bảng trong file SQL gốc ở thư mục root để đảm bảo người mới setup dự án sẽ có cấu trúc mới nhất.
+2.  **Cập nhật file `scripts/migrateDb.js`**:
+    - Mở file `f:\FireQuiz\backend\scripts\migrateDb.js`.
+    - Thêm câu lệnh SQL `ALTER TABLE ...` mới vào mảng `alterQueries`.
+    - Ví dụ:
+      ```javascript
+      const alterQueries = [
+        // Các lệnh cũ đã có...
+        "ALTER TABLE users ADD COLUMN phone_number VARCHAR(20);", // Thêm lệnh mới vào đây
+      ];
+      ```
+3.  **Thông báo cho đội ngũ**: Yêu cầu mọi người chạy `npm run db:migrate` để cập nhật môi trường local của họ.
+

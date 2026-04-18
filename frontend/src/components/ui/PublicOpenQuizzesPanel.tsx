@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, Play, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { getPublicOpenQuizzes } from "@/services/quizServices";
+import { cn } from "@/lib/utils";
 
 export type PublicQuizRow = {
   id: number;
@@ -15,6 +16,7 @@ export type PublicQuizRow = {
   available_until: string | null;
   grading_scale: number | null;
   max_attempts: number | null;
+  joinedCount?: number;
   creator_id: number;
   created_at?: string;
   updated_at?: string;
@@ -134,17 +136,38 @@ export function PublicOpenQuizzesPanel({
                   {quiz.description && (
                     <p className="text-sm text-slate-400 line-clamp-2 mb-4">{quiz.description}</p>
                   )}
-                  <div className="flex justify-between text-sm text-slate-400 mb-4 font-medium">
-                    <span>⏱️ {timeLimitLabel(quiz.time_limit_seconds)}</span>
-                    {quiz.grading_scale != null && (
-                      <span>Thang điểm {quiz.grading_scale}</span>
-                    )}
+                  <div className="flex justify-between items-center text-sm mb-4">
+                     <span className="text-slate-400 font-medium">⏱️ {timeLimitLabel(quiz.time_limit_seconds)}</span>
+                     {quiz.max_attempts != null && (
+                        <div className="flex flex-col items-end">
+                           <span className={cn(
+                             "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
+                             (quiz.max_attempts - (quiz.joinedCount || 0)) <= 0 
+                               ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                               : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                           )}>
+                             {(quiz.max_attempts - (quiz.joinedCount || 0)) <= 0 
+                               ? "🚫 Hết chỗ" 
+                               : `🔥 Còn ${quiz.max_attempts - (quiz.joinedCount || 0)} slot`}
+                           </span>
+                        </div>
+                     )}
                   </div>
-                  <Link to={getTakeHref(quiz.id)} className="block">
-                    <Button className="w-full gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg group-hover:shadow-indigo-500/50">
+                  <Link 
+                    to={getTakeHref(quiz.id)} 
+                    className={cn(
+                      "block",
+                      quiz.max_attempts != null && (quiz.max_attempts - (quiz.joinedCount || 0)) <= 0 && "pointer-events-none opacity-50"
+                    )}
+                  >
+                    <Button 
+                      disabled={quiz.max_attempts != null && (quiz.max_attempts - (quiz.joinedCount || 0)) <= 0}
+                      className="w-full gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg group-hover:shadow-indigo-500/50"
+                    >
                       <Play className="w-4 h-4 group-hover:animate-pulse" /> Bắt đầu Quiz
                     </Button>
                   </Link>
+
                 </CardContent>
               </Card>
             ))}

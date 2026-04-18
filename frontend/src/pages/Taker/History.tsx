@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { ArrowRight, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { getMyAttempts } from "@/services/attemptServices";
 
@@ -37,7 +43,9 @@ export function History() {
     try {
       const res = await getMyAttempts({ page, pageSize });
       setItems(res.data ?? []);
-      setPagination(res.pagination ?? { page, pageSize, totalItems: 0, totalPages: 0 });
+      setPagination(
+        res.pagination ?? { page, pageSize, totalItems: 0, totalPages: 0 },
+      );
     } catch (e) {
       const msg =
         e.response?.data?.message ?? "Không tải được lịch sử làm bài.";
@@ -58,7 +66,9 @@ export function History() {
         <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-[length:200%_auto] animate-gradient-shift drop-shadow-lg inline-block transform transition-all duration-300 hover:scale-[1.02] hover:drop-shadow-[0_0_15px_rgba(167,139,250,0.6)]">
           Lịch sử làm bài
         </h2>
-        <p className="text-slate-400 mt-1">Các lần thi đã lưu trên hệ thống — xem lại đáp án theo từng lần.</p>
+        <p className="text-slate-400 mt-1">
+          Các lần thi đã lưu trên hệ thống — xem lại đáp án theo từng lần.
+        </p>
       </div>
 
       {loading && (
@@ -70,7 +80,9 @@ export function History() {
 
       {!loading && error && (
         <Card className="border-red-400/40 bg-red-950/20 backdrop-blur-xl">
-          <CardContent className="py-8 text-center text-red-200">{error}</CardContent>
+          <CardContent className="py-8 text-center text-red-200">
+            {error}
+          </CardContent>
         </Card>
       )}
 
@@ -96,20 +108,29 @@ export function History() {
                     {row.quiz_title}
                   </CardTitle>
                   <CardDescription className="text-slate-400 space-y-0.5 text-xs">
-                    <div>Bắt đầu: {formatDt(row.started_at)}</div>
-                    <div>
+                    <span className="block">
+                      Bắt đầu: {formatDt(row.started_at)}
+                    </span>
+                    <span className="block">
                       {row.finished_at
                         ? `Nộp: ${formatDt(row.finished_at)}`
                         : "Chưa nộp bài"}
-                    </div>
+                    </span>
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between mb-4 p-3 bg-white/5 rounded-lg group-hover:bg-white/10 transition-colors duration-300">
-                    <span className="text-sm text-slate-400 font-semibold">Điểm</span>
-                    <span className="font-bold text-xl text-emerald-400">{scoreLabel(row.score)}</span>
+                    <span className="text-sm text-slate-400 font-semibold">
+                      Điểm
+                    </span>
+                    <span className="font-bold text-xl text-emerald-400">
+                      {scoreLabel(row.score)}
+                    </span>
                   </div>
-                  <Link to={`/dashboard/attempt/${row.id}/review`} className="block">
+                  <Link
+                    to={`/dashboard/attempt/${row.id}/review`}
+                    className="block"
+                  >
                     <Button
                       variant="outline"
                       className="w-full gap-2 border-purple-400/50 text-slate-100 hover:bg-purple-500/20 hover:text-purple-300"
@@ -137,7 +158,9 @@ export function History() {
               </Button>
               <span className="text-sm text-slate-400 tabular-nums">
                 Trang {pagination.page} / {pagination.totalPages}
-                <span className="text-slate-500 ml-2">({pagination.totalItems} lần)</span>
+                <span className="text-slate-500 ml-2">
+                  ({pagination.totalItems} lần)
+                </span>
               </span>
               <Button
                 type="button"

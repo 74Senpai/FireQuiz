@@ -31,3 +31,9 @@ export const verifyOTP = async (data) => {
 export const resetPassword = (data) => {
   return axiosInstance.post("/auth/reset-password", data);
 };
+
+export const changePassword = async (oldPassword, newPassword) => {
+  const res = await axiosInstance.put("/auth/change-password", { oldPassword, newPassword });
+  return res.data;
+};
+

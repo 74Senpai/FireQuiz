@@ -6,6 +6,8 @@ import * as answerRepository from '../repositories/answerRepository.js';
 import * as attemptAggregationService from '../services/attemptAggregationService.js';
 import { findById } from '../repositories/userRepository.js';
 import AppError from '../errors/AppError.js';
+import { deleteFileFromSupabase } from './supabaseService.js';
+import * as mediaService from './mediaService.js';
 
 const PIN_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const PIN_LENGTH = 6;
@@ -31,7 +33,9 @@ export const createQuiz = async (user, data) => {
     timeLimitSeconds,
     availableFrom,
     availableUntil,
-    maxAttempts
+    maxAttempts,
+    maxTabViolations,
+    maxAttemptsPerUser
   } = data;
 
   const { id } = user;
@@ -40,7 +44,7 @@ export const createQuiz = async (user, data) => {
     throw new AppError("Không thể thiếu tên bộ câu hỏi hoặc người tạo", 400);
   }
 
-  const quizId = await quizRepository.createQuiz({title, description, gradingScale, timeLimitSeconds, availableFrom, availableUntil, maxAttempts, creatorId:id });
+  const quizId = await quizRepository.createQuiz({title, description, gradingScale, timeLimitSeconds, availableFrom, availableUntil, maxAttempts, maxTabViolations, maxAttemptsPerUser, creatorId:id });
   logger.info(`quizService.js - Created quiz with ID: ${quizId}`);
   return quizId;
 }
@@ -58,7 +62,7 @@ export const getQuiz = async (id, user) => {
     }
   }
 
-  return quiz;
+  return await mediaService.hydrateQuiz(quiz);
 };
 
 export const getQuizPreview = async (id, user) => {
@@ -77,8 +81,8 @@ export const getQuizPreview = async (id, user) => {
   }));
 
   return {
-    quiz,
-    questions: questionsWithAnswers,
+    quiz: await mediaService.hydrateQuiz(quiz),
+    questions: await mediaService.hydrateQuestions(questionsWithAnswers),
   };
 };
 
@@ -90,12 +94,13 @@ export const getLeaderboard = async (id, user) => {
   const leaderboard = await attemptAggregationService.getLeaderboardDataByQuizId(id);
 
   return {
-    quiz: {
+    quiz: await mediaService.hydrateQuiz({
       id: quiz.id,
       title: quiz.title,
       status: quiz.status,
       gradingScale: quiz.grading_scale,
-    },
+      thumbnail_url: quiz.thumbnail_url
+    }),
     data: leaderboard,
   };
 };
@@ -109,12 +114,13 @@ export const getQuestionAnalytics = async (id, user) => {
   const totalAttempts = analytics[0]?.total_attempts || 0;
 
   return {
-    quiz: {
+    quiz: await mediaService.hydrateQuiz({
       id: quiz.id,
       title: quiz.title,
       status: quiz.status,
       gradingScale: quiz.grading_scale,
-    },
+      thumbnail_url: quiz.thumbnail_url
+    }),
     summary: {
       totalAttempts,
       totalQuestions: analytics.length,
@@ -130,13 +136,41 @@ export const getResultsDashboard = async (id, user) => {
 
   const dashboard = await attemptAggregationService.getResultsDashboardDataByQuizId(id);
 
+  let totalCorrect = 0;
+  let totalIncorrect = 0;
+
+  const gradingScale = Number(quiz.grading_scale) > 0 ? Number(quiz.grading_scale) : 10;
+  const bucketSize = gradingScale / 10;
+  const scoreHistogram = Array.from({ length: 10 }, (_, i) => ({
+    range: `${i * bucketSize}-${(i + 1) * bucketSize}`,
+    count: 0,
+  }));
+
+  dashboard.forEach(item => {
+    totalCorrect += item.correct_count || 0;
+    totalIncorrect += item.incorrect_count || 0;
+
+    if (item.score !== null && item.score !== undefined) {
+      const score = Number(item.score);
+      let index = Math.floor((score / gradingScale) * 10);
+      if (index >= 10) index = 9;
+      if (index < 0) index = 0;
+      scoreHistogram[index].count++;
+    }
+  });
+
+  const totalQuestionsAnswered = totalCorrect + totalIncorrect;
+  const correctRate = totalQuestionsAnswered > 0 ? ((totalCorrect / totalQuestionsAnswered) * 100).toFixed(1) : 0;
+  const incorrectRate = totalQuestionsAnswered > 0 ? ((totalIncorrect / totalQuestionsAnswered) * 100).toFixed(1) : 0;
+
   return {
-    quiz: {
+    quiz: await mediaService.hydrateQuiz({
       id: quiz.id,
       title: quiz.title,
       status: quiz.status,
       gradingScale: quiz.grading_scale,
-    },
+      thumbnail_url: quiz.thumbnail_url
+    }),
     summary: {
       totalParticipants: dashboard.length,
       submittedCount: dashboard.filter(
@@ -145,6 +179,13 @@ export const getResultsDashboard = async (id, user) => {
       inProgressCount: dashboard.filter(
         (item) => item.submission_status === "IN_PROGRESS",
       ).length,
+      overallRatio: {
+        correct: totalCorrect,
+        incorrect: totalIncorrect,
+        correctRate: Number(correctRate),
+        incorrectRate: Number(incorrectRate)
+      },
+      scoreHistogram,
     },
     data: dashboard,
   };
@@ -169,13 +210,16 @@ export const setStatus = async (id, user, status) => {
 };
 
 export const changeQuizInfo = async (id, user, info) => {
-  const { title, description } = info;
-  
   const quiz = await quizRepository.getQuizById(id);
-
   checkQuizExistAndOwner(quiz, user);
 
+  const oldThumbnailUrl = quiz?.thumbnail_url;
   await quizRepository.updateQuizInfo(id, info);
+
+  // Xóa thumbnail cũ nếu bị thay đổi hoặc gỡ bỏ
+  if (info.thumbnailUrl !== undefined && oldThumbnailUrl && oldThumbnailUrl !== info.thumbnailUrl) {
+    await deleteFileFromSupabase(oldThumbnailUrl);
+  }
 };
 
 export const changeQuizSettings = async(id, user, settings) => {
@@ -184,7 +228,9 @@ export const changeQuizSettings = async(id, user, settings) => {
     timeLimitSeconds,
     availableFrom,
     availableUntil,
-    maxAttempts
+    maxAttempts,
+    maxTabViolations,
+    maxAttemptsPerUser
   } = settings;
 
   const quiz = await quizRepository.getQuizById(id);
@@ -196,7 +242,7 @@ export const changeQuizSettings = async(id, user, settings) => {
 
 export const getListQuizByUserId = async (user) => {
   const quizzes = await quizRepository.getListQuizByUserId(user.id);
-  return quizzes;
+  return await mediaService.hydrateQuizzes(quizzes);
 };
 
 /**
@@ -233,7 +279,12 @@ export const listPublicOpenQuizzes = async (query) => {
     conn.release();
   }
 
-  const data = rows.map(({ quiz_code: _omit, ...rest }) => rest);
+  const data = await mediaService.hydrateQuizzes(
+    rows.map(({ quiz_code: _omit, joined_count, ...rest }) => ({
+      ...rest,
+      joinedCount: Number(joined_count) || 0
+    }))
+  );
 
   return {
     data,
@@ -248,11 +299,15 @@ export const listPublicOpenQuizzes = async (query) => {
 
 export const deleteQuiz = async (id, user) => {
   const quiz = await quizRepository.getQuizById(id);
-  
   checkQuizExistAndOwner(quiz, user);
+  const thumbnailUrl = quiz?.thumbnail_url;
 
   try {
     await quizRepository.hardDelete(id);
+    // Nếu hard delete thành công, nỗ lực xóa thumbnail
+    if (thumbnailUrl) {
+      await deleteFileFromSupabase(thumbnailUrl);
+    }
   } catch (err) {
     if (err.code === "ER_ROW_IS_REFERENCED_2") {
       await quizRepository.softDelete(id);
@@ -315,5 +370,6 @@ export const removePin = async (id, user) => {
 
 
 export const getPublicQuizzes = async () => {
-  return await quizRepository.getPublicQuizzes();
+  const quizzes = await quizRepository.getPublicQuizzes();
+  return await mediaService.hydrateQuizzes(quizzes);
 };

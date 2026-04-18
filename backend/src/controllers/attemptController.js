@@ -1,5 +1,13 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
 import * as attemptService from '../services/attemptService.js';
+import { getQuizAttemptById } from '../repositories/attemptRepository.js';
+import {
+  buildAttemptReviewPdf,
+  buildAttemptReviewExcel,
+  buildAttemptReviewSlipPdf,
+  buildQuizContentPdf,
+  buildQuizContentExcel,
+} from '../services/quizReportService.js';
 
 /** GET /api/attempt/my?page=&pageSize= */
 export const listMyAttempts = asyncHandler(async (req, res) => {
@@ -26,50 +34,10 @@ export const getAttemptReview = asyncHandler(async (req, res) => {
   const detail = await attemptService.getMyAttemptReviewDetail(req.user, req.params.id);
   return res.status(200).json(detail);
 });
-import AppError from '../errors/AppError.js';
-
 /**
- * PATCH /api/attempts/:id/answer
- * Body: { attemptQuestionId: number, attemptOptionId: number }
- *
- * Chú thích (BE): Controller đồng bộ đáp án tạm thời khi người dùng chọn một đáp án.
- * Được gọi mỗi khi FE detect sự kiện onChange trên radio button.
+ * PATCH /api/attempts/:id/answer  →  ĐÃ XÓA (không còn dùng)
+ * Đáp án giờ được gửi qua POST /api/quiz/draft (draft) hoặc PATCH /:id/submit (submit chính thức).
  */
-export const submitAnswer = asyncHandler(async (req, res) => {
-  const attemptId = Number(req.params.id);
-  const { attemptQuestionId, attemptOptionId, attemptOptionIds, textAnswer } = req.body;
-  const user = req.user;
-
-  // Hỗ trợ cả attemptOptionId (cũ) và attemptOptionIds (mới)
-  const finalOptionIds = attemptOptionIds || (attemptOptionId ? [attemptOptionId] : []);
-
-  // Chú thích (BE): Validate input
-  if (!attemptQuestionId || (!Array.isArray(finalOptionIds) || finalOptionIds.length === 0)) {
-    // Nếu rỗng, vẫn cho phép xóa đáp án (unselect)
-    if (attemptQuestionId) {
-       await attemptService.submitAnswer(
-        attemptId,
-        user.id,
-        Number(attemptQuestionId),
-        [],
-        textAnswer
-      );
-      return res.status(204).send();
-    }
-    return res.status(400).json({ message: 'Thiếu attemptQuestionId hoặc đáp án' });
-  }
-
-  await attemptService.submitAnswer(
-    attemptId,
-    user.id,
-    Number(attemptQuestionId),
-    finalOptionIds,
-    textAnswer
-  );
-
-  // Chú thích (BE): Trả 204 No Content – đồng bộ thành công, không cần trả data
-  return res.status(204).send();
-});
 
 export const startAttempt = asyncHandler(async (req, res) => {
   const quizId = Number(req.params.quizId);
@@ -82,14 +50,18 @@ export const startAttempt = asyncHandler(async (req, res) => {
 
 /**
  * PATCH /api/attempts/:id/submit
- * Chú thích (BE): Controller nộp bài chính thức, khóa bài và chấm toán điểm.
- * Gọi khi hết giờ hoặc user chủ động nộp.
+ * Body: { answers: { [attemptQuestionId]: [attemptOptionId, ...] }, textAnswers: { [attemptQuestionId]: string } }
+ *
+ * Chú thích (BE): Controller nộp bài chính thức.
+ * - Nhận toàn bộ đáp án từ FE (không đọc cache).
+ * - Ghi hàng loạt vào DB, tính điểm, khóa bài, xóa cache draft.
  */
 export const completeAttempt = asyncHandler(async (req, res) => {
   const attemptId = Number(req.params.id);
   const user = req.user;
+  const { answers = {}, textAnswers = {} } = req.body;
 
-  const result = await attemptService.finishAttempt(attemptId, user.id);
+  const result = await attemptService.finishAttempt(attemptId, user.id, answers, textAnswers);
 
   return res.status(200).json(result);
 });
@@ -106,3 +78,43 @@ export const reportViolation = asyncHandler(async (req, res) => {
 
   return res.status(200).json({ message: 'Đã báo cáo vi phạm thành công' });
 });
+
+export const getMyStats = asyncHandler(async (req, res) => {
+  const stats = await attemptService.getMyHistoryStats(req.user.id);
+  return res.status(200).json(stats);
+});
+
+/**
+ * GET /api/attempts/:id/export-review?format=pdf|excel&type=review|paper|solutions
+ * Chú thích (BE): Xuất tài liệu ôn tập cá nhân
+ */
+export const exportAttemptReview = asyncHandler(async (req, res) => {
+  const attemptId = Number(req.params.id);
+  const user = req.user;
+  const { format = 'pdf', type = 'review' } = req.query;
+
+  const attempt = await getQuizAttemptById(attemptId);
+  if (!attempt || attempt.user_id !== user.id) {
+    return res.status(403).json({ message: 'Bạn không có quyền truy cập bản in này' });
+  }
+
+  let result;
+  if (type === 'slip') {
+    result = await buildAttemptReviewSlipPdf(attemptId, user);
+  } else if (type === 'review') {
+    result = format === 'pdf' 
+      ? await buildAttemptReviewPdf(attemptId, user)
+      : await buildAttemptReviewExcel(attemptId, user);
+  } else {
+    // Các bản 'paper' (đề) hoặc 'solutions' (đáp án gốc) lấy từ Quiz cha
+    const options = { type, format, isParticipant: true };
+    result = format === 'pdf'
+      ? await buildQuizContentPdf(attempt.quiz_id, user, options)
+      : await buildQuizContentExcel(attempt.quiz_id, user, options);
+  }
+
+  res.setHeader('Content-Type', result.contentType);
+  res.setHeader('Content-Disposition', `attachment; filename="${result.fileName}"`);
+  return res.send(result.buffer);
+});
+

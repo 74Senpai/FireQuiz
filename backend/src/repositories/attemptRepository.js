@@ -1,6 +1,33 @@
 import pool from '../db/db.js';
 
 /**
+ * Lấy toàn bộ attempt_options của một attempt (dùng cho finishAttempt bulk-mode)
+ */
+export const getAllOptionsByAttemptId = async (conn, attemptId) => {
+  const [rows] = await conn.execute(
+    `SELECT ao.id, ao.attempt_question_id
+     FROM attempt_options ao
+     JOIN attempt_questions aq ON ao.attempt_question_id = aq.id
+     WHERE aq.quiz_attempt_id = ?`,
+    [attemptId]
+  );
+  return rows;
+};
+
+/**
+ * Xóa toàn bộ đáp án của một attempt bằng JOIN, tránh IN clause dài
+ */
+export const deleteAllAttemptAnswersByAttemptId = async (conn, attemptId) => {
+  await conn.execute(
+    `DELETE aa FROM attempt_answers aa
+     JOIN attempt_options ao ON aa.attempt_option_id = ao.id
+     JOIN attempt_questions aq ON ao.attempt_question_id = aq.id
+     WHERE aq.quiz_attempt_id = ?`,
+    [attemptId]
+  );
+};
+
+/**
  * Xoá đáp án tạm thời của một câu hỏi trong một bài làm
  */
 export const deleteAttemptAnswers = async (conn, attemptQuestionId) => {
@@ -33,11 +60,9 @@ export const insertAttemptAnswer = async (conn, attemptOptionId, textAnswer = nu
  */
 export const bulkInsertAttemptAnswers = async (conn, attemptAnswers) => {
   if (attemptAnswers.length === 0) return;
-  // attemptAnswers should be an array of objects: { attemptOptionId, textAnswer }
-  const values = attemptAnswers.map(a => [a.attemptOptionId, a.textAnswer || null]);
   await conn.query(
     `INSERT INTO attempt_answers (attempt_option_id, text_answer) VALUES ?`,
-    [values]
+    [attemptAnswers]
   );
 };
 
@@ -79,7 +104,7 @@ export const createQuizAttempt = async (conn, userId, quizId, quizTitle) => {
  */
 export const getQuestionsAndAnswersByQuizId = async (conn, quizId) => {
   const [rows] = await conn.execute(
-    `SELECT q.id as question_id, q.content as question_content, q.type as question_type,
+    `SELECT q.id as question_id, q.content as question_content, q.type as question_type, q.media_url as question_media_url, q.explanation as question_explanation,
             a.id as answer_id, a.content as answer_content, a.is_correct as answer_is_correct
      FROM questions q
      LEFT JOIN answers a ON q.id = a.question_id
@@ -95,7 +120,7 @@ export const getQuestionsAndAnswersByQuizId = async (conn, quizId) => {
 export const bulkInsertAttemptQuestions = async (conn, questionsData) => {
   if (questionsData.length === 0) return null;
   const [result] = await conn.query(
-    `INSERT INTO attempt_questions (quiz_attempt_id, content, type) VALUES ?`,
+    `INSERT INTO attempt_questions (quiz_attempt_id, content, type, media_url, explanation) VALUES ?`,
     [questionsData]
   );
   return result;
@@ -129,7 +154,7 @@ export const getActiveAttempt = async (quizId, userId) => {
  */
 export const getAttemptSnapshot = async (attemptId) => {
   const [questions] = await pool.execute(
-    `SELECT id, content, type FROM attempt_questions WHERE quiz_attempt_id = ?`,
+    `SELECT id, content, type, media_url, explanation FROM attempt_questions WHERE quiz_attempt_id = ?`,
     [attemptId]
   );
 
@@ -159,6 +184,8 @@ export const getAttemptSnapshot = async (attemptId) => {
       id: q.id,
       text: q.content,
       type: q.type,
+      media_url: q.media_url,
+      explanation: q.explanation,
       options: optionsData,
       selectedOptionIds: selectedOptionIds,
       textAnswer: textAnswer
@@ -174,13 +201,13 @@ export const getAttemptSnapshot = async (attemptId) => {
 /**
  * Lấy số lượng câu hỏi và số câu trả lời đúng để tính điểm
  */
-export const getAttemptScoreData = async (attemptId) => {
-  const [totalRows] = await pool.execute(
+export const getAttemptScoreData = async (conn, attemptId) => {
+  const [totalRows] = await conn.execute(
     `SELECT COUNT(*) as total FROM attempt_questions WHERE quiz_attempt_id = ?`,
     [attemptId]
   );
-  
-  const [correctRows] = await pool.execute(
+
+  const [correctRows] = await conn.execute(
     `SELECT COUNT(*) as correct
      FROM attempt_answers aa
      JOIN attempt_options ao ON aa.attempt_option_id = ao.id
@@ -198,8 +225,8 @@ export const getAttemptScoreData = async (attemptId) => {
 /**
  * Đánh dấu bài làm là hoàn thành
  */
-export const markAttemptFinished = async (attemptId, score) => {
-  await pool.execute(
+export const markAttemptFinished = async (conn, attemptId, score) => {
+  await conn.execute(
     `UPDATE quiz_attempts SET finished_at = NOW(), score = ? WHERE id = ?`,
     [score, attemptId]
   );
@@ -227,6 +254,17 @@ export const countQuizAttemptsByUserId = async (userId) => {
 };
 
 /**
+ * Đếm số lần tham gia của một User cho một Quiz cụ thể
+ */
+export const countQuizAttemptsByUserAndQuiz = async (userId, quizId) => {
+  const [rows] = await pool.execute(
+    `SELECT COUNT(*) AS total FROM quiz_attempts WHERE user_id = ? AND quiz_id = ?`,
+    [userId, quizId]
+  );
+  return Number(rows[0]?.total) || 0;
+};
+
+/**
  * Lấy danh sách lịch sử thi của User (phân trang)
  */
 export const listQuizAttemptsByUserIdPaginated = async (userId, limit, offset) => {
@@ -247,12 +285,31 @@ export const listQuizAttemptsByUserIdPaginated = async (userId, limit, offset) =
 };
 
 /**
+ * Lấy thống kê điểm số theo thời gian để vẽ biểu đồ
+ */
+export const getHistoryStatsByUserId = async (userId) => {
+  const sql = `
+    SELECT 
+      quiz_title, 
+      score, 
+      finished_at 
+    FROM quiz_attempts 
+    WHERE user_id = ? AND finished_at IS NOT NULL 
+    ORDER BY finished_at ASC;
+  `;
+  const [rows] = await pool.execute(sql, [userId]);
+  return rows;
+};
+
+
+/**
  * Lấy một lần thi cụ thể để review
  */
 export const getQuizAttemptByIdAndUserId = async (attemptId, userId) => {
   const sql = `
     SELECT
-      qa.id, qa.user_id, qa.quiz_id, qa.quiz_title, qa.score, qa.started_at, qa.finished_at,
+      qa.id, qa.user_id, qa.quiz_id, qa.quiz_title, qa.score,
+      qa.started_at, qa.finished_at, qa.tab_violations,
       CASE
         WHEN qa.finished_at IS NULL THEN NULL
         ELSE TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at)
@@ -310,7 +367,7 @@ export const getAttemptAnswersByOptionIds = async (optionIds) => {
 export const getFinishedAttemptsByQuizId = async (quizId) => {
   const sql = `
     SELECT 
-      id, user_id, quiz_id, score, started_at, finished_at,
+      id, user_id, quiz_id, score, started_at, finished_at, tab_violations,
       TIMESTAMPDIFF(SECOND, started_at, finished_at) AS duration_seconds
     FROM quiz_attempts
     WHERE quiz_id = ? AND finished_at IS NOT NULL
@@ -327,6 +384,7 @@ export const getLatestAttemptsByQuizId = async (quizId) => {
   const sql = `
     SELECT 
       qa.id, qa.user_id, qa.quiz_id, qa.score, qa.started_at, qa.finished_at,
+      qa.tab_violations,
       CASE 
         WHEN qa.finished_at IS NULL THEN NULL
         ELSE TIMESTAMPDIFF(SECOND, qa.started_at, qa.finished_at)

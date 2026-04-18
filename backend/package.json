@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "nodemon src/app.js",
     "start": "node src/app.js",
+    "db:sync": "node scripts/syncDb.js",
+    "db:migrate": "node scripts/migrateDb.js",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js"
   },
   "type": "module",
@@ -13,6 +15,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@supabase/supabase-js": "^2.103.0",
+    "adm-zip": "^0.5.17",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -23,8 +27,10 @@
     "morgan": "^1.10.1",
     "multer": "^2.1.1",
     "mysql2": "^3.19.1",
+    "node-cache": "^5.1.2",
     "nodemailer": "^8.0.2",
     "pdfkit": "^0.18.0",
+    "qrcode": "^1.5.4",
     "winston": "^3.19.0"
   },
   "devDependencies": {

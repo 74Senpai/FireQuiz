@@ -10,11 +10,11 @@ export const signUp = asyncHandler(async (req, res) => {
   return res.status(204).send();
 });
 
-export const logIn = asyncHandler(async(req, res) => {
+export const logIn = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   const response = await authService.logIn({ email, password });
-  
+
   res.cookie('refreshToken', response.refreshToken, {
     httpOnly: true,
     secure: true,
@@ -22,7 +22,7 @@ export const logIn = asyncHandler(async(req, res) => {
     maxAge: response.REFRESH_TOKEN_TTL
   });
 
-  return res.status(200).json({message:`User ${email} đã đăng nhập`, accessToken:response.accessToken});
+  return res.status(200).json({ message: `User ${email} đã đăng nhập`, accessToken: response.accessToken });
 });
 
 export const logOut = asyncHandler(async (req, res) => {
@@ -51,8 +51,8 @@ export const refreshToken = asyncHandler(async (req, res) => {
     maxAge: response.REFRESH_TOKEN_TTL
   });
 
-  return res.status(200).json({message:`Cấp lại access token thành công`, accessToken:response.accessToken});
-}); 
+  return res.status(200).json({ message: `Cấp lại access token thành công`, accessToken: response.accessToken });
+});
 
 export const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
@@ -88,6 +88,17 @@ export const resetPassword = asyncHandler(async (req, res) => {
   }
 
   const response = await authService.resetPassword(resetToken, newPassword);
+
+  return res.status(200).json(response);
+});
+
+export const changePassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  if (!oldPassword || !newPassword) {
+    throw new AppError("Thiếu mật khẩu cũ hoặc mật khẩu mới", 400);
+  }
+
+  const response = await authService.changePassword(req.user.id, oldPassword, newPassword);
 
   return res.status(200).json(response);
 });

@@ -9,13 +9,16 @@ export const createQuiz = async (data) => {
     timeLimitSeconds,
     availableFrom,
     availableUntil,
-    maxAttempts
+    maxAttempts,
+    maxTabViolations,
+    maxAttemptsPerUser,
+    thumbnailUrl
   } = data;
 
   const sql = `
     INSERT INTO quizzes
-    (title, creator_id, description, grading_scale, time_limit_seconds, available_from, available_until, max_attempts)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    (title, creator_id, description, grading_scale, time_limit_seconds, available_from, available_until, max_attempts, max_tab_violations, max_attempts_per_user, thumbnail_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const [result] = await pool.execute(sql, [
@@ -26,7 +29,10 @@ export const createQuiz = async (data) => {
     timeLimitSeconds ?? null,
     availableFrom ?? null,
     availableUntil ?? null,
-    maxAttempts ?? null
+    maxAttempts ?? null,
+    maxTabViolations ?? 2,
+    maxAttemptsPerUser ?? null,
+    thumbnailUrl ?? null
   ]);
 
   return result.insertId;
@@ -56,7 +62,9 @@ export const updateQuizSettings = async (id, data) => {
     timeLimitSeconds,
     availableFrom,
     availableUntil,
-    maxAttempts
+    maxAttempts,
+    maxTabViolations,
+    maxAttemptsPerUser
   } = data;
 
   const sql = `
@@ -65,7 +73,9 @@ export const updateQuizSettings = async (id, data) => {
         time_limit_seconds = COALESCE(?, time_limit_seconds),
         available_from = COALESCE(?, available_from),
         available_until = COALESCE(?, available_until),
-        max_attempts = COALESCE(?, max_attempts)
+        max_attempts = COALESCE(?, max_attempts),
+        max_tab_violations = COALESCE(?, max_tab_violations),
+        max_attempts_per_user = COALESCE(?, max_attempts_per_user)
     WHERE id = ?
   `;
 
@@ -75,24 +85,28 @@ export const updateQuizSettings = async (id, data) => {
     availableFrom ?? null,
     availableUntil ?? null,
     maxAttempts ?? null,
+    maxTabViolations ?? null,
+    maxAttemptsPerUser ?? null,
     id
   ]);
 };
 
 export const updateQuizInfo = async (id, data) => {
-  const { title, description } = data;
+  const { title, description, thumbnailUrl } = data;
 
   const sql = `
     UPDATE quizzes
-    SET title = COALESCE(?, title), description = COALESCE(?, description)
+    SET title = COALESCE(?, title), 
+        description = COALESCE(?, description),
+        thumbnail_url = ?
     WHERE id = ?
   `;
 
-  await pool.execute(sql, [title ?? null, description ?? null, id]);
+  await pool.execute(sql, [title ?? null, description ?? null, thumbnailUrl ?? null, id]);
 };
 
 export const getListQuizByUserId = async (id) => {
-  const sql = "SELECT * FROM quizzes WHERE creator_id = ? AND status != 'DELETED';";
+  const sql = "SELECT id, title, description, creator_id, quiz_code, status, grading_scale, time_limit_seconds, available_from, available_until, max_attempts, created_at, updated_at FROM quizzes WHERE creator_id = ? AND status != 'DELETED';";
 
   const [row] = await pool.execute(sql, [id]);
   return row;
@@ -161,10 +175,13 @@ export const countPublicOpenQuizzes = async (conn) => {
 
 export const findPublicOpenQuizzes = async (conn, { limit, offset }) => {
   const [rows] = await conn.execute(
-    `SELECT * FROM quizzes
-     WHERE status = 'PUBLIC'
+    `SELECT quizzes.*, COUNT(qa.id) AS joined_count
+     FROM quizzes
+     LEFT JOIN quiz_attempts qa ON qa.quiz_id = quizzes.id
+     WHERE quizzes.status = 'PUBLIC'
        AND (${SQL_OPEN_WINDOW})
-     ORDER BY id DESC
+     GROUP BY quizzes.id
+     ORDER BY quizzes.id DESC
      LIMIT ${Number(limit)} OFFSET ${Number(offset)}`
   );
   return rows;

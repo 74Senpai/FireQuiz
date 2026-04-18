@@ -14,9 +14,16 @@ import {
   Square,
   AlignLeft,
   ToggleLeft,
+  Image as ImageIcon,
+  Music,
+  Film,
+  FileAudio,
+  BookOpen,
 } from "lucide-react";
+import { uploadFile } from "@/services/uploadService";
 import { cn } from "@/lib/utils";
 import { ImportExcelModal } from "./ImportExcelModal";
+import { ImportFromBankModal } from "./ImportFromBankModal";
 import * as questionServices from "@/services/questionServices";
 
 // ─── Hằng số ─────────────────────────────────────────────────────────────────
@@ -53,11 +60,15 @@ export function QuestionManager({ quizId }: { quizId: string }) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showBankModal, setShowBankModal] = useState(false);
 
   // Form state
   const [questionType, setQuestionType] = useState<string>("ANANSWER");
   const [content, setContent] = useState("");
+  const [explanation, setExplanation] = useState("");
   const [answers, setAnswers] = useState(defaultAnswers());
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // ── Fetch danh sách câu hỏi ────────────────────────────────────────────────
   const fetchQuestions = async () => {
@@ -90,8 +101,11 @@ export function QuestionManager({ quizId }: { quizId: string }) {
     setIsAdding(false);
     setEditingId(null);
     setContent("");
+    setExplanation("");
     setQuestionType("ANANSWER");
     setAnswers(defaultAnswers());
+    setMediaUrl(null);
+    setIsUploading(false);
   };
 
   // ── Kích hoạt chế độ sửa ─────────────────────────────────────────────────
@@ -99,6 +113,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
     setEditingId(q.id);
     setIsAdding(true);
     setContent(q.content);
+    setExplanation(q.explanation || "");
     setQuestionType(q.type);
     setAnswers(
       q.type === "TEXT"
@@ -108,6 +123,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
             isCorrect: !!a.is_correct,
           })),
     );
+    setMediaUrl(q.media_url || null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -182,6 +198,8 @@ export function QuestionManager({ quizId }: { quizId: string }) {
         type: questionType,
         quizId: parseInt(quizId),
         answers: questionType === "TEXT" ? [] : answers,
+        mediaUrl: mediaUrl,
+        explanation: explanation.trim() || undefined,
       };
 
       if (editingId) {
@@ -213,6 +231,13 @@ export function QuestionManager({ quizId }: { quizId: string }) {
         <div className="flex gap-2">
           {!isAdding && (
             <>
+              <Button
+                variant="outline"
+                onClick={() => setShowBankModal(true)}
+                className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10 hover:text-white text-sm"
+              >
+                <BookOpen className="w-4 h-4 mr-2" /> Từ ngân hàng
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => setShowImportModal(true)}
@@ -273,6 +298,134 @@ export function QuestionManager({ quizId }: { quizId: string }) {
             onChange={(e) => setContent(e.target.value)}
             className="bg-slate-900 border-white/10 text-white"
           />
+
+          {/* Media Upload Section */}
+          <div className="space-y-3 p-4 rounded-xl bg-white/5 border border-white/10">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-400 flex items-center gap-2">
+                <ImageIcon className="w-3.5 h-3.5" /> Thêm Media (Ảnh/Âm
+                thanh/Video)
+              </span>
+              {mediaUrl && (
+                <button
+                  onClick={() => setMediaUrl(null)}
+                  className="text-xs text-rose-400 hover:text-rose-300"
+                >
+                  Xóa Media
+                </button>
+              )}
+            </div>
+
+            {!mediaUrl && !isUploading ? (
+              <div className="flex gap-4">
+                {[
+                  {
+                    type: "image",
+                    icon: ImageIcon,
+                    label: "Ảnh",
+                    accept: "image/*",
+                  },
+                  {
+                    type: "audio",
+                    icon: Music,
+                    label: "Âm thanh",
+                    accept: "audio/*",
+                  },
+                  {
+                    type: "video",
+                    icon: Film,
+                    label: "Video",
+                    accept: "video/*",
+                  },
+                ].map((m) => (
+                  <label
+                    key={m.type}
+                    className="flex-1 flex flex-col items-center gap-2 py-4 rounded-lg border border-dashed border-white/10 hover:border-indigo-500/50 hover:bg-white/5 cursor-pointer transition-all"
+                  >
+                    <m.icon className="w-6 h-6 text-slate-500" />
+                    <span className="text-xs font-medium text-slate-400">
+                      {m.label}
+                    </span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept={m.accept}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+
+                        // Check size (50MB)
+                        if (file.size > 50 * 1024 * 1024) {
+                          return alert(
+                            "File quá lớn! Dung lượng tối đa là 50MB.",
+                          );
+                        }
+
+                        setIsUploading(true);
+                        try {
+                          const res = await uploadFile(file);
+                          setMediaUrl(res.url);
+                        } catch (err) {
+                          alert("Upload thất bại!");
+                        } finally {
+                          setIsUploading(false);
+                        }
+                      }}
+                    />
+                  </label>
+                ))}
+              </div>
+            ) : isUploading ? (
+              <div className="py-8 flex flex-col items-center justify-center gap-3">
+                <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />
+                <p className="text-xs text-slate-400">
+                  Đang tải media lên Supabase...
+                </p>
+              </div>
+            ) : (
+              <div className="relative rounded-lg overflow-hidden border border-white/10 bg-black/20">
+                {/* Image Preview */}
+                {mediaUrl &&
+                  (mediaUrl.match(/\.(jpeg|jpg|gif|png|webp)/i) ||
+                    mediaUrl.includes("image")) && (
+                    <img
+                      src={mediaUrl}
+                      className="max-h-64 mx-auto object-contain"
+                      alt="Preview"
+                    />
+                  )}
+
+                {/* Video Preview */}
+                {mediaUrl &&
+                  (mediaUrl.match(/\.(mp4|webm)/i) ||
+                    mediaUrl.includes("video")) && (
+                    <video
+                      src={mediaUrl}
+                      controls
+                      className="max-h-64 mx-auto"
+                    />
+                  )}
+
+                {/* Audio Preview */}
+                {mediaUrl &&
+                  (mediaUrl.match(/\.(mp3|wav|ogg)/i) ||
+                    mediaUrl.includes("audio")) && (
+                    <div className="p-6 flex flex-col items-center gap-4">
+                      <FileAudio className="w-12 h-12 text-indigo-400" />
+                      <audio
+                        src={mediaUrl}
+                        controls
+                        className="w-full max-w-sm"
+                      />
+                    </div>
+                  )}
+              </div>
+            )}
+            <p className="text-[10px] text-slate-500">
+              * Chấp nhận: Ảnh (JPG, PNG, WEBP), Video (MP4), Âm thanh (MP3,
+              WAV). Tối đa 50MB.
+            </p>
+          </div>
 
           {/* Đáp án */}
           {questionType !== "TEXT" && (
@@ -363,6 +516,19 @@ export function QuestionManager({ quizId }: { quizId: string }) {
             </div>
           )}
 
+          {/* Lời giải thích */}
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-400 ml-1">
+              Lời giải / Giải thích (Tuỳ chọn)
+            </label>
+            <textarea
+              placeholder="Nhập lời giải thích hoặc trích dẫn tài liệu..."
+              value={explanation}
+              onChange={(e) => setExplanation(e.target.value)}
+              className="flex min-h-[60px] w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
+
           {/* Actions */}
           <div className="flex justify-end gap-2">
             <Button
@@ -413,6 +579,39 @@ export function QuestionManager({ quizId }: { quizId: string }) {
                 <p className="text-white font-medium leading-relaxed">
                   {q.content}
                 </p>
+
+                {/* Media Preview in List */}
+                {q.media_url && (
+                  <div className="mt-3 rounded-lg overflow-hidden border border-white/5 bg-black/10 max-w-xs">
+                    {(q.media_url.match(/\.(jpeg|jpg|gif|png|webp)/i) ||
+                      q.media_url.includes("image")) && (
+                      <img
+                        src={q.media_url}
+                        className="w-full h-auto max-h-48 object-cover"
+                        alt="Question media"
+                      />
+                    )}
+                    {(q.media_url.match(/\.(mp4|webm)/i) ||
+                      q.media_url.includes("video")) && (
+                      <video
+                        src={q.media_url}
+                        className="w-full h-auto max-h-48"
+                        preload="metadata"
+                      />
+                    )}
+                    {(q.media_url.match(/\.(mp3|wav|ogg)/i) ||
+                      q.media_url.includes("audio")) && (
+                      <div className="p-3 flex items-center gap-2">
+                        <FileAudio className="w-4 h-4 text-indigo-400" />
+                        <audio
+                          src={q.media_url}
+                          controls
+                          className="h-8 max-w-full"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute top-4 right-4">
@@ -465,17 +664,39 @@ export function QuestionManager({ quizId }: { quizId: string }) {
                 <AlignLeft className="w-3 h-3" /> Câu hỏi mở — người thi tự điền
               </div>
             )}
+
+            {/* Giải thích nếu có */}
+            {q.explanation && (
+              <div className="text-xs text-indigo-300 bg-indigo-500/10 p-2 mt-2 rounded border border-indigo-500/20 italic line-clamp-3">
+                <span className="font-semibold not-italic text-indigo-400">
+                  Giải thích:{" "}
+                </span>
+                {q.explanation}
+              </div>
+            )}
           </div>
         ))}
       </div>
 
-      {/* Import Modal */}
+      {/* Import Excel Modal */}
       {showImportModal && (
         <ImportExcelModal
           quizId={quizId}
           onClose={() => setShowImportModal(false)}
           onSuccess={() => {
             setShowImportModal(false);
+            fetchQuestions();
+          }}
+        />
+      )}
+
+      {/* Import từ Ngân hàng Modal */}
+      {showBankModal && (
+        <ImportFromBankModal
+          quizId={quizId}
+          onClose={() => setShowBankModal(false)}
+          onSuccess={() => {
+            setShowBankModal(false);
             fetchQuestions();
           }}
         />

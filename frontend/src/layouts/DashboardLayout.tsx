@@ -51,7 +51,7 @@ export function DashboardLayout() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-64 bg-white/10 backdrop-blur-md border-r border-white/10 flex flex-col shadow-2xl animate-slide-in">
+      <aside className="no-print w-64 bg-white/10 backdrop-blur-md border-r border-white/10 flex flex-col shadow-2xl animate-slide-in">
         <div className="h-16 flex items-center px-6 border-b border-white/10">
           <div className="flex items-center gap-2 group cursor-pointer">
             <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-lg shadow-orange-500/50 group-hover:shadow-orange-500/70 transition-all duration-300 group-hover:scale-110">
@@ -112,7 +112,7 @@ export function DashboardLayout() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        <header className="h-16 bg-white/5 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-8 shadow-lg">
+        <header className="no-print h-16 bg-white/5 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-8 shadow-lg">
           <h1 className="text-2xl font-bold text-white capitalize animate-fade-in">
             {(() => {
               const key = location.pathname.split("/").pop()?.replace("-", " ") || "Trang chính";
@@ -137,8 +137,15 @@ export function DashboardLayout() {
                 {user ? user.role : "Khách"}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110 transition-all duration-300 cursor-pointer border border-white/20">
-              {user ? getInitial(user.full_name) : "?"}
+            <div 
+              onClick={() => navigate("/dashboard/profile")}
+              className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110 transition-all duration-300 cursor-pointer border border-white/20 overflow-hidden"
+            >
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                user ? getInitial(user.full_name) : "?"
+              )}
             </div>
           </div>
         </header>

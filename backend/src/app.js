@@ -8,6 +8,9 @@ import userRoute from './routes/userRoute.js';
 import quizRoute from './routes/quizRoute.js';
 import questionRoute from './routes/questionRoute.js';
 import attemptRoute from './routes/attemptRoute.js';
+import uploadRoute from './routes/uploadRoute.js';
+import mediaRoute from './routes/mediaRoutes.js';
+import bankQuestionRoute from './routes/bankQuestionRoute.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import cookieParser from 'cookie-parser';
 import { protectedRoute } from './middlewares/authMiddleware.js';
@@ -23,12 +26,13 @@ app.use(cors({
   origin: originURL,
   credentials: true,               // Cho phép gửi cookie/token qua lại
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // Các phương thức HTTP được phép
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Disposition', 'Content-Length']
 }));
 
 app.use(requestLogger);
 
-app.use(express.json());
+app.use(express.json({ limit: '64kb' }));
 app.use(cookieParser());
 
 
@@ -52,11 +56,14 @@ async function startServer() {
 app.use('/api/auth', authRoute);
 app.use('/api/quiz', quizRoute);
 app.use('/api/question', questionRoute);
+app.use('/api/media', mediaRoute);
 
 // private route
 app.use(protectedRoute);
 app.use('/api/user', userRoute);
 app.use('/api/attempt', attemptRoute);
+app.use('/api/upload', uploadRoute);
+app.use('/api/bank', bankQuestionRoute);
 
 // global exception handler
 app.use(errorHandler);
