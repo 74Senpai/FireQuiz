@@ -152,7 +152,7 @@ export function TakeQuiz() {
 
   // Khi tab/máy wake up, cập nhật lại timeLeft ngay từ deadline (tránh timer bị lệch do sleep)
   useEffect(() => {
-    if (!deadlineRef.current) return;
+    if (loading || !attemptId || !deadlineRef.current) return;
     const onVisible = () => {
       if (document.visibilityState === "visible" && deadlineRef.current) {
         const remaining = Math.max(0, Math.round((deadlineRef.current - Date.now()) / 1000));
@@ -162,7 +162,7 @@ export function TakeQuiz() {
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
-  }, []);
+  }, [loading, attemptId]);
 
   // ─── Vi phạm chuyển tab ──────────────────────────────────────────────────
   useEffect(() => {
