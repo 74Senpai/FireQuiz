@@ -107,6 +107,13 @@ export const writeResultTable = (worksheet, rows, startRow, summary) => {
 export const writeExcelQuestionContent = async (workbook, worksheet, questions, { showCorrect = false, showExplanation = false } = {}) => {
   let currentRow = worksheet.lastRow ? worksheet.lastRow.number + 1 : 1;
 
+  const imageBuffers = await Promise.all(
+    questions.map(q => q.media_url && utils.isImageUrl(q.media_url)
+      ? utils.downloadMediaBuffer(q.media_url)
+      : Promise.resolve(null)
+    )
+  );
+
   for (let qIdx = 0; qIdx < questions.length; qIdx++) {
     const q = questions[qIdx];
     const row = worksheet.getRow(currentRow++);
@@ -114,15 +121,13 @@ export const writeExcelQuestionContent = async (workbook, worksheet, questions, 
     row.getCell(1).font = { bold: true };
     row.getCell(1).alignment = { wrapText: true, vertical: 'top' };
 
-    if (q.media_url && utils.isImageUrl(q.media_url)) {
-      const imageBuffer = await utils.downloadMediaBuffer(q.media_url);
-      if (imageBuffer) {
-        try {
-          const imageId = workbook.addImage({ buffer: imageBuffer, extension: q.media_url.split('.').pop().split('?')[0] || 'png' });
-          worksheet.addImage(imageId, { tl: { col: 0, row: currentRow - 1 }, ext: { width: 300, height: 200 } });
-          currentRow += 12; 
-        } catch (e) {}
-      }
+    const imageBuffer = imageBuffers[qIdx];
+    if (imageBuffer) {
+      try {
+        const imageId = workbook.addImage({ buffer: imageBuffer, extension: q.media_url.split('.').pop().split('?')[0] || 'png' });
+        worksheet.addImage(imageId, { tl: { col: 0, row: currentRow - 1 }, ext: { width: 300, height: 200 } });
+        currentRow += 12;
+      } catch (e) {}
     }
 
     if (q.type !== 'TEXT') {
