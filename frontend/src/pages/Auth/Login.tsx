@@ -158,7 +158,7 @@ export function Login() {
           <div className="text-center text-sm text-slate-600 space-y-2 animate-slide-up animate-delay-400">
             <div>
               <Link
-                to="/explore"
+                to="/dashboard/explore"
                 className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline transition-colors duration-200"
               >
                 Xem quiz công khai đang mở

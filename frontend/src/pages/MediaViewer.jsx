@@ -38,7 +38,7 @@ export function MediaViewer() {
             <h2 className="text-2xl font-bold text-white">Lỗi truy cập</h2>
             <p className="text-slate-400">Không tìm thấy đường dẫn tệp tin. Vui lòng quét lại mã QR chính xác.</p>
             <Button asChild className="mt-4 bg-slate-800 hover:bg-slate-700">
-              <Link to="/explore">Về trang khám phá</Link>
+              <Link to="/dashboard/explore">Về trang khám phá</Link>
             </Button>
           </CardContent>
         </Card>

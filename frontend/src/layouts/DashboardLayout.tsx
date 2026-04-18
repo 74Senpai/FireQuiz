@@ -35,7 +35,7 @@ export function DashboardLayout() {
 
   const links = [
     { name: "Phân tích & Thống kê", href: "/dashboard", icon: BookOpen },
-    { name: "Quiz công khai", href: "/explore", icon: Globe },
+    { name: "Quiz công khai", href: "/dashboard/explore", icon: Globe },
     { name: "Quản lý Quiz", href: "/dashboard/manage", icon: LayoutDashboard },
     { name: "Ngân hàng câu hỏi", href: "/dashboard/question-bank", icon: FileQuestion },
     { name: "Thông tin tài khoản", href: "/dashboard/profile", icon: Settings },
@@ -118,7 +118,7 @@ export function DashboardLayout() {
               const key = location.pathname.split("/").pop()?.replace("-", " ") || "Trang chính";
               const map: Record<string,string> = {
                 "dashboard":"Trang chính",
-                "explore":"Quiz công khai",
+                "explore": "Quiz công khai",
                 "manage":"Quản lý Quiz",
                 "question bank":"Ngân hàng câu hỏi",
                 "results":"Kết quả",

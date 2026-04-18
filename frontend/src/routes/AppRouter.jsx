@@ -44,7 +44,6 @@ export default function AppRouter() {
     <Suspense fallback={<GlobalLoader />}>
       <Routes>
         <Route path="/" element={<HomeRedirect />} />
-        <Route path="/explore" element={<PublicExplore />} />
         <Route path="/view-media" element={<MediaViewer />} />
 
         <Route element={<PublicRoute />}>
@@ -58,6 +57,7 @@ export default function AppRouter() {
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<TakerDashboard />} />
+            <Route path="explore" element={<PublicExplore />} />
             <Route path="manage" element={<CreatorDashboard />} />
             <Route path="quiz/new" element={<QuizEditor />} />
             <Route path="quiz/:id/edit" element={<QuizEditor />} />
