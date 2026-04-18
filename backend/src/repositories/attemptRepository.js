@@ -15,14 +15,15 @@ export const getAllOptionsByAttemptId = async (conn, attemptId) => {
 };
 
 /**
- * Xóa hàng loạt đáp án theo danh sách option IDs (1 câu DELETE duy nhất)
+ * Xóa toàn bộ đáp án của một attempt bằng JOIN, tránh IN clause dài
  */
-export const bulkDeleteAttemptAnswersByOptionIds = async (conn, optionIds) => {
-  if (!optionIds || optionIds.length === 0) return;
-  const placeholders = optionIds.map(() => '?').join(',');
+export const deleteAllAttemptAnswersByAttemptId = async (conn, attemptId) => {
   await conn.execute(
-    `DELETE FROM attempt_answers WHERE attempt_option_id IN (${placeholders})`,
-    optionIds
+    `DELETE aa FROM attempt_answers aa
+     JOIN attempt_options ao ON aa.attempt_option_id = ao.id
+     JOIN attempt_questions aq ON ao.attempt_question_id = aq.id
+     WHERE aq.quiz_attempt_id = ?`,
+    [attemptId]
   );
 };
 

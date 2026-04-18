@@ -411,9 +411,7 @@ export const finishAttempt = async (attemptId, userId, answers = {}, textAnswers
       validOptionIds.add(opt.id);
     }
 
-    // Bước 3: Gom toàn bộ option IDs cần xóa và payload cần insert
-    // Xóa toàn bộ đáp án cũ của attempt này trước — kể cả câu bị bỏ trống
-    const optionIdsToDelete = allOptions.map(o => o.id);
+    // Bước 3: Build payload insert
     const insertPayload = [];
 
     // Xử lý câu có option (SINGLE_CHOICE, MULTIPLE_CHOICE, ...)
@@ -463,8 +461,8 @@ export const finishAttempt = async (attemptId, userId, answers = {}, textAnswers
       }
     }
 
-    // Bước 4: 1 bulk DELETE duy nhất cho toàn bộ câu hỏi được cập nhật
-    await attemptRepository.bulkDeleteAttemptAnswersByOptionIds(conn, optionIdsToDelete);
+    // Bước 4: Xóa toàn bộ đáp án cũ bằng JOIN theo attemptId
+    await attemptRepository.deleteAllAttemptAnswersByAttemptId(conn, attemptId);
 
     // Bước 5: 1 bulk INSERT duy nhất cho toàn bộ đáp án mới
     await attemptRepository.bulkInsertAttemptAnswers(conn, insertPayload);
