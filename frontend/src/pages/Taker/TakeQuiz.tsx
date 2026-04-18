@@ -242,7 +242,7 @@ export function TakeQuiz() {
       console.error("Lỗi khi nộp bài:", err);
       navigate(`/dashboard/attempt/${attemptId}/review`);
     }
-  }, [quizId, attemptId, isSubmitting, questions.length, navigate]);
+  }, [quizId, attemptId, isSubmitting, questions, navigate]);
 
   const handleAnswerSelect = (questionId: number, optionId: number, type: string) => {
     if (isSubmitting || isLocked) return;
