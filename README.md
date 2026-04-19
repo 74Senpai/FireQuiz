@@ -115,6 +115,18 @@ FireQuiz/
 └── README.md                 # Tài liệu hướng dẫn tổng quan này
 ```
 
+## Kiến trúc Hệ thống & Pattern
+
+Dự án tuân thủ các tiêu chuẩn kiến trúc hiện đại để đảm bảo khả năng mở rộng:
+
+- **Client-Server Architecture**: Tách biệt hoàn toàn Frontend (React) và Backend (Node.js).
+- **REST API**: Giao tiếp chuẩn hóa thông qua JSON và các phương thức HTTP.
+- **Layered Architecture (Kiến trúc phân lớp)**: 
+    - **Presentation (Routes/Controllers)**: Xử lý request/response.
+    - **Business Logic (Services)**: Thực thi nghiệp vụ hệ thống.
+    - **Data Access (Repositories)**: Truy vấn trực tiếp vào Database.
+- **MVC Pattern**: Tổ chức code theo mô hình Model-View-Controller trên toàn hệ thống.
+
 ## Hướng dẫn cài đặt và khởi chạy
 
 Dự án có thể chạy trực tiếp bằng Node.js trên máy local hoặc sử dụng cấu hình Docker Compose tích hợp sẵn. Dưới đây là cách khởi chạy cho cả 2 môi trường.
