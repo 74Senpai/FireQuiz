@@ -67,7 +67,7 @@ const alterQueries = [
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_media_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );`,
-  "CREATE INDEX IF NOT EXISTS idx_media_assets_path ON media_assets (file_path(255));"
+  "CREATE UNIQUE INDEX IF NOT EXISTS idx_media_assets_path ON media_assets (file_path(255));"
 ];
 
 const migrate = async () => {
