@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { uploadFile } from "@/services/uploadService";
+import { getMediaViewUrl } from "@/services/mediaServices";
 import * as bankService from "@/services/bankQuestionServices";
 
 // ─── Hằng số ─────────────────────────────────────────────────────────────────
@@ -229,15 +230,15 @@ function BankQuestionForm({ editingQuestion, onSaved, onCancel }: FormProps) {
         ) : (
           <div className="rounded-lg overflow-hidden border border-white/10 bg-black/20">
             {mediaUrl?.match(/\.(jpeg|jpg|gif|png|webp)/i) && (
-              <img src={mediaUrl} className="max-h-48 mx-auto object-contain" alt="Preview" />
+              <img src={getMediaViewUrl(mediaUrl)} className="max-h-48 mx-auto object-contain" alt="Preview" />
             )}
             {mediaUrl?.match(/\.(mp4|webm)/i) && (
-              <video src={mediaUrl} controls className="max-h-48 mx-auto" />
+              <video src={getMediaViewUrl(mediaUrl)} controls className="max-h-48 mx-auto" />
             )}
             {mediaUrl?.match(/\.(mp3|wav|ogg)/i) && (
               <div className="p-6 flex flex-col items-center gap-3">
                 <FileAudio className="w-10 h-10 text-indigo-400" />
-                <audio src={mediaUrl} controls className="w-full max-w-sm" />
+                <audio src={getMediaViewUrl(mediaUrl)} controls className="w-full max-w-sm" />
               </div>
             )}
           </div>
@@ -498,15 +499,15 @@ export function QuestionBank() {
                 {q.media_url && (
                   <div className="mt-3 rounded-lg overflow-hidden border border-white/5 bg-black/10 max-w-xs">
                     {q.media_url.match(/\.(jpeg|jpg|gif|png|webp)/i) && (
-                      <img src={q.media_url} className="w-full h-auto max-h-48 object-cover" alt="" />
+                      <img src={getMediaViewUrl(q.media_url)} className="w-full h-auto max-h-48 object-cover" alt="" />
                     )}
                     {q.media_url.match(/\.(mp4|webm)/i) && (
-                      <video src={q.media_url} className="w-full max-h-48" preload="metadata" />
+                      <video src={getMediaViewUrl(q.media_url)} className="w-full max-h-48" preload="metadata" />
                     )}
                     {q.media_url.match(/\.(mp3|wav|ogg)/i) && (
                       <div className="p-3 flex items-center gap-2">
                         <FileAudio className="w-4 h-4 text-indigo-400" />
-                        <audio src={q.media_url} controls className="h-8 max-w-full" />
+                        <audio src={getMediaViewUrl(q.media_url)} controls className="h-8 max-w-full" />
                       </div>
                     )}
                   </div>

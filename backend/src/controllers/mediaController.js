@@ -22,10 +22,11 @@ export const handleMediaRedirect = asyncHandler(async (req, res) => {
     throw new AppError('Bucket không được phép truy cập', 403);
   }
 
-  const usageCount = await countMediaUsage(path);
-  if (usageCount === 0) {
-    throw new AppError('Tài nguyên không tồn tại hoặc không được phép truy cập', 404);
-  }
+  // BỎ QUA KIỂM TRA USAGE COUNT: Cho phép xem preview ngay sau khi upload (khi usage_count vần bằng 0)
+  // const usageCount = await countMediaUsage(path);
+  // if (usageCount === 0) {
+  //   throw new AppError('Tài nguyên không tồn tại hoặc không được phép truy cập', 404);
+  // }
 
   // Tạo Signed URL có thời hạn ngắn (vd: 5 phút để user xem ngay)
   const signedUrl = await supabaseService.createSignedUrl(path, 300, targetBucket);

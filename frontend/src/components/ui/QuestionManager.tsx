@@ -21,6 +21,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { uploadFile } from "@/services/uploadService";
+import { getMediaViewUrl } from "@/services/mediaServices";
 import { cn } from "@/lib/utils";
 import { ImportExcelModal } from "./ImportExcelModal";
 import { ImportFromBankModal } from "./ImportFromBankModal";
@@ -389,7 +390,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
                   (mediaUrl.match(/\.(jpeg|jpg|gif|png|webp)/i) ||
                     mediaUrl.includes("image")) && (
                     <img
-                      src={mediaUrl}
+                      src={getMediaViewUrl(mediaUrl)}
                       className="max-h-64 mx-auto object-contain"
                       alt="Preview"
                     />
@@ -400,7 +401,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
                   (mediaUrl.match(/\.(mp4|webm)/i) ||
                     mediaUrl.includes("video")) && (
                     <video
-                      src={mediaUrl}
+                      src={getMediaViewUrl(mediaUrl)}
                       controls
                       className="max-h-64 mx-auto"
                     />
@@ -413,7 +414,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
                     <div className="p-6 flex flex-col items-center gap-4">
                       <FileAudio className="w-12 h-12 text-indigo-400" />
                       <audio
-                        src={mediaUrl}
+                        src={getMediaViewUrl(mediaUrl)}
                         controls
                         className="w-full max-w-sm"
                       />
