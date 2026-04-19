@@ -14,7 +14,7 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
-    avatar_url VARCHAR(255),
+    avatar_url TEXT,
     bio TEXT,
     role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -33,7 +33,7 @@ CREATE TABLE quizzes (
     creator_id INT NOT NULL,
     quiz_code CHAR(10) UNIQUE,
     description TEXT,
-    thumbnail_url VARCHAR(255),
+    thumbnail_url TEXT,
     status CHAR(10) NOT NULL DEFAULT 'DRAFT',
     grading_scale INT,
     time_limit_seconds INT,
@@ -79,10 +79,10 @@ CREATE INDEX idx_attempts_user_started ON quiz_attempts (user_id, started_at);
 -- =========================
 CREATE TABLE questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    content VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
     type CHAR(15) NOT NULL,
-    media_url VARCHAR(255),
-    explanation TEXT,                         -- [FIX] Thêm cột giải thích đáp án
+    media_url TEXT,
+    explanation TEXT,
     quiz_id INT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -96,7 +96,7 @@ CREATE INDEX idx_questions_quiz_id ON questions (quiz_id);
 -- =========================
 CREATE TABLE answers (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    content VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
     question_id INT NOT NULL,
     is_correct BOOLEAN NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -112,10 +112,10 @@ CREATE INDEX idx_answers_question_id ON answers (question_id);
 CREATE TABLE attempt_questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     quiz_attempt_id INT NOT NULL,
-    content VARCHAR(255) NOT NULL,
-    media_url VARCHAR(255),
-    type VARCHAR(20) NOT NULL,               -- [FIX] VARCHAR(10) → VARCHAR(20) để chứa 'SINGLE_CHOICE', 'MULTIPLE_CHOICE'
-    explanation TEXT,                         -- [FIX] Thêm cột giải thích (snapshot từ questions.explanation)
+    content TEXT NOT NULL,
+    media_url TEXT,
+    type VARCHAR(20) NOT NULL,
+    explanation TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_attempt_questions_quiz_attempts FOREIGN KEY (quiz_attempt_id) REFERENCES quiz_attempts (id)
 );
@@ -128,7 +128,7 @@ CREATE INDEX idx_attempt_questions_attempt ON attempt_questions (quiz_attempt_id
 CREATE TABLE attempt_options (
     id INT AUTO_INCREMENT PRIMARY KEY,
     attempt_question_id INT NOT NULL,
-    content VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
     is_correct BOOLEAN NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_attempt_options_attempt_questions FOREIGN KEY (attempt_question_id) REFERENCES attempt_questions (id)
@@ -170,9 +170,9 @@ CREATE INDEX idx_sessions_user_id ON sessions (user_id);
 CREATE TABLE bank_questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     creator_id INT NOT NULL,
-    content VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
     type VARCHAR(15) NOT NULL,
-    media_url VARCHAR(255),
+    media_url TEXT,
     difficulty ENUM('easy', 'medium', 'hard') DEFAULT 'medium',
     category VARCHAR(100),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -189,7 +189,7 @@ CREATE INDEX idx_bank_questions_category ON bank_questions (category);
 CREATE TABLE bank_answers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     bank_question_id INT NOT NULL,
-    content VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
     is_correct BOOLEAN NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
