@@ -34,12 +34,12 @@ export const Forbidden: React.FC = () => {
             <Home className="h-5 w-5" />
             Về trang chủ
           </Link>
-          <button
-            onClick={() => window.location.href = '/login'}
+          <Link
+            to="/login"
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white/5 px-8 py-3 font-semibold text-white border border-white/10 transition-all hover:bg-white/10"
           >
             Đăng nhập lại
-          </button>
+          </Link>
         </div>
       </div>
     </div>
