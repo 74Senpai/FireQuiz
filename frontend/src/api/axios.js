@@ -49,6 +49,16 @@ axiosInstance.interceptors.response.use(
       }
     }
 
+    // 👉 403 Forbidden
+    if (error.response?.status === 403) {
+      window.location.href = "/403";
+    }
+
+    // 👉 500+ Server Error
+    if (error.response?.status >= 500) {
+      window.location.href = "/500";
+    }
+
     return Promise.reject(error);
   },
 );
