@@ -23,6 +23,7 @@ backend/
 │   ├── validators/        # Middleware Validate Data form đầu vào.
 │   ├── utils/             # Các Helper chức năng chung định dạng ngày tháng, `asyncHandler`.
 │   ├── errors/            # Định nghĩa các Custom Error classes (`AppError.js`).
+│   ├── cache/             # Quản lý logic cache (Redis/Memory caching).
 │   └── db/                # Quản lý Connection Pool, khởi tạo Database DB.
 └── tests/                 # Thư mục riêng lẻ để kiểm thử tự động (Jest).
 ```

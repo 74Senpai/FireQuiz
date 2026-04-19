@@ -75,31 +75,39 @@ Dự án được chia thành hai phần riêng biệt `frontend` và `backend` 
 ```text
 FireQuiz/
 ├── backend/                  # Nền tảng Backend (Express.js)
-│   ├── .env.example          # File cấu hình môi trường mẫu cho backend
 │   ├── src/                  # Mã nguồn chính
 │   │   ├── app.js            # Entry point của server
 │   │   ├── controllers/      # Cầu nối nhận request và trả response
 │   │   ├── routes/           # Định nghĩa các API endpoints
 │   │   ├── services/         # Logic nghiệp vụ (business logic)
-│   │   ├── middleware/       # Các middlewares (auth, upload...)
-│   │   ├── repositories/     # Tương tác với cơ sở dữ liệu
-│   │   └── db/               # Cấu hình kết nối DB
-│   ├── scripts/              # Chứa các script hỗ trợ (vd: chạy migrateDB)
+│   │   ├── middlewares/      # Các middlewares (auth, upload, error handling...)
+│   │   ├── repositories/     # Tương tác với cơ sở dữ liệu (Database layer)
+│   │   ├── validators/       # Ràng buộc dữ liệu đầu vào
+│   │   ├── utils/            # Các hàm tiện ích dùng chung
+│   │   ├── errors/           # Định nghĩa các loại lỗi tùy chỉnh
+│   │   ├── cache/            # Cấu hình và xử lý cache
+│   │   └── db/               # Cấu hình kết nối và migration DB
+│   ├── scripts/              # Chứa các script hỗ trợ (vd: migrateDB)
 │   ├── tests/                # Unit/Integration tests
 │   └── package.json          # Thông tin project và thư viện backend
 ├── frontend/                 # Nền tảng Frontend (ReactJS + Vite)
-│   ├── .env.example          # File cấu hình môi trường mẫu cho frontend
 │   ├── src/                  # Mã nguồn chính frontend
+│   │   ├── main.tsx          # Entry point của React app
 │   │   ├── App.tsx           # Component gốc của React app
 │   │   ├── components/       # Các UI components tái sử dụng
 │   │   ├── pages/            # Các trang giao diện riêng biệt
-│   │   ├── layouts/          # Layout cấu trúc chung của app
+│   │   ├── layouts/          # Layout cấu trúc chung của app (Header, Footer...)
+│   │   ├── api/              # Cấu hình axios và gọi API
+│   │   ├── routes/           # Cấu hình định tuyến (React Router)
+│   │   ├── stores/           # Quản lý trạng thái ứng dụng (Zustand)
+│   │   ├── services/         # Xử lý logic phức tạp tại frontend
 │   │   ├── lib/              # Các utilities / hàm tiện ích hỗ trợ
-│   │   └── main.tsx          # Entry point của React app
-│   ├── public/               # Tài nguyên tĩnh không cần qua build
+│   │   └── index.css         # Style toàn cục (Tailwind/CSS)
+│   ├── public/               # Tài nguyên tĩnh (images, icons...)
 │   └── package.json          # Quản lý dự án frontend
-├── docs/                     # Tài liệu hướng dẫn, phân tích và báo cáo
-├── docker-compose.yaml       # File cấu hình Docker Compose (môi trường MySQL / Backend)
+├── docs/                     # Tài liệu thiết kế, phân tích và báo cáo
+├── firequiz.sql              # File script khởi tạo cơ sở dữ liệu MySQL
+├── docker-compose.yaml       # Cấu hình Docker cho DB và Backend
 └── README.md                 # Tài liệu hướng dẫn tổng quan này
 ```
 

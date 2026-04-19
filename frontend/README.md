@@ -93,9 +93,12 @@ src/
  ├── api/             # Cấu hình giao tiếp mạng (Axios instance, interceptors).
  ├── services/        # Nơi ĐỘC QUYỀN thực hiện các API requests. Các hàm trả về Promise.
  ├── stores/          # Quản lý Global State (Zustand/Redux), chứa logic xử lý nghiệp vụ (Auth, Data).
- ├── components/      # Các UI component xài chung (Buttons, Modals, Layouts). Chứa logic giao diện.
- ├── pages/           # Gom nhóm component thành một trang hiển thị. Gọi hàm từ services/stores.
- └── routes/          # Khai báo tuyến đường (AppRouter, ProtectedRoute).
+ ├── components/      # Các UI component xài chung (Buttons, Modals, ...). Chứa logic giao diện.
+ ├── pages/           # Gom nhóm component thành một trang hiển thị (Home, Login, QuizDetails).
+ ├── layouts/         # Layout cấu trúc chung của app (Header, Footer, Navbar, Sidebar...).
+ ├── routes/          # Khai báo tuyến đường (AppRouter, ProtectedRoute).
+ ├── lib/             # Các thư viện tiện ích dùng chung, cấu hình Tailwind/UI...
+ └── index.css        # Style toàn cục của ứng dụng.
 ```
 
 ### 🎯 Check-list trước khi commit code
