@@ -10,7 +10,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import React from "react";
-import { Loader2, Mail, Lock, ShieldCheck, ChevronLeft } from "lucide-react";
+import {
+  Loader2,
+  Mail,
+  Lock,
+  ShieldCheck,
+  ChevronLeft,
+  ArrowRight,
+} from "lucide-react";
 import * as authService from "@/services/authServices";
 
 export function ForgotPassword() {
@@ -27,9 +34,17 @@ export function ForgotPassword() {
   const [countdown, setCountdown] = React.useState(0);
   const [errors, setErrors] = React.useState<any>({});
 
+  const lastSubmittedOtp = React.useRef("");
+
   // Tự động gửi OTP khi đã nhập đủ 6 số
   React.useEffect(() => {
-    if (step === 2 && otp.length === 6 && !isLoading) {
+    if (
+      step === 2 &&
+      otp.length === 6 &&
+      !isLoading &&
+      otp !== lastSubmittedOtp.current
+    ) {
+      lastSubmittedOtp.current = otp;
       handleVerifyOTP();
     }
   }, [otp, step, isLoading]);
@@ -45,24 +60,21 @@ export function ForgotPassword() {
     return () => clearInterval(timer);
   }, [countdown]);
 
-
   // STEP 1: Gửi OTP
-  const handleSendOTP = async (e) => {
-    e.preventDefault();
+  const handleSendOTP = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!email) return setErrors({ email: "Email là bắt buộc" });
 
     setIsLoading(true);
     try {
       await authService.forgotPassword(email);
-
       setStep(2);
-      setCountdown(60); // Bắt đầu đếm ngược 60s
+      setCountdown(60);
       setErrors({});
-    } catch (err) {
+    } catch (err: any) {
       setErrors({
         api:
-          err.response?.data?.message ||
-          "Email không tồn tại trong hệ thống",
+          err.response?.data?.message || "Email không tồn tại trong hệ thống",
       });
     } finally {
       setIsLoading(false);
@@ -77,24 +89,21 @@ export function ForgotPassword() {
     setIsLoading(true);
     try {
       const res = await authService.verifyOTP({ email, otp });
-
-      // res ở đây đã là res.data từ service trả về
       setResetToken(res.resetToken);
       setStep(3);
       setErrors({});
-    } catch (err) {
+    } catch (err: any) {
       setErrors({
-        api:
-          err.response?.data?.message ||
-          "Mã OTP không đúng hoặc đã hết hạn",
+        api: err.response?.data?.message || "Mã OTP không đúng hoặc đã hết hạn",
       });
+      lastSubmittedOtp.current = ""; // Reset để user có thể nhập lại mã đó nếu muốn
     } finally {
       setIsLoading(false);
     }
   };
 
   // STEP 3: Đổi mật khẩu mới
-  const handleResetPassword = async (e) => {
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
 
@@ -108,79 +117,98 @@ export function ForgotPassword() {
 
     setIsLoading(true);
     try {
-      await authService.resetPassword({
-        resetToken,
-        newPassword,
-      });
-
-      navigate("/login");
-    } catch (err) {
+      await authService.resetPassword({ resetToken, newPassword });
+      navigate("/login", { state: { message: "Đổi mật khẩu thành công!" } });
+    } catch (err: any) {
       setErrors({
-        api:
-          err.response?.data?.message ||
-          "Đổi mật khẩu thất bại",
+        api: err.response?.data?.message || "Đổi mật khẩu thất bại",
       });
     } finally {
       setIsLoading(false);
     }
   };
-  return (
-    <div className="relative group">
-      <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl blur opacity-25"></div>
 
-      <Card className="relative bg-white/95 backdrop-blur-xl border shadow-2xl w-full max-w-md mx-auto">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+  return (
+    <div className="relative group max-w-md w-full mx-auto">
+      <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
+
+      <Card className="relative bg-white/95 backdrop-blur-xl border shadow-2xl overflow-hidden">
+        <CardHeader className="space-y-2 text-center pb-2">
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-pink-600 bg-clip-text text-transparent">
             {step === 1
               ? "Quên mật khẩu"
               : step === 2
                 ? "Xác thực OTP"
                 : "Mật khẩu mới"}
           </CardTitle>
-          <CardDescription className="text-slate-600">
-            {step === 1 && "Nhập email để nhận mã xác thực"}
+          <CardDescription className="text-slate-500">
+            {step === 1 && "Nhập email để nhận mã khôi phục tài khoản"}
             {step === 2 && (
               <span className="flex flex-col gap-1">
-                <span>Mã OTP đã được gửi đến email của bạn.</span>
-                <span className="text-xs text-slate-400 font-medium italic">
-                  * Vui lòng kiểm tra cả hòm thư <b>Rác (Spam)</b> hoặc <b>Quảng cáo</b> nếu không thấy mã.
+                <span>
+                  Mã xác thực đã được gửi đến <b>{email}</b>
                 </span>
               </span>
             )}
-            {step === 3 && "Thiết lập mật khẩu mới (tối thiểu 8 ký tự)"}
+            {step === 3 && "Thiết lập mật khẩu mới để bảo mật tài khoản"}
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-4">
+          {errors.api && (
+            <div className="p-3 text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg animate-shake text-center">
+              {errors.api}
+            </div>
+          )}
+
           {step === 1 && (
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-              <Input
-                placeholder="ten@vi.du"
-                className="pl-10"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+            <div className="space-y-1.5 transition-all duration-300">
+              <label className="text-xs font-bold text-slate-500 uppercase ml-1">
+                Địa chỉ Email
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                <Input
+                  type="email"
+                  placeholder="example@gmail.com"
+                  className="pl-10 bg-slate-50/50 border-slate-200 focus:border-indigo-500 transition-all"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
               {errors.email && (
-                <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+                <p className="text-[11px] text-red-500 font-medium ml-1">
+                  {errors.email}
+                </p>
               )}
             </div>
           )}
 
           {step === 2 && (
-            <div className="relative">
-              <ShieldCheck className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-              <Input
-                placeholder="000000"
-                // Chỉnh font mono, tracking rộng và in đậm cho OTP
-                className="pl-10 text-center font-mono text-2xl tracking-[0.5em] font-bold placeholder:tracking-normal placeholder:font-sans placeholder:text-sm"
-                maxLength={6}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                inputMode="numeric"
-                pattern="[0-9]*"
-              />
-              <div className="flex justify-center mt-4">
+            <div className="space-y-6 py-2 animate-in fade-in zoom-in duration-300">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center ring-8 ring-indigo-50">
+                  <ShieldCheck className="w-8 h-8 text-indigo-600" />
+                </div>
+                <p className="text-[11px] text-indigo-600 font-semibold bg-indigo-50 px-3 py-1 rounded-full animate-pulse">
+                  Mẹo: Kiểm tra cả hòm thư Rác (Spam) nhé!
+                </p>
+              </div>
+
+              <div className="relative max-w-[280px] mx-auto">
+                <Input
+                  placeholder="000000"
+                  className="text-center font-mono text-3xl tracking-[0.5em] font-bold h-16 border-2 focus:border-indigo-500 rounded-xl"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  autoFocus
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                />
+              </div>
+
+              <div className="flex justify-center">
                 <button
                   type="button"
                   onClick={handleSendOTP}
@@ -196,38 +224,53 @@ export function ForgotPassword() {
           )}
 
           {step === 3 && (
-            <div className="space-y-3">
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                <Input
-                  type="password"
-                  placeholder="Mật khẩu mới"
-                  className="pl-10"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
+            <div className="space-y-4 animate-in slide-in-from-right duration-300">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase ml-1">
+                  Mật khẩu mới
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    className="pl-10 bg-slate-50/50 border-slate-200"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </div>
+                {errors.pass && (
+                  <p className="text-[11px] text-red-500 font-medium ml-1">
+                    {errors.pass}
+                  </p>
+                )}
               </div>
-              {errors.pass && (
-                <p className="text-xs text-red-500">{errors.pass}</p>
-              )}
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                <Input
-                  type="password"
-                  placeholder="Xác nhận mật khẩu"
-                  className="pl-10"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase ml-1">
+                  Xác nhận mật khẩu
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    className="pl-10 bg-slate-50/50 border-slate-200"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
+                {errors.confirm && (
+                  <p className="text-[11px] text-red-500 font-medium ml-1">
+                    {errors.confirm}
+                  </p>
+                )}
               </div>
-              {errors.confirm && (
-                <p className="text-xs text-red-500">{errors.confirm}</p>
-              )}
             </div>
           )}
         </CardContent>
 
-        <CardFooter className="flex flex-col gap-3">
+        <CardFooter className="flex flex-col gap-4 pb-8">
           <Button
             onClick={
               step === 1
@@ -236,25 +279,37 @@ export function ForgotPassword() {
                   ? handleVerifyOTP
                   : handleResetPassword
             }
-            disabled={isLoading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 py-6 text-base font-semibold"
+            disabled={isLoading || (step === 2 && otp.length < 6)}
+            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 py-6 text-base font-bold shadow-lg shadow-indigo-100 transition-all duration-300"
           >
             {isLoading ? (
               <Loader2 className="animate-spin mr-2 h-5 w-5" />
-            ) : null}
-            {step === 1
-              ? "Gửi mã xác nhận"
-              : step === 2
-                ? "Xác minh mã & Tiếp tục"
-                : "Cập nhật mật khẩu"}
+            ) : step === 1 ? (
+              <>
+                Tiếp theo <ArrowRight className="ml-2 w-4 h-4" />
+              </>
+            ) : step === 2 ? (
+              "Xác nhận mã OTP"
+            ) : (
+              "Cập nhật mật khẩu"
+            )}
           </Button>
 
-          <div className="text-sm text-center mt-2">
+          <div className="flex items-center justify-center gap-4 w-full">
+            {step > 1 && (
+              <button
+                onClick={() => setStep(step - 1)}
+                className="text-sm text-slate-500 hover:text-slate-800 font-medium flex items-center gap-1 transition-all"
+              >
+                <ChevronLeft className="w-4 h-4" /> Quay lại
+              </button>
+            )}
+            {step > 1 && <div className="h-4 w-px bg-slate-200"></div>}
             <Link
               to="/login"
-              className="text-slate-500 hover:text-indigo-600 font-medium flex items-center justify-center gap-1 transition-colors"
+              className="text-sm text-slate-500 hover:text-indigo-600 font-medium transition-all"
             >
-              <ChevronLeft className="w-4 h-4" /> Quay lại đăng nhập
+              Quay lại đăng nhập
             </Link>
           </div>
         </CardFooter>

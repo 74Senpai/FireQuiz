@@ -19,3 +19,25 @@ export const countMediaUsage = async (url) => {
   const [rows] = await pool.execute(sql, [url, url, url, url]);
   return rows[0]?.usage_count || 0;
 };
+
+/**
+ * Lưu thông tin người sở hữu media (người upload).
+ */
+export const saveMediaAsset = async (filePath, userId) => {
+  const sql = `
+    INSERT INTO media_assets (file_path, user_id) 
+    VALUES (?, ?) 
+    ON DUPLICATE KEY UPDATE user_id = VALUES(user_id);
+  `;
+  await pool.execute(sql, [filePath, userId]);
+};
+
+/**
+ * Lấy ID người sở hữu media dựa trên đường dẫn tệp.
+ */
+export const getMediaAssetOwner = async (filePath) => {
+  const sql = 'SELECT user_id FROM media_assets WHERE file_path = ?';
+  const [rows] = await pool.execute(sql, [filePath]);
+  return rows[0]?.user_id || null;
+};
+

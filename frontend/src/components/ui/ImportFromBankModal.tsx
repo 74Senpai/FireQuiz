@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -6,7 +7,10 @@ import {
   CheckCircle2, AlignLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getMediaViewUrl } from "@/services/mediaServices";
 import * as bankService from "@/services/bankQuestionServices";
+import { FileAudio } from "lucide-react";
+import { useDialogStore } from "@/stores/dialogStore";
 
 const DIFFICULTIES = [
   { value: "easy",   label: "Dễ",        cls: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" },
@@ -82,28 +86,50 @@ export function ImportFromBankModal({ quizId, onClose, onSuccess }: Props) {
   const toggleAll = () =>
     setSelected(selected.size === questions.length ? new Set() : new Set(questions.map((q) => q.id)));
 
+  const { showDialog } = useDialogStore();
+
   const handleImport = async () => {
-    if (!selected.size) return alert("Vui lòng chọn ít nhất 1 câu hỏi");
+    if (!selected.size) {
+      return showDialog({ title: "Thông báo", description: "Vui lòng chọn ít nhất 1 câu hỏi" });
+    }
     setIsImporting(true);
     try {
       const { createdQuestionIds, skipped } = await bankService.importFromBank(quizId, [...selected]);
+      
       if (skipped > 0 && createdQuestionIds.length === 0) {
-        alert(`Tất cả ${skipped} câu hỏi đã tồn tại trong quiz, không có gì được thêm.`);
-        onClose();
+        showDialog({
+          title: "Thông báo kết quả",
+          description: `Tất cả ${skipped} câu hỏi đã tồn tại trong quiz, không có gì được thêm.`,
+          onConfirm: () => onClose()
+        });
         return;
       }
+
       if (skipped > 0) {
-        alert(`Đã thêm ${createdQuestionIds.length} câu hỏi. Bỏ qua ${skipped} câu đã tồn tại trong quiz.`);
+        showDialog({
+          title: "Import thành công",
+          description: `Đã thêm ${createdQuestionIds.length} câu hỏi. Bỏ qua ${skipped} câu đã tồn tại trong quiz.`
+        });
+      } else {
+        showDialog({
+          title: "Thành công",
+          description: `Đã thêm thành công ${createdQuestionIds.length} câu hỏi.`
+        });
       }
       onSuccess();
     } catch (e: any) {
-      alert(e.response?.data?.message || "Import thất bại!");
+      showDialog({
+        title: "Lỗi Import",
+        description: e.response?.data?.message || "Import thất bại!"
+      });
     } finally {
       setIsImporting(false);
     }
   };
 
-  return (
+  if (!onClose) return null;
+ 
+  return createPortal(
     <>
       {/* Backdrop mờ nhẹ — không che toàn màn hình */}
       <div
@@ -114,28 +140,29 @@ export function ImportFromBankModal({ quizId, onClose, onSuccess }: Props) {
         onClick={handleClose}
       />
 
-      {/* Drawer từ bên phải */}
+      {/* Modal Container */}
       <div
         className={cn(
-          "fixed top-0 right-0 z-50 h-full w-full max-w-md flex flex-col",
-          "bg-slate-900 border-l border-white/10 shadow-2xl",
-          "transition-transform duration-300 ease-out",
-          visible ? "translate-x-0" : "translate-x-full"
+          "fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300",
+          visible ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
         )}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
-          <div className="flex items-center gap-3">
-            <BookOpen className="w-5 h-5 text-indigo-400" />
-            <div>
-              <h3 className="text-white font-semibold text-sm">Import từ ngân hàng</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Chọn câu hỏi để thêm vào quiz</p>
+        <div className="bg-slate-900 border border-white/10 shadow-2xl rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center">
+                <BookOpen className="w-5 h-5 text-indigo-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-lg">Import từ ngân hàng</h3>
+                <p className="text-xs text-slate-400">Chọn các câu hỏi chất lượng để thêm vào bộ quiz của bạn</p>
+              </div>
             </div>
+            <button onClick={handleClose} className="text-slate-500 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-full">
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button onClick={handleClose} className="text-slate-500 hover:text-white transition-colors p-1">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
 
         {/* Filters */}
         <div className="px-5 py-3 border-b border-white/5 space-y-2 shrink-0">
@@ -233,7 +260,25 @@ export function ImportFromBankModal({ quizId, onClose, onSuccess }: Props) {
                       )}
                     </div>
 
-                    <p className="text-white text-xs font-medium leading-snug line-clamp-2">{q.content}</p>
+                    <p className="text-white text-sm font-medium leading-relaxed">{q.content}</p>
+ 
+                    {/* Media Preview */}
+                    {q.media_url && (
+                      <div className="mt-3 rounded-lg overflow-hidden border border-white/5 bg-black/20 max-w-sm">
+                        {q.media_url.match(/\.(jpeg|jpg|gif|png|webp)/i) && (
+                          <img src={getMediaViewUrl(q.media_url)} className="w-full h-auto max-h-32 object-cover" alt="" />
+                        )}
+                        {q.media_url.match(/\.(mp4|webm)/i) && (
+<video src={getMediaViewUrl(q.media_url)} controls className="w-full max-h-32" />
+                        )}
+                        {q.media_url.match(/\.(mp3|wav|ogg)/i) && (
+                          <div className="p-2 flex items-center gap-2">
+                            <FileAudio className="w-4 h-4 text-indigo-400" />
+                            <audio src={getMediaViewUrl(q.media_url)} controls className="h-7 max-w-full" />
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {q.type !== "TEXT" && q.answers?.length > 0 && (
                       <div className="mt-1.5 flex flex-wrap gap-1">
@@ -285,7 +330,9 @@ export function ImportFromBankModal({ quizId, onClose, onSuccess }: Props) {
             </Button>
           </div>
         </div>
+        </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }

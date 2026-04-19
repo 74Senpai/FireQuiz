@@ -208,26 +208,37 @@ export const drawQuestionCard = async (doc, q, index, { showCorrect = false, sho
 
   const startY = doc.y;
 
-  // 1. Header: Câu [X]: [Nội dung] [QR + Link nếu là audio/video]
+  // 1. Header: Câu [X]: [Nội dung]
   doc.font(utils.PDF_FONT_BOLD).fontSize(11).fillColor("#0F172A").text(`Câu ${index + 1}: `, { continued: true });
-  doc.font(utils.PDF_FONT_REGULAR).fontSize(11).text(q.content, { continued: !!q.media_url });
+  doc.font(utils.PDF_FONT_REGULAR).fontSize(11).text(q.content);
+  const textEndY = doc.y;
 
+  // 1b. QR + Link (Vẽ ở bên phải tiêu đề câu hỏi)
   if (q.media_url) {
     const redirectUrl = utils.getMediaViewUrl(q.media_url);
     const qrBuffer = await utils.generateQRCodeBuffer(redirectUrl);
     if (qrBuffer) {
       const qrSize = 50;
       const xPos = doc.page.width - 100;
-      const yPos = startY; // Sát lề trên của câu hỏi
+      const yPos = startY; 
+      
+      // Vẽ QR Code
       doc.image(qrBuffer, xPos, yPos, { width: qrSize });
-      doc.font(utils.PDF_FONT_REGULAR).fontSize(7).fillColor("#2563EB").text("Click để xem", xPos, yPos + qrSize + 2, { 
-        width: qrSize, 
+      
+      // Vẽ Link chữ (Hyperlink) bên dưới QR
+      doc.font(utils.PDF_FONT_BOLD).fontSize(8).fillColor("#2563EB").text("Mở link media", xPos - 10, yPos + qrSize + 2, { 
+        width: qrSize + 20, 
         align: 'center', 
         link: redirectUrl,
         underline: true 
       });
+      
+      // Reset font/color và quan trọng nhất là đưa con trỏ X về lề trái
+      doc.font(utils.PDF_FONT_REGULAR).fontSize(11).fillColor("#0F172A");
+      doc.x = doc.page.margins.left;
+      // Đảm bảo Y không bị nhảy ngược lên nếu câu hỏi ngắn hơn cụm QR+Link
+      doc.y = Math.max(textEndY, doc.y);
     }
-    doc.text("", { continued: false }); // Reset continued
   }
 
   doc.moveDown(0.5);
@@ -277,11 +288,13 @@ export const drawReviewQuestion = async (doc, q, index, imageBuffer = null) => {
   const isCorrect = q.options.every(o => o.is_correct === o.selected);
   const statusColor = isCorrect ? "#16A34A" : "#DC2626";
 
-  // 1. Header: Câu [X]: [Nội dung] [ĐÚNG/SAI] [QR + Link]
+  // 1. Header: Câu [X]: [Nội dung] [ĐÚNG/SAI]
   doc.font(utils.PDF_FONT_BOLD).fontSize(11).fillColor("#0F172A").text(`Câu ${index + 1}: `, { continued: true });
   doc.font(utils.PDF_FONT_REGULAR).text(q.content, { continued: true });
-  doc.font(utils.PDF_FONT_BOLD).fillColor(statusColor).text(` [${isCorrect ? 'ĐÚNG' : 'SAI'}]`, { continued: !!q.media_url });
+  doc.font(utils.PDF_FONT_BOLD).fillColor(statusColor).text(` [${isCorrect ? 'ĐÚNG' : 'SAI'}]`);
+  const textEndY = doc.y;
 
+  // 1b. QR + Link
   if (q.media_url) {
     const redirectUrl = utils.getMediaViewUrl(q.media_url);
     const qr = await utils.generateQRCodeBuffer(redirectUrl);
@@ -289,15 +302,22 @@ export const drawReviewQuestion = async (doc, q, index, imageBuffer = null) => {
       const qrSize = 50;
       const xPos = doc.page.width - 110;
       const qrY = startY;
+      
       doc.image(qr, xPos, qrY, { width: qrSize });
-      doc.font(utils.PDF_FONT_REGULAR).fontSize(6).fillColor("#2563EB").text("Click để xem", xPos, qrY + qrSize + 2, { 
-        width: qrSize, 
+      
+      doc.font(utils.PDF_FONT_BOLD).fontSize(8).fillColor("#2563EB").text("Mở link media", xPos - 10, qrY + qrSize + 2, { 
+        width: qrSize + 20, 
         align: 'center',
         link: redirectUrl,
         underline: true
       });
+      
+      // Reset font/color và đưa con trỏ X về lề trái
+      doc.font(utils.PDF_FONT_REGULAR).fontSize(11).fillColor("#0F172A");
+      doc.x = doc.page.margins.left;
+      // Đảm bảo Y không bị nhảy ngược lên
+      doc.y = Math.max(textEndY, doc.y);
     }
-    doc.text("", { continued: false });
   }
 
   doc.moveDown(0.5);

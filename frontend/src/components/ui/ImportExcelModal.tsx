@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useDialogStore } from "@/stores/dialogStore";
 
 // ─── Kiểu dữ liệu ─────────────────────────────────────────────────────────────
 interface ParsedQuestion {
@@ -132,12 +133,14 @@ export function ImportExcelModal({
   };
 
   // ── Drag & Drop ─────────────────────────────────────────────────────────────
+  const { showDialog } = useDialogStore();
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
     if (file?.name.endsWith(".xlsx")) parseFile(file);
-    else alert("Chỉ chấp nhận file .xlsx");
+    else showDialog({ title: "Định dạng file không hỗ trợ", description: "Chỉ chấp nhận file .xlsx" });
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,7 +159,7 @@ export function ImportExcelModal({
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      alert("Không thể tải file mẫu");
+      showDialog({ title: "Lỗi", description: "Không thể tải file mẫu" });
     }
   };
 
@@ -171,10 +174,13 @@ export function ImportExcelModal({
 
       const res = await quizServices.importQuestionsFromExcel(quizId, formData);
 
-      alert(res.message || "Import thành công");
+      showDialog({ title: "Thành công", description: res.message || "Import thành công" });
       onSuccess();
     } catch (err: any) {
-      alert(err.response?.data?.message || "Import thất bại");
+      showDialog({
+        title: "Lỗi Import",
+        description: err.response?.data?.message || "Import thất bại"
+      });
     } finally {
       setIsImporting(false);
     }

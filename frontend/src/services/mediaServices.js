@@ -14,8 +14,22 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
 export const getMediaViewUrl = (path, bucket = null) => {
   if (!path) return "";
   
+  // Nếu đã là URL tuyệt đối (http/https), trả về luôn (tránh double-wrapping)
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    // Nếu là link proxy của chính mình, vẫn cần gắn token nếu chưa có
+    if (path.includes('/api/media/view') && !path.includes('token=')) {
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        return path.includes('?') ? `${path}&token=${token}` : `${path}?token=${token}`;
+      }
+    }
+    return path;
+  }
+  
   const encodedPath = encodeURIComponent(path);
   const bucketParam = bucket ? `&bucket=${bucket}` : "";
+  const token = localStorage.getItem('accessToken');
+  const tokenParam = token ? `&token=${token}` : "";
   
-  return `${API_BASE_URL}/media/view?path=${encodedPath}${bucketParam}`;
+  return `${API_BASE_URL}/media/view?path=${encodedPath}${bucketParam}${tokenParam}`;
 };
