@@ -27,8 +27,9 @@ export const uploadMediaFile = async (req, res, next) => {
     );
 
     // GHI NHẬN QUYỀN SỞ HỮU: Chỉ dành cho các file upload vào bucket chính (private)
-    if (type === 'quiz' && req.user?.userId) {
-      await mediaRepository.saveMediaAsset(filePath, req.user.userId);
+    if (type === 'quiz' && req.user?.id) {
+      await mediaRepository.saveMediaAsset(filePath, req.user.id);
+    }
     }
 
     let returnUrl = filePath;
