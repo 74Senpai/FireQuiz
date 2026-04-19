@@ -30,7 +30,6 @@ export const uploadMediaFile = async (req, res, next) => {
     if (type === 'quiz' && req.user?.id) {
       await mediaRepository.saveMediaAsset(filePath, req.user.id);
     }
-    }
 
     let returnUrl = filePath;
     if (type === 'avatar') {

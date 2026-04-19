@@ -73,7 +73,12 @@ export const protectedRoute = asyncHandler(async (req, res, next) => {
 
 export const getIdFromToken = asyncHandler(async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(" ")[1];
+  let token = authHeader && authHeader.split(" ")[1];
+
+  // Nếu không có trong header, thử lấy từ query param (dùng cho <img>, <video> tag)
+  if (!token && req.query.token) {
+    token = req.query.token;
+  }
 
   if (!token) {
     return next();

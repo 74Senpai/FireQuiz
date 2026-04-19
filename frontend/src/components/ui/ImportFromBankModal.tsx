@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { getMediaViewUrl } from "@/services/mediaServices";
 import * as bankService from "@/services/bankQuestionServices";
 import { FileAudio } from "lucide-react";
+import { useDialogStore } from "@/stores/dialogStore";
 
 const DIFFICULTIES = [
   { value: "easy",   label: "Dễ",        cls: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" },
@@ -85,22 +86,42 @@ export function ImportFromBankModal({ quizId, onClose, onSuccess }: Props) {
   const toggleAll = () =>
     setSelected(selected.size === questions.length ? new Set() : new Set(questions.map((q) => q.id)));
 
+  const { showDialog } = useDialogStore();
+
   const handleImport = async () => {
-    if (!selected.size) return alert("Vui lòng chọn ít nhất 1 câu hỏi");
+    if (!selected.size) {
+      return showDialog({ title: "Thông báo", description: "Vui lòng chọn ít nhất 1 câu hỏi" });
+    }
     setIsImporting(true);
     try {
       const { createdQuestionIds, skipped } = await bankService.importFromBank(quizId, [...selected]);
+      
       if (skipped > 0 && createdQuestionIds.length === 0) {
-        alert(`Tất cả ${skipped} câu hỏi đã tồn tại trong quiz, không có gì được thêm.`);
-        onClose();
+        showDialog({
+          title: "Thông báo kết quả",
+          description: `Tất cả ${skipped} câu hỏi đã tồn tại trong quiz, không có gì được thêm.`,
+          onConfirm: () => onClose()
+        });
         return;
       }
+
       if (skipped > 0) {
-        alert(`Đã thêm ${createdQuestionIds.length} câu hỏi. Bỏ qua ${skipped} câu đã tồn tại trong quiz.`);
+        showDialog({
+          title: "Import thành công",
+          description: `Đã thêm ${createdQuestionIds.length} câu hỏi. Bỏ qua ${skipped} câu đã tồn tại trong quiz.`
+        });
+      } else {
+        showDialog({
+          title: "Thành công",
+          description: `Đã thêm thành công ${createdQuestionIds.length} câu hỏi.`
+        });
       }
       onSuccess();
     } catch (e: any) {
-      alert(e.response?.data?.message || "Import thất bại!");
+      showDialog({
+        title: "Lỗi Import",
+        description: e.response?.data?.message || "Import thất bại!"
+      });
     } finally {
       setIsImporting(false);
     }

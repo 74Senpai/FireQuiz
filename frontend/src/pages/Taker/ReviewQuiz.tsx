@@ -23,6 +23,8 @@ import {
   exportAttemptReview,
 } from "@/services/attemptServices";
 import { cn } from "@/lib/utils";
+import { getMediaViewUrl } from "@/services/mediaServices";
+import { useDialogStore } from "@/stores/dialogStore";
 
 function formatDt(value: any) {
   if (!value) return "—";
@@ -104,6 +106,8 @@ export function ReviewQuiz() {
     };
   }, [attemptId]);
 
+  const { showDialog } = useDialogStore();
+
   const handleDownload = async (
     format: "pdf" | "excel",
     type: "review" | "paper" | "solutions" | "slip",
@@ -114,7 +118,11 @@ export function ReviewQuiz() {
       await exportAttemptReview(attemptId, format, type);
     } catch (err: any) {
       console.error("Download error:", err);
-      alert("Không thể tải xuống tài liệu. Vui lòng thử lại sau.");
+      showDialog({
+        title: "Lỗi tải xuống",
+        description: "Không thể tải xuống tài liệu. Vui lòng thử lại sau.",
+        type: "alert"
+      });
     }
   };
 
@@ -499,7 +507,7 @@ export function ReviewQuiz() {
                             onClick={() => setZoomedImage(question.media_url)}
                           >
                             <img
-                              src={question.media_url}
+                              src={getMediaViewUrl(question.media_url)}
                               className="w-full h-auto max-h-96 object-contain transition-transform duration-300 group-hover/media:scale-[1.02]"
                               alt="Question media"
                             />
@@ -513,7 +521,7 @@ export function ReviewQuiz() {
                         {(question.media_url.match(/\.(mp4|webm)/i) ||
                           question.media_url.includes("video")) && (
                           <video
-                            src={question.media_url}
+                            src={getMediaViewUrl(question.media_url)}
                             controls
                             className="w-full h-auto max-h-96"
                           />
@@ -523,7 +531,7 @@ export function ReviewQuiz() {
                           <div className="p-6 flex flex-col items-center gap-4">
                             <FileAudio className="w-10 h-10 text-indigo-400" />
                             <audio
-                              src={question.media_url}
+                              src={getMediaViewUrl(question.media_url)}
                               controls
                               className="w-full max-w-md"
                             />

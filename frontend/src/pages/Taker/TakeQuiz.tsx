@@ -6,6 +6,7 @@ import { Clock, AlertTriangle, CheckCircle2, Loader2, ChevronLeft, ChevronRight,
 import { motion, AnimatePresence } from "framer-motion";
 import * as attemptServices from "@/services/attemptServices";
 import * as draftService from "@/services/draftService";
+import { getMediaViewUrl } from "@/services/mediaServices";
 import { cn } from "@/lib/utils";
 import { useDialogStore } from "@/stores/dialogStore";
 
@@ -445,7 +446,7 @@ export function TakeQuiz() {
                             onClick={() => setZoomedImage(q.media_url)}
                           >
                             <img 
-                              src={q.media_url} 
+                              src={getMediaViewUrl(q.media_url)} 
                               className="w-full h-auto max-h-96 object-contain transition-transform duration-300 group-hover/media:scale-[1.02]" 
                               alt="Question media" 
                             />
@@ -457,12 +458,12 @@ export function TakeQuiz() {
                           </div>
                         )}
                         {(q.media_url.match(/\.(mp4|webm)/i) || q.media_url.includes('video')) && (
-                          <video src={q.media_url} controls className="w-full h-auto max-h-96" />
+                          <video src={getMediaViewUrl(q.media_url)} controls className="w-full h-auto max-h-96" />
                         )}
                         {(q.media_url.match(/\.(mp3|wav|ogg)/i) || q.media_url.includes('audio')) && (
                           <div className="p-6 flex flex-col items-center gap-4">
                             <FileAudio className="w-10 h-10 text-indigo-400" />
-                            <audio src={q.media_url} controls className="w-full max-w-md" />
+                            <audio src={getMediaViewUrl(q.media_url)} controls className="w-full max-w-md" />
                           </div>
                         )}
                       </div>

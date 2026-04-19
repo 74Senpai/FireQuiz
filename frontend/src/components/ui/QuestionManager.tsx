@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { ImportExcelModal } from "./ImportExcelModal";
 import { ImportFromBankModal } from "./ImportFromBankModal";
 import * as questionServices from "@/services/questionServices";
+import { useDialogStore } from "@/stores/dialogStore";
 
 // ─── Hằng số ─────────────────────────────────────────────────────────────────
 const MIN_OPTIONS = 3;
@@ -128,15 +129,23 @@ export function QuestionManager({ quizId }: { quizId: string }) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const { showDialog } = useDialogStore();
+
   // ── Xóa câu hỏi ─────────────────────────────────────────────────────────
   const handleDelete = async (questionId: number) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa câu hỏi này không?")) return;
-    try {
-      await questionServices.deleteQuestion(questionId);
-      setQuestions(questions.filter((q) => q.id !== questionId));
-    } catch {
-      alert("Xóa thất bại!");
-    }
+    showDialog({
+      title: "Xác nhận xóa",
+      description: "Bạn có chắc chắn muốn xóa câu hỏi này không?",
+      type: "confirm",
+      onConfirm: async () => {
+        try {
+          await questionServices.deleteQuestion(questionId);
+          setQuestions(questions.filter((q) => q.id !== questionId));
+        } catch {
+          showDialog({ title: "Lỗi", description: "Xóa thất bại!" });
+        }
+      }
+    });
   };
 
   // ── Thêm / xóa đáp án ────────────────────────────────────────────────────
@@ -190,7 +199,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
   // ── Lưu câu hỏi ─────────────────────────────────────────────────────────
   const handleSave = async () => {
     const err = validate();
-    if (err) return alert(err);
+    if (err) return showDialog({ title: "Thông báo", description: err });
 
     setIsLoading(true);
     try {
@@ -212,7 +221,10 @@ export function QuestionManager({ quizId }: { quizId: string }) {
       resetForm();
       fetchQuestions();
     } catch (error: any) {
-      alert(error.response?.data?.message || "Lỗi khi lưu");
+      showDialog({
+        title: "Lỗi lưu câu hỏi",
+        description: error.response?.data?.message || "Lỗi khi lưu"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -357,9 +369,10 @@ export function QuestionManager({ quizId }: { quizId: string }) {
 
                         // Check size (50MB)
                         if (file.size > 50 * 1024 * 1024) {
-                          return alert(
-                            "File quá lớn! Dung lượng tối đa là 50MB.",
-                          );
+                          return showDialog({ 
+                            title: "File quá lớn", 
+                            description: "Dung lượng tối đa là 50MB." 
+                          });
                         }
 
                         setIsUploading(true);
@@ -367,7 +380,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
                           const res = await uploadFile(file);
                           setMediaUrl(res.url);
                         } catch (err) {
-                          alert("Upload thất bại!");
+                          showDialog({ title: "Lỗi upload", description: "Upload thất bại!" });
                         } finally {
                           setIsUploading(false);
                         }
@@ -587,7 +600,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
                     {(q.media_url.match(/\.(jpeg|jpg|gif|png|webp)/i) ||
                       q.media_url.includes("image")) && (
                       <img
-                        src={q.media_url}
+                        src={getMediaViewUrl(q.media_url)}
                         className="w-full h-auto max-h-48 object-cover"
                         alt="Question media"
                       />
@@ -595,7 +608,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
                     {(q.media_url.match(/\.(mp4|webm)/i) ||
                       q.media_url.includes("video")) && (
                       <video
-                        src={q.media_url}
+                        src={getMediaViewUrl(q.media_url)}
                         className="w-full h-auto max-h-48"
                         preload="metadata"
                       />
@@ -605,7 +618,7 @@ export function QuestionManager({ quizId }: { quizId: string }) {
                       <div className="p-3 flex items-center gap-2">
                         <FileAudio className="w-4 h-4 text-indigo-400" />
                         <audio
-                          src={q.media_url}
+                          src={getMediaViewUrl(q.media_url)}
                           controls
                           className="h-8 max-w-full"
                         />

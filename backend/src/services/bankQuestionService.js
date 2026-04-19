@@ -75,7 +75,7 @@ export const getBankQuestions = async (user, filters) => {
   const answers = await bankQuestionRepository.findAnswersByQuestionIds(questions.map(q => q.id));
   const answerMap = buildAnswerMap(answers);
   const questionsWithAnswers = questions.map(q => ({ ...q, answers: answerMap.get(q.id) || [] }));
-return questionsWithAnswers;
+  return await mediaService.hydrateQuestions(questionsWithAnswers);
 };
 
 export const getBankQuestionById = async (user, id) => {
@@ -84,8 +84,8 @@ export const getBankQuestionById = async (user, id) => {
   if (question.creator_id !== user.id) throw new AppError('Bạn không có quyền xem câu hỏi này', 403);
 
   const answers = await bankQuestionRepository.findAnswersByQuestionIds([id]);
-  const answers = await bankQuestionRepository.findAnswersByQuestionIds([id]);
-  return { ...question, answers };
+  const [hydrated] = await mediaService.hydrateQuestions([{ ...question, answers }]);
+  return hydrated;
 };
 
 export const updateBankQuestion = async (user, id, { content, type, mediaUrl, difficulty, category, answers }) => {

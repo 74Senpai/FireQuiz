@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { uploadFile } from "@/services/uploadService";
 import { getMediaViewUrl } from "@/services/mediaServices";
 import * as bankService from "@/services/bankQuestionServices";
+import { useDialogStore } from "@/stores/dialogStore";
 
 // ─── Hằng số ─────────────────────────────────────────────────────────────────
 const QUESTION_TYPES = [
@@ -95,9 +96,11 @@ function BankQuestionForm({ editingQuestion, onSaved, onCancel }: FormProps) {
     return null;
   };
 
+  const { showDialog } = useDialogStore();
+
   const handleSave = async () => {
     const err = validate();
-    if (err) return alert(err);
+    if (err) return showDialog({ title: "Thiếu thông tin", description: err });
     setIsLoading(true);
     try {
       const payload = { content, type, difficulty, category: category || null, mediaUrl, answers };
@@ -108,7 +111,10 @@ function BankQuestionForm({ editingQuestion, onSaved, onCancel }: FormProps) {
       }
       onSaved();
     } catch (e: any) {
-      alert(e.response?.data?.message || "Lỗi khi lưu");
+      showDialog({ 
+        title: "Lỗi hệ thống", 
+        description: e.response?.data?.message || "Lỗi khi lưu" 
+      });
     } finally {
       setIsLoading(false);
     }
@@ -207,13 +213,15 @@ function BankQuestionForm({ editingQuestion, onSaved, onCancel }: FormProps) {
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    if (file.size > 50 * 1024 * 1024) return alert("File quá lớn! Tối đa 50MB.");
+                    if (file.size > 50 * 1024 * 1024) {
+                      return showDialog({ title: "File quá lớn", description: "Vui lòng chọn file dưới 50MB." });
+                    }
                     setIsUploading(true);
                     try {
                       const res = await uploadFile(file);
                       setMediaUrl(res.url);
                     } catch {
-                      alert("Upload thất bại!");
+                      showDialog({ title: "Lỗi upload", description: "Upload thất bại!" });
                     } finally {
                       setIsUploading(false);
                     }
@@ -350,14 +358,22 @@ export function QuestionBank() {
     return () => clearTimeout(t);
   }, [fetchQuestions]);
 
+  const { showDialog } = useDialogStore();
+
   const handleDelete = async (id: number) => {
-    if (!confirm("Xóa câu hỏi này khỏi ngân hàng?")) return;
-    try {
-      await bankService.deleteBankQuestion(id);
-      setQuestions((prev) => prev.filter((q) => q.id !== id));
-    } catch {
-      alert("Xóa thất bại!");
-    }
+    showDialog({
+      title: "Xác nhận xóa",
+      description: "Xóa câu hỏi này khỏi ngân hàng?",
+      type: "confirm",
+      onConfirm: async () => {
+        try {
+          await bankService.deleteBankQuestion(id);
+          setQuestions((prev) => prev.filter((q) => q.id !== id));
+        } catch {
+          showDialog({ title: "Lỗi", description: "Xóa thất bại!" });
+        }
+      }
+    });
   };
 
   const handleSaved = () => {
