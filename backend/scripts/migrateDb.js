@@ -47,7 +47,19 @@ const alterQueries = [
   );`,
   "CREATE INDEX IF NOT EXISTS idx_bank_answers_question ON bank_answers (bank_question_id);",
   "ALTER TABLE questions ADD COLUMN bank_question_id INT NULL;",
-  "ALTER TABLE questions ADD CONSTRAINT fk_question_bank FOREIGN KEY (bank_question_id) REFERENCES bank_questions(id) ON DELETE SET NULL;"
+  "ALTER TABLE questions ADD CONSTRAINT fk_question_bank FOREIGN KEY (bank_question_id) REFERENCES bank_questions(id) ON DELETE SET NULL;",
+  // --- Nâng cấp độ dài cho các cột URL và Content ---
+  "ALTER TABLE questions MODIFY COLUMN media_url TEXT;",
+  "ALTER TABLE quizzes MODIFY COLUMN thumbnail_url TEXT;",
+  "ALTER TABLE attempt_questions MODIFY COLUMN media_url TEXT;",
+  "ALTER TABLE bank_questions MODIFY COLUMN media_url TEXT;",
+  "ALTER TABLE users MODIFY COLUMN avatar_url TEXT;",
+  "ALTER TABLE questions MODIFY COLUMN content TEXT NOT NULL;",
+  "ALTER TABLE bank_questions MODIFY COLUMN content TEXT NOT NULL;",
+  "ALTER TABLE answers MODIFY COLUMN content TEXT NOT NULL;",
+  "ALTER TABLE bank_answers MODIFY COLUMN content TEXT NOT NULL;",
+  "ALTER TABLE attempt_questions MODIFY COLUMN content TEXT NOT NULL;",
+  "ALTER TABLE attempt_options MODIFY COLUMN content TEXT NOT NULL;"
 ];
 
 const migrate = async () => {
