@@ -27,7 +27,7 @@ export const ServerError: React.FC = () => {
 
         <div className="flex flex-col gap-4 sm:flex-row w-full">
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => window.history.back()}
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-8 py-3 font-semibold text-white transition-all hover:bg-indigo-500 hover:shadow-[0_0_20px_rgba(99,102,241,0.4)]"
           >
             <RefreshCw className="h-5 w-5" />
