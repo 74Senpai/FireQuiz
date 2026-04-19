@@ -30,6 +30,11 @@ const Profile = lazy(() => import("../pages/Profile").then(m => ({ default: m.Pr
 const PublicExplore = lazy(() => import("../pages/PublicExplore").then(m => ({ default: m.PublicExplore })));
 const MediaViewer = lazy(() => import("../pages/MediaViewer").then(m => ({ default: m.MediaViewer })));
 
+// Error Pages
+const NotFound = lazy(() => import("../pages/Errors/NotFound").then(m => ({ default: m.NotFound })));
+const Forbidden = lazy(() => import("../pages/Errors/Forbidden").then(m => ({ default: m.Forbidden })));
+const ServerError = lazy(() => import("../pages/Errors/ServerError").then(m => ({ default: m.ServerError })));
+
 // Loading Component để tránh nháy giật trắng màn hình khi Lazy Load các chunk file
 const GlobalLoader = () => (
   <div className="flex h-[100vh] w-full items-center justify-center bg-transparent">
@@ -74,6 +79,12 @@ export default function AppRouter() {
             <Route path="attempt/:attemptId/review" element={<ReviewQuiz />} />
           </Route>
         </Route>
+
+        {/* Error Routes */}
+        <Route path="/403" element={<Forbidden />} />
+        <Route path="/500" element={<ServerError />} />
+        <Route path="/404" element={<NotFound />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
     </>
