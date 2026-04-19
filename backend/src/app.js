@@ -11,6 +11,7 @@ import attemptRoute from './routes/attemptRoute.js';
 import uploadRoute from './routes/uploadRoute.js';
 import mediaRoute from './routes/mediaRoutes.js';
 import bankQuestionRoute from './routes/bankQuestionRoute.js';
+import statusRoute from './routes/statusRoute.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import cookieParser from 'cookie-parser';
 import { protectedRoute } from './middlewares/authMiddleware.js';
@@ -52,7 +53,11 @@ async function startServer() {
   }
 }
 
+// Render health-check — pings GET / to verify the service is alive
+app.get('/', (req, res) => res.status(200).json({ status: 'ok' }));
+
 // public route
+app.use('/api/status', statusRoute);
 app.use('/api/auth', authRoute);
 app.use('/api/quiz', quizRoute);
 app.use('/api/question', questionRoute);
