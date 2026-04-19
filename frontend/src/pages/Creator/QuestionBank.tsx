@@ -502,7 +502,7 @@ export function QuestionBank() {
                       <img src={getMediaViewUrl(q.media_url)} className="w-full h-auto max-h-48 object-cover" alt="" />
                     )}
                     {q.media_url.match(/\.(mp4|webm)/i) && (
-                      <video src={getMediaViewUrl(q.media_url)} className="w-full max-h-48" preload="metadata" />
+<video src={getMediaViewUrl(q.media_url)} controls className="w-full max-h-48" preload="metadata" />
                     )}
                     {q.media_url.match(/\.(mp3|wav|ogg)/i) && (
                       <div className="p-3 flex items-center gap-2">
