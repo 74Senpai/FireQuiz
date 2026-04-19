@@ -3,7 +3,7 @@
  * Chú thích (FE): Quản lý các logic liên quan đến hiển thị và xử lý media từ Backend.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_BASE_URL = process.env.API_URL || 'http://localhost:8080/api';
 
 /**
  * Lấy URL trỏ trực tiếp tới tài nguyên media trên Backend.

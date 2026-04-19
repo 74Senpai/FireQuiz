@@ -115,6 +115,9 @@ export const isImageUrl = (url) => {
 export const getMediaViewUrl = (path, bucket) => {
   // Lấy đường dẫn gốc của Frontend từ .env, fallback về localhost
   const frontEndUrl = process.env.FRONT_END_URL || 'http://localhost:3000';
+  if (!process.env.FRONT_END_URL && process.env.NODE_ENV === 'production') {
+    console.warn('[ExportUtils] FRONT_END_URL is not defined! QR codes and hyperlinks will default to localhost and fail in production.');
+  }
   
   // Nếu path đã là URL tuyệt đối, chúng ta nên bóc tách lấy phần path nếu nó là link của chính mình
   let cleanPath = path;

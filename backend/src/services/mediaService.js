@@ -15,6 +15,9 @@ const getProxyUrl = (path) => {
   if (!path) return null;
   
   const baseUrl = process.env.BACKEND_URL || 'http://localhost:8080';
+  if (!process.env.BACKEND_URL && process.env.NODE_ENV === 'production') {
+    console.warn('[MediaService] BACKEND_URL is not defined! Media proxy links will default to localhost and fail in production.');
+  }
   return `${baseUrl}/api/media/view?path=${encodeURIComponent(path)}`;
 };
 
