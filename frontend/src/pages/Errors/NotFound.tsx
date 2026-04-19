@@ -26,17 +26,17 @@ export const NotFound: React.FC = () => {
           Trang bạn đang tìm kiếm không tồn tại hoặc đã bị di chuyển đi nơi khác.
         </p>
 
-        <div className="flex flex-col gap-4 sm:flex-row">
+        <div className="flex flex-col gap-4 sm:flex-row w-full">
           <Link
             to="/"
-            className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-8 py-3 font-semibold text-white transition-all hover:bg-indigo-500 hover:shadow-[0_0_20px_rgba(99,102,241,0.4)]"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-8 py-3 font-semibold text-white transition-all hover:bg-indigo-500 hover:shadow-[0_0_20px_rgba(99,102,241,0.4)]"
           >
             <Home className="h-5 w-5" />
             Về trang chủ
           </Link>
           <button
             onClick={() => window.history.back()}
-            className="flex items-center justify-center gap-2 rounded-xl bg-white/5 px-8 py-3 font-semibold text-white border border-white/10 transition-all hover:bg-white/10"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white/5 px-8 py-3 font-semibold text-white border border-white/10 transition-all hover:bg-white/10"
           >
             Quay lại
           </button>
