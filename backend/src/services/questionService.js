@@ -98,22 +98,20 @@ export const createQuestion = async (user, data) => {
 };
 
 export const getListQuestionByQuizId = async (quizId, user) => {
-  const quiz = await getQuizById(quizId);
+  const quiz = await quizRepository.getQuizById(quizId);
   if (!quiz) throw new AppError('Quiz không tồn tại', 404);
-
-  const isOwner = user && user.id === quiz.creator_id;
-  if (!isOwner && quiz.status === 'DRAFT') throw new AppError('Không có quyền', 403);
+  
+  if (quiz.creator_id !== user.id) throw new AppError('Bạn không có quyền xem câu hỏi của bộ câu hỏi này', 403);
 
   const questions = await questionRepository.getListQuestionByQuizId(quizId);
+  if (!questions || !questions.length) return [];
 
-  const answers = await answerRepository.getAnswersByQuestionIds(
-    questions.map(q => q.id),
-  );
+  const answers = await answerRepository.getAnswersByQuestionIds(questions.map(q => q.id));
   const answersByQuestionId = buildAnswersByQuestionIdMap(answers);
 
   const questionsWithAnswers = questions.map(q => ({
     ...q,
-    answers: answersByQuestionId.get(q.id) || [],
+    answers: answersByQuestionId.get(q.id) || []
   }));
 
   return await mediaService.hydrateQuestions(questionsWithAnswers);
@@ -216,14 +214,18 @@ const checkQuizAccess = (quiz, user) => {
   }
 };
 
-export const getQuestionById = async (questionId, user) => {
-  const question = await questionRepository.findQuestionById(questionId);
-  if (!question) throw new AppError('Question không tồn tại', 404);
+export const getQuestionById = async (id, user) => {
+  const question = await questionRepository.getQuestionById(id);
+  if (!question) throw new AppError('Câu hỏi không tồn tại', 404);
 
-  const quiz = await getQuizById(question.quiz_id);
-  checkQuizAccess(quiz, user);
+  const quiz = await quizRepository.getQuizById(question.quiz_id);
+  if (quiz.creator_id !== user.id) {
+    throw new AppError('Bạn không có quyền xem câu hỏi này', 403);
+  }
+
+  const answers = await answerRepository.getAnswersByQuestionId(id);
+  question.answers = answers;
 
   const [hydrated] = await mediaService.hydrateQuestions([question]);
   return hydrated;
 };
-

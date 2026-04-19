@@ -9,27 +9,27 @@ const DEFAULT_EXPIRES = 3600;
 
 /**
  * Tạo URL Proxy Redirect để tránh lộ link thật và hỗ trợ link "vĩnh viễn" cho PDF/Excel.
+ * @param {string} path 
  */
 const getProxyUrl = (path) => {
   if (!path) return null;
+  
   const baseUrl = process.env.BACKEND_URL || 'http://localhost:8080';
   return `${baseUrl}/api/media/view?path=${encodeURIComponent(path)}`;
 };
 
 /**
- * Lấy Signed URL cho Quiz Thumbnail.
+ * Lấy Proxy URL cho Quiz Thumbnail.
  */
 export const getQuizThumbnailUrl = async (path) => {
   if (!path) return null;
-  return await getProxyUrl(path);
+  return getProxyUrl(path);
 };
 
 /**
- * Lấy Signed URL cho Question Media (ảnh/video/audio).
- * @param {string} path 
- * @param {number} expiresSeconds - Thời gian hết hạn (giây).
+ * Lấy Proxy URL cho Question Media (ảnh/video/audio).
  */
-export const getQuestionMediaUrl = async (path, expiresSeconds = DEFAULT_EXPIRES) => {
+export const getQuestionMediaUrl = async (path) => {
   if (!path) return null;
   return getProxyUrl(path);
 };
@@ -64,16 +64,13 @@ export const hydrateQuizzes = async (quizzes) => {
 
 /**
  * Gắn URL vào danh sách Questions.
- * @param {Array} questions 
- * @param {number} expiresSeconds 
  */
-export const hydrateQuestions = async (questions, expiresSeconds = DEFAULT_EXPIRES) => {
+export const hydrateQuestions = async (questions) => {
   if (!questions || !questions.length) return questions;
   const promises = questions.map(async (q) => {
     if (q.media_url) {
-      q.media_url = await getQuestionMediaUrl(q.media_url, expiresSeconds);
+      q.media_url = await getQuestionMediaUrl(q.media_url);
     }
-    // Hỗ trợ cả snapshot trong attempt_questions nếu có cột media_url
     return q;
   });
   return await Promise.all(promises);

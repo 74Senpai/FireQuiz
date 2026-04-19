@@ -218,7 +218,7 @@ const generateAttemptSnapshot = async (quiz, userId) => {
     }
 
     const expiresSeconds = (quiz.time_limit_seconds || 3600) + 300;
-    const hydratedQuestions = await mediaService.hydrateQuestions(questionsData, expiresSeconds);
+    const hydratedQuestions = await mediaService.hydrateQuestions(questionsData);
 
     await conn.commit();
     return {
@@ -328,7 +328,7 @@ export const startAttempt = async (quizId, userId) => {
     }
 
     const expiresSeconds = (quiz.time_limit_seconds || 3600) + 300;
-    const hydratedQuestions = await mediaService.hydrateQuestions(hydratedData.questions, expiresSeconds);
+    const hydratedQuestions = await mediaService.hydrateQuestions(hydratedData.questions);
 
     return {
       quizTitle: activeAttempt.quiz_title,

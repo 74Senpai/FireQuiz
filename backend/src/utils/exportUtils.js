@@ -97,15 +97,38 @@ export const generateQRCodeBuffer = async (text) => {
  */
 export const isImageUrl = (url) => {
   if (!url) return false;
+  
+  if (url.includes('/api/media/view')) {
+    const urlObj = new URL(url, 'http://dummy.com');
+    const pathParam = urlObj.searchParams.get('path');
+    if (pathParam) {
+      return /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(pathParam.split('?')[0]);
+    }
+  }
+
   return /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(url.split('?')[0]);
 };
 
 /**
- * Lấy link Redirect cho media.
+ * Lấy link Redirect cho media (trỏ về Frontend viewer).
  */
 export const getMediaViewUrl = (path, bucket) => {
+  // Lấy đường dẫn gốc của Frontend từ .env, fallback về localhost
   const frontEndUrl = process.env.FRONT_END_URL || 'http://localhost:3000';
-  const encodedPath = encodeURIComponent(path);
+  
+  // Nếu path đã là URL tuyệt đối, chúng ta nên bóc tách lấy phần path nếu nó là link của chính mình
+  let cleanPath = path;
+  if (path && (path.startsWith('http://') || path.startsWith('https://'))) {
+    try {
+      const url = new URL(path);
+      const p = url.searchParams.get('path');
+      if (p) cleanPath = p;
+    } catch (e) {
+      // Giữ nguyên if không parse được
+    }
+  }
+
+  const encodedPath = encodeURIComponent(cleanPath);
   return `${frontEndUrl}/view-media?path=${encodedPath}${bucket ? `&bucket=${bucket}` : ''}`;
 };
 
