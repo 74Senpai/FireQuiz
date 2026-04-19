@@ -84,8 +84,8 @@ export const getBankQuestionById = async (user, id) => {
   if (question.creator_id !== user.id) throw new AppError('Bạn không có quyền xem câu hỏi này', 403);
 
   const answers = await bankQuestionRepository.findAnswersByQuestionIds([id]);
-  const [hydrated] = await mediaService.hydrateQuestions([{ ...question, answers }]);
-  return hydrated;
+  const answers = await bankQuestionRepository.findAnswersByQuestionIds([id]);
+  return { ...question, answers };
 };
 
 export const updateBankQuestion = async (user, id, { content, type, mediaUrl, difficulty, category, answers }) => {
