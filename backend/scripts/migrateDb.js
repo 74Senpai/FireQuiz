@@ -59,7 +59,15 @@ const alterQueries = [
   "ALTER TABLE answers MODIFY COLUMN content TEXT NOT NULL;",
   "ALTER TABLE bank_answers MODIFY COLUMN content TEXT NOT NULL;",
   "ALTER TABLE attempt_questions MODIFY COLUMN content TEXT NOT NULL;",
-  "ALTER TABLE attempt_options MODIFY COLUMN content TEXT NOT NULL;"
+  "ALTER TABLE attempt_options MODIFY COLUMN content TEXT NOT NULL;",
+  `CREATE TABLE IF NOT EXISTS media_assets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    file_path TEXT NOT NULL,
+    user_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_media_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );`,
+  "CREATE UNIQUE INDEX IF NOT EXISTS idx_media_assets_path ON media_assets (file_path(255));"
 ];
 
 const migrate = async () => {

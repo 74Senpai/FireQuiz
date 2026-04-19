@@ -1,4 +1,5 @@
 import { uploadFileToSupabase, getPublicUrl } from '../services/supabaseService.js';
+import * as mediaRepository from '../repositories/mediaRepository.js';
 import AppError from '../errors/AppError.js';
 
 export const uploadMediaFile = async (req, res, next) => {
@@ -24,6 +25,11 @@ export const uploadMediaFile = async (req, res, next) => {
       file.mimetype,
       bucket
     );
+
+    // GHI NHẬN QUYỀN SỞ HỮU: Chỉ dành cho các file upload vào bucket chính (private)
+    if (type === 'quiz' && req.user?.id) {
+      await mediaRepository.saveMediaAsset(filePath, req.user.id);
+    }
 
     let returnUrl = filePath;
     if (type === 'avatar') {

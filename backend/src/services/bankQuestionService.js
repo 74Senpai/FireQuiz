@@ -4,6 +4,7 @@ import * as answerRepository from '../repositories/answerRepository.js';
 import { getQuizById } from '../repositories/quizRepository.js';
 import pool from '../db/db.js';
 import AppError from '../errors/AppError.js';
+import * as mediaService from './mediaService.js';
 
 const ALLOWED_TYPES = ['ANANSWER', 'MULTI_ANSWERS', 'TRUE_FALSE', 'TEXT'];
 const ALLOWED_DIFFICULTIES = ['easy', 'medium', 'hard'];
@@ -73,7 +74,8 @@ export const getBankQuestions = async (user, filters) => {
   const questions = await bankQuestionRepository.findAll({ ...filters, creatorId: user.id });
   const answers = await bankQuestionRepository.findAnswersByQuestionIds(questions.map(q => q.id));
   const answerMap = buildAnswerMap(answers);
-  return questions.map(q => ({ ...q, answers: answerMap.get(q.id) || [] }));
+  const questionsWithAnswers = questions.map(q => ({ ...q, answers: answerMap.get(q.id) || [] }));
+  return await mediaService.hydrateQuestions(questionsWithAnswers);
 };
 
 export const getBankQuestionById = async (user, id) => {
@@ -82,7 +84,8 @@ export const getBankQuestionById = async (user, id) => {
   if (question.creator_id !== user.id) throw new AppError('Bạn không có quyền xem câu hỏi này', 403);
 
   const answers = await bankQuestionRepository.findAnswersByQuestionIds([id]);
-  return { ...question, answers };
+  const [hydrated] = await mediaService.hydrateQuestions([{ ...question, answers }]);
+  return hydrated;
 };
 
 export const updateBankQuestion = async (user, id, { content, type, mediaUrl, difficulty, category, answers }) => {

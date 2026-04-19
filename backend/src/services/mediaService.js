@@ -8,11 +8,20 @@ import * as supabaseService from './supabaseService.js';
 const DEFAULT_EXPIRES = 3600;
 
 /**
+ * Tạo URL Proxy Redirect để tránh lộ link thật và hỗ trợ link "vĩnh viễn" cho PDF/Excel.
+ */
+const getProxyUrl = (path) => {
+  if (!path) return null;
+  const baseUrl = process.env.BACKEND_URL || 'http://localhost:8080';
+  return `${baseUrl}/api/media/view?path=${encodeURIComponent(path)}`;
+};
+
+/**
  * Lấy Signed URL cho Quiz Thumbnail.
  */
 export const getQuizThumbnailUrl = async (path) => {
   if (!path) return null;
-  return await supabaseService.createSignedUrl(path, DEFAULT_EXPIRES);
+  return await getProxyUrl(path);
 };
 
 /**
@@ -22,7 +31,7 @@ export const getQuizThumbnailUrl = async (path) => {
  */
 export const getQuestionMediaUrl = async (path, expiresSeconds = DEFAULT_EXPIRES) => {
   if (!path) return null;
-  return await supabaseService.createSignedUrl(path, expiresSeconds);
+  return getProxyUrl(path);
 };
 
 /**

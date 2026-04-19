@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { X, Eye, Clock, Calendar, Users, FileText, Loader2, FileAudio } from "lucide-react";
 import * as quizService from "@/services/quizServices";
+import { getMediaViewUrl } from "@/services/mediaServices";
 
 type PreviewAnswer = {
   id: number;
@@ -223,15 +224,15 @@ export function QuizPreviewModal({ open, quizId, onClose }: QuizPreviewModalProp
                         {question.media_url && (
                           <div className="mt-4 rounded-xl overflow-hidden border border-white/10 bg-black/20 max-w-2xl mx-auto">
                             {(question.media_url.match(/\.(jpeg|jpg|gif|png|webp)/i) || question.media_url.includes('image')) && (
-                              <img src={question.media_url} className="w-full h-auto max-h-96 object-contain" alt="Question media" />
+                              <img src={getMediaViewUrl(question.media_url)} className="w-full h-auto max-h-96 object-contain" alt="Question media" />
                             )}
                             {(question.media_url.match(/\.(mp4|webm)/i) || question.media_url.includes('video')) && (
-                              <video src={question.media_url} controls className="w-full h-auto max-h-96" />
+                              <video src={getMediaViewUrl(question.media_url)} controls className="w-full h-auto max-h-96" />
                             )}
                             {(question.media_url.match(/\.(mp3|wav|ogg)/i) || question.media_url.includes('audio')) && (
                               <div className="p-8 flex flex-col items-center gap-4">
                                 <FileAudio className="w-12 h-12 text-indigo-400" />
-                                <audio src={question.media_url} controls className="w-full max-w-md" />
+                                <audio src={getMediaViewUrl(question.media_url)} controls className="w-full max-w-md" />
                               </div>
                             )}
                           </div>

@@ -8,7 +8,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { uploadFile } from "@/services/uploadService";
+import { getMediaViewUrl } from "@/services/mediaServices";
 import * as bankService from "@/services/bankQuestionServices";
+import { useDialogStore } from "@/stores/dialogStore";
 
 // ─── Hằng số ─────────────────────────────────────────────────────────────────
 const QUESTION_TYPES = [
@@ -94,9 +96,11 @@ function BankQuestionForm({ editingQuestion, onSaved, onCancel }: FormProps) {
     return null;
   };
 
+  const { showDialog } = useDialogStore();
+
   const handleSave = async () => {
     const err = validate();
-    if (err) return alert(err);
+    if (err) return showDialog({ title: "Thiếu thông tin", description: err });
     setIsLoading(true);
     try {
       const payload = { content, type, difficulty, category: category || null, mediaUrl, answers };
@@ -107,7 +111,10 @@ function BankQuestionForm({ editingQuestion, onSaved, onCancel }: FormProps) {
       }
       onSaved();
     } catch (e: any) {
-      alert(e.response?.data?.message || "Lỗi khi lưu");
+      showDialog({ 
+        title: "Lỗi hệ thống", 
+        description: e.response?.data?.message || "Lỗi khi lưu" 
+      });
     } finally {
       setIsLoading(false);
     }
@@ -206,13 +213,15 @@ function BankQuestionForm({ editingQuestion, onSaved, onCancel }: FormProps) {
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    if (file.size > 50 * 1024 * 1024) return alert("File quá lớn! Tối đa 50MB.");
+                    if (file.size > 50 * 1024 * 1024) {
+                      return showDialog({ title: "File quá lớn", description: "Vui lòng chọn file dưới 50MB." });
+                    }
                     setIsUploading(true);
                     try {
                       const res = await uploadFile(file);
                       setMediaUrl(res.url);
                     } catch {
-                      alert("Upload thất bại!");
+                      showDialog({ title: "Lỗi upload", description: "Upload thất bại!" });
                     } finally {
                       setIsUploading(false);
                     }
@@ -229,15 +238,15 @@ function BankQuestionForm({ editingQuestion, onSaved, onCancel }: FormProps) {
         ) : (
           <div className="rounded-lg overflow-hidden border border-white/10 bg-black/20">
             {mediaUrl?.match(/\.(jpeg|jpg|gif|png|webp)/i) && (
-              <img src={mediaUrl} className="max-h-48 mx-auto object-contain" alt="Preview" />
+              <img src={getMediaViewUrl(mediaUrl)} className="max-h-48 mx-auto object-contain" alt="Preview" />
             )}
             {mediaUrl?.match(/\.(mp4|webm)/i) && (
-              <video src={mediaUrl} controls className="max-h-48 mx-auto" />
+              <video src={getMediaViewUrl(mediaUrl)} controls className="max-h-48 mx-auto" />
             )}
             {mediaUrl?.match(/\.(mp3|wav|ogg)/i) && (
               <div className="p-6 flex flex-col items-center gap-3">
                 <FileAudio className="w-10 h-10 text-indigo-400" />
-                <audio src={mediaUrl} controls className="w-full max-w-sm" />
+                <audio src={getMediaViewUrl(mediaUrl)} controls className="w-full max-w-sm" />
               </div>
             )}
           </div>
@@ -349,14 +358,22 @@ export function QuestionBank() {
     return () => clearTimeout(t);
   }, [fetchQuestions]);
 
+  const { showDialog } = useDialogStore();
+
   const handleDelete = async (id: number) => {
-    if (!confirm("Xóa câu hỏi này khỏi ngân hàng?")) return;
-    try {
-      await bankService.deleteBankQuestion(id);
-      setQuestions((prev) => prev.filter((q) => q.id !== id));
-    } catch {
-      alert("Xóa thất bại!");
-    }
+    showDialog({
+      title: "Xác nhận xóa",
+      description: "Xóa câu hỏi này khỏi ngân hàng?",
+      type: "confirm",
+      onConfirm: async () => {
+        try {
+          await bankService.deleteBankQuestion(id);
+          setQuestions((prev) => prev.filter((q) => q.id !== id));
+        } catch {
+          showDialog({ title: "Lỗi", description: "Xóa thất bại!" });
+        }
+      }
+    });
   };
 
   const handleSaved = () => {
@@ -498,15 +515,15 @@ export function QuestionBank() {
                 {q.media_url && (
                   <div className="mt-3 rounded-lg overflow-hidden border border-white/5 bg-black/10 max-w-xs">
                     {q.media_url.match(/\.(jpeg|jpg|gif|png|webp)/i) && (
-                      <img src={q.media_url} className="w-full h-auto max-h-48 object-cover" alt="" />
+                      <img src={getMediaViewUrl(q.media_url)} className="w-full h-auto max-h-48 object-cover" alt="" />
                     )}
                     {q.media_url.match(/\.(mp4|webm)/i) && (
-                      <video src={q.media_url} className="w-full max-h-48" preload="metadata" />
+<video src={getMediaViewUrl(q.media_url)} controls className="w-full max-h-48" preload="metadata" />
                     )}
                     {q.media_url.match(/\.(mp3|wav|ogg)/i) && (
                       <div className="p-3 flex items-center gap-2">
                         <FileAudio className="w-4 h-4 text-indigo-400" />
-                        <audio src={q.media_url} controls className="h-8 max-w-full" />
+                        <audio src={getMediaViewUrl(q.media_url)} controls className="h-8 max-w-full" />
                       </div>
                     )}
                   </div>
