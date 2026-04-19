@@ -128,6 +128,16 @@ export const writeExcelQuestionContent = async (workbook, worksheet, questions, 
         worksheet.addImage(imageId, { tl: { col: 0, row: currentRow - 1 }, ext: { width: 300, height: 200 } });
         currentRow += 12;
       } catch (e) {}
+    } else if (q.media_url) {
+      // Nếu không phải ảnh (audio/video), thêm link trực tiếp
+      const redirectUrl = utils.getMediaViewUrl(q.media_url);
+      const linkRow = worksheet.getRow(currentRow++);
+      linkRow.getCell(1).value = {
+        text: "   [Mở nội dung đa phương tiện (Audio/Video)]",
+        hyperlink: redirectUrl,
+        tooltip: "Click để xem media"
+      };
+      linkRow.getCell(1).font = { color: { argb: 'FF2563EB' }, underline: true, bold: true };
     }
 
     if (q.type !== 'TEXT') {
@@ -182,7 +192,7 @@ export const writeInteractiveReview = (worksheet, questions) => {
       selection: isText ? "[Nhập câu trả lời]" : correctOptions,
       correct: correctOptions,
       result: isText ? "TỰ ĐÁNH GIÁ" : { formula: `IF(C${rowNumber}=D${rowNumber}, "ĐÚNG", "SAI")` },
-      explanation: q.explanation || "",
+      explanation: (q.media_url ? `[Link Media: ${utils.getMediaViewUrl(q.media_url)}]\n` : "") + (q.explanation || ""),
     };
 
     row.getCell("content").alignment = { wrapText: true, vertical: "top" };

@@ -203,4 +203,17 @@ CREATE INDEX idx_bank_answers_question ON bank_answers (bank_question_id);
 -- =========================
 ALTER TABLE questions
     ADD COLUMN bank_question_id INT NULL,
-    ADD CONSTRAINT fk_question_bank FOREIGN KEY (bank_question_id) REFERENCES bank_questions (id) ON DELETE SET NULL;
+    ADD CONSTRAINT fk_question_bank FOREIGN KEY (bank_question_id) REFERENCES bank_questions(id) ON DELETE SET NULL;
+
+-- =========================
+-- TABLE: media_assets
+-- =========================
+CREATE TABLE IF NOT EXISTS media_assets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    file_path TEXT NOT NULL,
+    user_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_media_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_media_assets_path ON media_assets (file_path(255));
