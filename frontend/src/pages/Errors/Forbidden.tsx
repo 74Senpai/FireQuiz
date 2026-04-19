@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldAlert, Home, Lock } from 'lucide-react';
+import { Home, Lock } from 'lucide-react';
 
 export const Forbidden: React.FC = () => {
   return (
