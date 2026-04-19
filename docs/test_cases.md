@@ -88,5 +88,34 @@ Tài liệu này cung cấp bộ kiểm thử toàn diện cho hệ thống Fire
 | UI01  | Responsive: Mobile View | Layout không bị vỡ, menu toggle hoạt động tốt        | Đúng   | pass   |
 | UI02  | Responsive: Tablet View | Giao diện hiển thị grid linh hoạt                    | Đúng   | pass   |
 | UI03  | Dark Mode support       | Màu sắc tương phản tốt khi chuyển chế độ tối         | Đúng   | pass   |
-| UI04  | Loading States          | Hiển thị Skeleton hoặc Spinner khi đang fetch data   | Đúng   | pass   |
+| UI04 | Loading States          | Hiển thị Skeleton hoặc Spinner khi đang fetch data   | Đúng   | pass   |
 | UI05  | Error Pages (404/500)   | Hiển thị giao diện báo lỗi thân thiện cho người dùng | Đúng   | pass   |
+
+## 8. API Endpoints Testing (ENDPOINT)
+
+| Method   | Endpoint                      | Mô tả                      | Kết quả mong đợi                   | Status |
+| :------- | :---------------------------- | :------------------------- | :--------------------------------- | :----- |
+| **POST** | `/api/auth/register`          | Đăng ký tài khoản mới      | Trả về 201 và thành công           | pass   |
+| **POST** | `/api/auth/login`             | Đăng nhập hệ thống         | Trả về 200 và JWT Token            | pass   |
+| **POST** | `/api/auth/send-signup-otp`   | Gửi mã OTP đăng ký         | Gửi email thành công               | pass   |
+| **POST** | `/api/auth/forgot-password`   | Yêu cầu khôi phục mật khẩu | Gửi mã OTP khôi phục thành công    | pass   |
+| **POST** | `/api/auth/verify-otp`        | Xác thực mã OTP            | OTP hợp lệ, trả về reset token     | pass   |
+| **POST** | `/api/auth/reset-password`    | Thiết lập mật khẩu mới     | Mật khẩu được cập nhật thành công  | pass   |
+| **PUT**  | `/api/auth/change-password`   | Đổi mật khẩu trong profile | Cập nhật pass thành công            | pass   |
+| **GET**  | `/api/user/me`                | Lấy thông tin cá nhân      | Trả về Profile JSON                | pass   |
+| **PUT**  | `/api/user/profile`           | Cập nhật thông tin User    | Profile được cập nhật trong DB     | pass   |
+| **PUT**  | `/api/user/avatar`            | Cập nhật ảnh đại diện      | URL ảnh được lưu thành công        | pass   |
+| **GET**  | `/api/quiz/myquiz`            | Lấy danh sách Quiz của tôi | Trả về mảng Array các Quiz         | pass   |
+| **POST** | `/api/quiz`                   | Tạo một bài Quiz mới       | Trả về 201 và ID Quiz              | pass   |
+| **GET**  | `/api/quiz/:id`               | Xem chi tiết 1 bài Quiz    | Trả về thông tin Quiz và câu hỏi   | pass   |
+| **PATCH**| `/api/quiz/:id/info`          | Sửa thông tin cơ bản Quiz  | Tên/Mô tả/Ảnh bìa được cập nhật    | pass   |
+| **PATCH**| `/api/quiz/:id/settings`      | Sửa cài đặt (Timer, Shuffle)| Cài đặt được lưu thành công        | pass   |
+| **PATCH**| `/api/quiz/:id/status`        | Chuyển trạng thái          | Quiz thay đổi visibility thành công| pass   |
+| **DELETE**| `/api/quiz/:id`              | Xóa bài Quiz               | Quiz bị xóa hoàn toàn khỏi DB      | pass   |
+| **GET**  | `/api/quiz/join/:code`        | Tham gia Quiz bằng PIN     | Trả về Quiz ID tương ứng PIN       | pass   |
+| **POST** | `/api/quiz/:id/generate-pin`  | Tạo mã PIN tham gia        | Trả về mã PIN 6 chữ số             | pass   |
+| **GET**  | `/api/attempts/my`            | Lấy lịch sử làm bài        | Trả về danh sách các lượt thi      | pass   |
+| **POST** | `/api/attempts/start/:quizId` | Bắt đầu làm bài            | Tạo mới lượt Attempt               | pass   |
+| **PATCH**| `/api/attempts/:id/submit`    | Nộp bài và chấm điểm       | Hệ thống tính điểm và khóa bài     | pass   |
+| **GET**  | `/api/attempts/:id/review`    | Xem lại chi tiết bài làm   | Hiển thị đáp án chọn và đáp án đúng| pass   |
+| **POST** | `/api/upload`                 | Tải lên hình ảnh           | Trả về Public URL của ảnh          | pass   |
