@@ -75,7 +75,7 @@ export const getBankQuestions = async (user, filters) => {
   const answers = await bankQuestionRepository.findAnswersByQuestionIds(questions.map(q => q.id));
   const answerMap = buildAnswerMap(answers);
   const questionsWithAnswers = questions.map(q => ({ ...q, answers: answerMap.get(q.id) || [] }));
-  return await mediaService.hydrateQuestions(questionsWithAnswers);
+return questionsWithAnswers;
 };
 
 export const getBankQuestionById = async (user, id) => {
