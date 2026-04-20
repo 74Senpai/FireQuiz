@@ -1,6 +1,6 @@
 import * as questionRepository from '../repositories/questionRepository.js';
 import * as answerRepository from '../repositories/answerRepository.js';
-import { getQuizById } from '../repositories/quizRepository.js';
+import * as quizRepository from '../repositories/quizRepository.js';
 import pool from '../db/db.js';
 import AppError from '../errors/AppError.js';
 import { deleteFileFromSupabase } from './supabaseService.js';
@@ -78,7 +78,7 @@ export const createQuestion = async (user, data) => {
 
   validateAnswers(type, answers);
 
-  const quiz = await getQuizById(quizId);
+  const quiz = await quizRepository.getQuizById(quizId);
   if (!quiz) throw new AppError('Quiz không tồn tại', 404);
   if (quiz.creator_id != user.id) throw new AppError('Bạn không có quyền thêm câu hỏi vào quiz này', 403);
 
@@ -121,7 +121,7 @@ const checkQuestionExistAndOwner = async (questionId, userId) => {
   const question = await questionRepository.findQuestionById(questionId);
   if (!question) throw new AppError('Câu hỏi không tồn tại', 404);
 
-  const quiz = await getQuizById(question.quiz_id);
+  const quiz = await quizRepository.getQuizById(question.quiz_id);
   if (!quiz) throw new AppError('Quiz liên kết không tồn tại', 404);
 
   if (quiz.creator_id != userId) {
